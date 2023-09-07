@@ -1,0 +1,53 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net7.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <SignAssembly>False</SignAssembly>
+        <Title>Brayns Shaper</Title>
+        <Authors>Brayns.it</Authors>
+        <Company>Brayns.it</Company>
+        <Copyright>Brayns.it</Copyright>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <FileVersion>1.0.30902.0</FileVersion>
+        <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+      <GenerateAssemblyInfo>True</GenerateAssemblyInfo>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+      <GenerateAssemblyInfo>True</GenerateAssemblyInfo>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <None Remove="Translation\it_IT.po" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <EmbeddedResource Include="Translation\it_IT.po" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Microsoft.Data.SqlClient" Version="5.1.1" />
+      <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Update="LICENSE">
+        <Pack>True</Pack>
+        <PackagePath>\</PackagePath>
+      </None>
+      <None Update="README.md">
+        <Pack>True</Pack>
+        <PackagePath>\</PackagePath>
+      </None>
+    </ItemGroup>
+
+</Project>

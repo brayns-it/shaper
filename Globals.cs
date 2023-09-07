@@ -1,0 +1,10 @@
+﻿global using static Brayns.Shaper.Classes.Commons;
+global using Functions = Brayns.Shaper.Classes.Functions;
+global using Fields = Brayns.Shaper.Fields;
+global using Brayns.Shaper.Objects;
+global using Error = Brayns.Shaper.Classes.Error;
+global using PublicAccess = Brayns.Shaper.Classes.PublicAccessAttribute;
+global using LoggedAccess = Brayns.Shaper.Classes.LoggedAccessAttribute;
+global using ApiMethod = Brayns.Shaper.Classes.ApiMethodAttribute;
+global using ApiAction = Brayns.Shaper.Classes.ApiAction;
+global using CurrentSession = Brayns.Shaper.Session;
