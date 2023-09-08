@@ -174,8 +174,10 @@ namespace Brayns.Shaper.Loader
                     pars.Add(parameters[p.Name!]!.ToObject(p.ParameterType));
                 else if (p.HasDefaultValue)
                     pars.Add(p.DefaultValue);
-                else
+                else if (Nullable.GetUnderlyingType(p.ParameterType) != null)
                     pars.Add(null);
+                else
+                    throw new Error(Label("Missing parameter '{0}' in method '{1}'"), p.Name!, method.Name);
             }
             return method.Invoke(_obj, pars.ToArray());
         }

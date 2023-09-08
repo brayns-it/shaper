@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Text.RegularExpressions;
 
 namespace Brayns.Shaper.Classes
 {
@@ -20,6 +16,22 @@ namespace Brayns.Shaper.Classes
                 return false;
 
             return o1!.Equals(o2);
+        }
+
+        public static string Increment(string value)
+        {
+            Regex re = new Regex("\\d+$");
+            Match ma = re.Match(value);
+            if (ma.Success)
+            {
+                int no = Convert.ToInt32(ma.Value);
+                no++;
+
+                string newNo = no.ToString().PadLeft(ma.Value.Length, '0');
+                if (newNo.Length == ma.Value.Length)
+                    return re.Replace(value, newNo);
+            }
+            throw new Error(Label("Cannot increment {0}"), value);
         }
     }
 }

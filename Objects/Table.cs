@@ -28,17 +28,17 @@ namespace Brayns.Shaper.Objects
         public FieldList TablePrimaryKey { get; init; } = new();
         public string TableSqlName { get; internal set; } = "";
 
-        internal Error GetPrimaryKeyModifyError(Field f)
+        internal Error ErrorPrimaryKeyModify(Field f)
         {
             return new Classes.Error(Label("Cannot modify primary key '{0}', use rename instead"), f.Caption);
         }
 
-        internal Error GetNoPrimaryKeyError()
+        internal Error ErrorNoPrimaryKey()
         {
             return new Classes.Error(Label("Table '{0}' has no primary key"), UnitCaption);
         }
 
-        internal Error GetConcurrencyError()
+        internal Error ErrorConcurrency()
         {
             return new Classes.Error(Label("Another user has modified table '{0}' try again"), UnitCaption);
         }
@@ -68,18 +68,6 @@ namespace Brayns.Shaper.Objects
         private int _currentRow = -1;
         private List<FieldFilter> _lastFilters = new List<FieldFilter>();
 
-        public Error ErrorNotFound
-        {
-            get
-            {
-                string flt = string.Join(", ", _lastFilters);
-                if (flt.Length == 0)
-                    return new Error(Error.E_RECORD_NOT_FOUND, Label("'{0}' not found"), UnitCaption);
-                else
-                    return new Error(Error.E_RECORD_NOT_FOUND, Label("'{0}' not found: {1}"), UnitCaption, flt);
-            }
-        }
-
         internal Database.Database? _database;
         internal Database.Database? TableDatabase
         {
@@ -98,6 +86,15 @@ namespace Brayns.Shaper.Objects
             UnitType = UnitType.TABLE;
             if (typeof(T) != GetType())
                 throw new Error(Label("Table type must be '{0}'"), GetType());
+        }
+
+        public Error ErrorNotFound()
+        {
+            string flt = string.Join(", ", _lastFilters);
+            if (flt.Length == 0)
+                return new Error(Error.E_RECORD_NOT_FOUND, Label("'{0}' not found"), UnitCaption);
+            else
+                return new Error(Error.E_RECORD_NOT_FOUND, Label("'{0}' not found: {1}"), UnitCaption, flt);
         }
 
         public override string UnitName
@@ -193,7 +190,7 @@ namespace Brayns.Shaper.Objects
         {
             foreach (Field f in UnitFields)
                 if ((!Functions.AreEquals(f.Value, f.XValue)) && (TablePrimaryKey.Contains(f)))
-                    throw GetPrimaryKeyModifyError(f);
+                    throw ErrorPrimaryKeyModify(f);
 
             if (runTrigger)
             {

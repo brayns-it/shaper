@@ -8,7 +8,7 @@ using Microsoft.Data.SqlClient;
 using System.Drawing;
 using System.Linq;
 using System.Reflection.Emit;
-using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
 
@@ -22,7 +22,7 @@ namespace Brayns.Shaper.Database
         public override void Compile(BaseTable table, bool onlyCheck)
         {
             if (table.TablePrimaryKey.Count == 0)
-                throw table.GetNoPrimaryKeyError();
+                throw table.ErrorNoPrimaryKey();
 
             ProcessTable(table, onlyCheck);
             ProcessPrimaryKey(table, onlyCheck);
@@ -550,7 +550,19 @@ namespace Brayns.Shaper.Database
             }
             else if (ff.Type == FilterType.Expression)
             {
-                throw new NotImplementedException();
+                List<object> vals = new List<object>();
+                string expr = ff.Tokenize(vals);
+
+                Regex re = new Regex("([<>=]+){(\\d)}");
+                expr = re.Replace(expr, m =>
+                {
+                    int n = pars.Count;
+                    int d = int.Parse(m.Groups[2].Value);
+                    pars.Add(ToSqlValue(ff.Field, vals[d]));
+                    return "[" + ff.Field.SqlName + "] " + m.Groups[1].Value + " @p" + n;
+                });
+
+                sql += expr;
             }
             return sql;
         }
@@ -791,7 +803,7 @@ namespace Brayns.Shaper.Database
 
             int a = Execute(sql, pars.ToArray());
             if (a != 1)
-                throw table.GetConcurrencyError();
+                throw table.ErrorConcurrency();
         }
 
         public override void DeleteAll(BaseTable table)
@@ -858,7 +870,7 @@ namespace Brayns.Shaper.Database
 
             int a = Execute(sql, pars.ToArray());
             if (a != 1)
-                throw table.GetConcurrencyError();
+                throw table.ErrorConcurrency();
 
             SetVersion(table);
         }
@@ -894,7 +906,7 @@ namespace Brayns.Shaper.Database
 
             int a = Execute(sql, pars.ToArray());
             if (a != 1)
-                throw table.GetConcurrencyError();
+                throw table.ErrorConcurrency();
 
             SetVersion(table);
         }

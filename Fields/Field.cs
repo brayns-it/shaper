@@ -1,4 +1,4 @@
-﻿using Brayns.Shaper.Objects;
+﻿using System.Text.RegularExpressions;
 
 namespace Brayns.Shaper.Fields
 {
@@ -95,6 +95,46 @@ namespace Brayns.Shaper.Fields
                 throw new NotImplementedException();
             }
         }
+
+        public string Tokenize(List<object> allValues)
+        {
+            string expr = Expression!;
+
+            // resolve between
+            Regex re = new Regex("([^.]+)(\\.\\.)([^.]+)");
+            expr = re.Replace(expr, m => m.Groups[0].Value + " " + m.Groups[1].Value + " " + m.Groups[2].Value);
+
+            // resolve values
+            allValues.AddRange(Values);
+
+            re = new Regex("[^|^&^(^)^\\s^>^<^=]+");
+            expr = re.Replace(expr, m =>
+            {
+                if (m.Value.StartsWith("{") && m.Value.EndsWith("}"))
+                    return m.Value;
+                else
+                {
+                    int n = allValues.Count;
+                    allValues.Add(m.Value);
+                    return "{" + n.ToString() + "}";
+                }
+            });
+
+            // assert operators for between
+            re = new Regex("({\\d})\\s*\\.\\.\\s*({\\d})");
+            expr = re.Replace(expr, m => ">= " + m.Groups[1] + " AND <= " + m.Groups[2]);
+
+            // assert operators
+            expr = " " + expr + " ";
+            re = new Regex("([^>^<^=])({\\d})");
+            expr = re.Replace(expr, m => m.Groups[1] + "=" + m.Groups[2]);
+
+            // resolve logical
+            expr = expr.Replace("&", " AND ");
+            expr = expr.Replace("|", " OR ");
+
+            return expr;
+        }
     }
 
     public abstract class Field
@@ -163,6 +203,19 @@ namespace Brayns.Shaper.Fields
             Validating?.Invoke();
         }
 
+        public void SetFilter<T>(string expression, params T[] pars)
+        {
+            SetRange();
+
+            var ff = new FieldFilter(this);
+            ff.Type = FilterType.Expression;
+            ff.Level = Table!.TableFilterLevel;
+            ff.Expression = expression;
+            foreach (T v in pars)
+                ff.Values.Add(v!);
+            Filters.Add(ff);
+        }
+
         public void SetRange<T>(T minValue, T maxValue)
         {
             SetRange();
@@ -199,6 +252,18 @@ namespace Brayns.Shaper.Fields
             }
             foreach (FieldFilter ff in toDelete)
                 Filters.Remove(ff);
+        }
+
+        public void Test()
+        {
+            if (Functions.AreEquals(Value, TestValue))
+                throw new Error(Label("Field {0} is empty"), Caption);
+        }
+
+        public void Test<T>(T valueToTest)
+        {
+            if (!Functions.AreEquals(Value, valueToTest))
+                throw new Error(Label("Field {0} must be equal to {1}"), Caption, valueToTest!);
         }
     }
 }
