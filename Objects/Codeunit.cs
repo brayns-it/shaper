@@ -6,7 +6,7 @@ namespace Brayns.Shaper.Objects
     {
         public Codeunit()
         {
-            UnitType = UnitType.CODEUNIT;
+            UnitType = UnitTypes.CODEUNIT;
         }
     }
 }

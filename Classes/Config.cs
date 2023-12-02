@@ -8,12 +8,11 @@ namespace Brayns.Shaper.Classes
 {
     public class Config
     {
-        public Database.DatabaseType DatabaseType { get; set; }
+        public bool Ready { get; set; }
+        public int? DatabaseType { get; set; }
         public string? DatabaseConnection { get; set; }
         public string? DatabaseLogin { get; set; }
         public string? DatabasePassword { get; set; }
-        public string? AppsAssemblyName { get; set; }
-        public string? CopyAppsFromPath { get; set; }
 
         public bool EncryptPlainPasswords()
         {

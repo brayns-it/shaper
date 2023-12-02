@@ -64,7 +64,7 @@ namespace Brayns.Shaper.Objects
         public static event TableTriggerHandler<T>? Deleting;
         public static event TableRenameHandler<T>? Renaming;
 
-        private List<Dictionary<string, object>>? _dataset;
+        private List<Dictionary<string, object>> _dataset = new();
         private int _currentRow = -1;
         private List<FieldFilter> _lastFilters = new List<FieldFilter>();
 
@@ -83,7 +83,7 @@ namespace Brayns.Shaper.Objects
 
         public Table()
         {
-            UnitType = UnitType.TABLE;
+            UnitType = UnitTypes.TABLE;
             if (typeof(T) != GetType())
                 throw new Error(Label("Table type must be '{0}'"), GetType());
         }

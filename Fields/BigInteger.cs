@@ -25,7 +25,7 @@
 
         public BigInteger(string name, string caption)
         {
-            Type = FieldType.BIGINTEGER;
+            Type = FieldTypes.BIGINTEGER;
             Name = name;
             Caption = caption;
             Value = 0;
@@ -37,6 +37,12 @@
             HasFormat = true;
 
             Create();
+        }
+
+        internal override object? Evaluate(string text)
+        {
+            if (text.Length == 0) return 0;
+            return long.Parse(text);
         }
 
         internal override object? CheckValue(object? value)

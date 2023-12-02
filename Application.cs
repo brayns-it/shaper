@@ -8,6 +8,9 @@ using System.Runtime.Loader;
 
 namespace Brayns.Shaper
 {
+    public delegate void WebBuilderCreatedHandler(WebApplicationBuilder builder);
+    public delegate void WebApplicationBuiltHandler(WebApplicationBuilder builder, WebApplication app);
+
     public static class Application
     {
         private static readonly object _lockLog = new();
@@ -19,6 +22,9 @@ namespace Brayns.Shaper
         public static Config Config { get; internal set; } = new Config();
         internal static SystemModule? SystemModule { get; set; }
         internal static ILogger? Logger { get; set; }
+
+        public static event WebBuilderCreatedHandler? WebBuilderCreated;
+        public static event WebApplicationBuiltHandler? WebApplicationBuilt;
 
         private static void InitializeFromWebRoot(string rootPath)
         {
@@ -38,13 +44,16 @@ namespace Brayns.Shaper
             if (!di.Exists)
                 di.Create();
 
-            di = new DirectoryInfo(RootPath + "apps");
+            di = new DirectoryInfo(RootPath + "var/apps");
             if (!di.Exists)
                 di.Create();
 
             Loader.Loader.LoadConfig();
             Loader.Loader.LoadAppsFromRoot();
             Initialize();
+
+            WebDispatcher.Initialize();
+            InMaintenance = false;
         }
 
         public static void InitializeFromDomain()
@@ -55,8 +64,6 @@ namespace Brayns.Shaper
 
         private static void Initialize()
         {
-            Loader.Loader.LoadTranslations();
-
             Session.Start();
 
             Loader.Loader.SyncSchema(false);
@@ -66,36 +73,30 @@ namespace Brayns.Shaper
 
             Session.Stop();
         }
-
-        public static void StartWebApplication(string[] args)
+        
+        public static void InitializeShaper(this WebApplicationBuilder builder)
         {
-            var builder = WebApplication.CreateBuilder(args);
-            var app = builder.Build();
-
-            if (app.Environment.IsDevelopment())
-                Logger = app.Logger;
-
             try
             {
                 InitializeFromWebRoot(builder.Environment.ContentRootPath);
-                WebDispatcher.Initialize();
-
-                InMaintenance = false;
+                WebBuilderCreated?.Invoke(builder);
             }
             catch (Exception ex)
             {
                 LogException("initroot", ex);
             }
+        }
+
+        public static void MapShaperApi(this WebApplication app)
+        {
+            if (app.Environment.IsDevelopment())
+                Logger = app.Logger;
 
             // rest entry point
             app.MapMethods("/api/{**path}", new string[] { "GET", "POST", "PUT", "DELETE" }, WebDispatcher.DispatchApi);
 
             // client entry point
             app.MapPost("/rpc", WebDispatcher.DispatchRpc);
-            
-            app.UseDefaultFiles();
-            app.UseStaticFiles();
-            app.Run();
         }
 
         public static void LogException(string context, Exception ex)

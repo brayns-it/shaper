@@ -25,7 +25,7 @@
 
         public Integer(string name, string caption)
         {
-            Type = FieldType.INTEGER;
+            Type = FieldTypes.INTEGER;
             Name = name;
             Caption = caption;
             Value = 0;
@@ -42,6 +42,11 @@
         internal override object? CheckValue(object? value)
         {
             return (int)value!;
+        }
+
+        internal override object? Evaluate(string text)
+        {
+            return int.Parse(text);
         }
 
         internal override string Format(object? value)

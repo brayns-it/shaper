@@ -4,7 +4,7 @@
     {
         public Time(string name, string caption) : base(name, caption)
         {
-            Type = FieldType.TIME;
+            Type = FieldTypes.TIME;
         }
 
         internal override string Format(object? value)
@@ -14,6 +14,11 @@
                 return "";
             else
                 return val.ToString("T", Session.CultureInfo);
+        }
+
+        internal override object? Evaluate(string text)
+        {
+            throw new NotImplementedException();
         }
     }
 }

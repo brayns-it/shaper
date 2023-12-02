@@ -3,16 +3,24 @@ using System.Reflection;
 
 namespace Brayns.Shaper.Objects
 {
-    public class UnitType : Option<UnitType>
+    public class UnitTypes
     {
-        public static readonly UnitType NONE = New(0);
-        public static readonly UnitType TABLE = New(1, "Table");
-        public static readonly UnitType CODEUNIT = New(2, "Codeunit");
+        public const int NONE = 0;
+
+        [Label("Table")]
+        public const int TABLE = 1;
+
+        [Label("Codeunit")]
+        public const int CODEUNIT = 2;
+
+        [Label("Page")]
+        public const int PAGE = 4;
     }
 
     public abstract class Unit
     {
-        public UnitType UnitType { get; protected set; }
+        public System.Guid UnitID { get; protected set; }
+        public Series<UnitTypes> UnitType { get; protected set; }
         public FieldList UnitFields { get; init; }
         public string UnitCaption { get; protected set; } = "";
 
@@ -29,8 +37,9 @@ namespace Brayns.Shaper.Objects
 
         public Unit()
         {
-            UnitType = UnitType.NONE;
+            UnitType = UnitTypes.NONE;
             UnitFields = new();
+            UnitID = System.Guid.NewGuid();
 
             foreach (PropertyInfo pi in GetType().GetProperties())
             {
@@ -43,6 +52,11 @@ namespace Brayns.Shaper.Objects
                     UnitFields.Add(f);
                 }
             }
+        }
+
+        internal void SessionRegister()
+        {
+            CurrentSession.Values["object:" + UnitID.ToString()] = this;
         }
     }
 }

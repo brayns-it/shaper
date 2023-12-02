@@ -26,7 +26,7 @@
 
         public Text(string name, string caption, int length)
         {
-            Type = FieldType.TEXT;
+            Type = FieldTypes.TEXT;
             Name = name;
             Caption = caption;
             Length = length;
@@ -51,6 +51,11 @@
         internal override string Format(object? value)
         {
             return (string)value!;
+        }
+
+        internal override object? Evaluate(string text)
+        {
+            return text;
         }
 
         public void Validate(string value)

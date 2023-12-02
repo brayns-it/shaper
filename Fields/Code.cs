@@ -4,7 +4,7 @@
     {
         public Code(string name, string caption, int length) : base(name, caption, length)
         {
-            Type = FieldType.CODE;
+            Type = FieldTypes.CODE;
         }
 
         internal override object? CheckValue(object? value)
@@ -13,6 +13,11 @@
             val = val.Trim();
             val = val.ToUpper();
             return base.CheckValue(val);
+        }
+
+        internal override object? Evaluate(string text)
+        {
+            return text;
         }
     }
 }

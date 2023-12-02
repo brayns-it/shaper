@@ -22,6 +22,11 @@ namespace Brayns.Shaper.Classes
     {
     }
 
+    [AttributeUsage(AttributeTargets.Class)]
+    public class PublishedAttribute : Attribute
+    {
+    }
+
     [AttributeUsage(AttributeTargets.Method)]
     public class PublicAccessAttribute : Attribute
     {
@@ -48,6 +53,17 @@ namespace Brayns.Shaper.Classes
         public string Route { get; init; } = "";
         public string BodyParam { get; init; } = "";
         public string ResultName { get; init; } = "";
+    }
+
+    [AttributeUsage(AttributeTargets.All)]
+    public class LabelAttribute : Attribute
+    {
+        public string Label { get; private set; }
+
+        public LabelAttribute(string label)
+        {
+            Label = label;
+        }
     }
 
     public abstract class AppModule

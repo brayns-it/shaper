@@ -22,7 +22,7 @@
 
         public DateTime(string name, string caption)
         {
-            Type = FieldType.DATETIME;
+            Type = FieldTypes.DATETIME;
             Name = name;
             Caption = caption;
             Value = System.DateTime.MinValue;
@@ -46,6 +46,11 @@
                 return "";
             else
                 return val.ToString("G", Session.CultureInfo);
+        }
+
+        internal override object? Evaluate(string text)
+        {
+            throw new NotImplementedException();
         }
     }
 }

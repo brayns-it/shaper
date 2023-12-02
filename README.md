@@ -10,15 +10,23 @@ Azure for maximum reliability.
 Shaper is built to run on multiple platforms (Windows or Linux).
 
 # Requirements
-.NET Core and ASP.NET Core at least version 7.0
-(https://dotnet.microsoft.com/en-us/download/dotnet)
+.NET Core and ASP.NET Core latest version
+[https://dotnet.microsoft.com/en-us/download/dotnet](https://dotnet.microsoft.com/en-us/download/dotnet)
 
 Database:
  * Microsoft SQL Server
  * :soon: (other databases coming soon)
 
 # Documentation
-:soon: Knowledge base coming soon.
+View the online documentation [https://kb.brayns.it/shelves/shaper](https://kb.brayns.it/shelves/shaper)
+
+# License
+Shaper is an Open Source project provided in dual licensing mode:
+
+ * Free for educational purposes and non commercial use
+ * Paid for commercial use (monthly support)
+
+Contact us if you need a commercial license.
 
 # Credits
 Built with love :heart: in Italy by Brayns, an idea of Simone Giordano 

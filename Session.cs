@@ -9,18 +9,27 @@ using System.Threading.Tasks;
 
 namespace Brayns.Shaper
 {
-    public class SessionType : Option<SessionType>
+    public class SessionTypes 
     {
-        public static readonly SessionType CONSOLE = New(0, "Console");
-        public static readonly SessionType WEB = New(1, "Web");
-        public static readonly SessionType SYSTEM = New(2, "System");
-        public static readonly SessionType BATCH = New(3, "Batch");
-        public static readonly SessionType WEBCLIENT = New(4, "Web Client");
+        [Label("Console")]
+        public const int CONSOLE = 0;
+
+        [Label("Web")]
+        public const int WEB = 1;
+
+        [Label("System")]
+        public const int SYSTEM = 2;
+
+        [Label("Batch")]
+        public const int BATCH = 3;
+
+        [Label("Web Client")]
+        public const int WEBCLIENT = 4;
     }
 
     internal class SessionData
     {
-        internal SessionType Type { get; set; }
+        internal Series<SessionTypes> Type { get; set; }
         internal Database.Database? Database { get; set; }
         internal CultureInfo CultureInfo { get; set; }
         internal string UserId { get; set; }
@@ -35,7 +44,7 @@ namespace Brayns.Shaper
             UserId = "";
             Id = Guid.Empty;
             Address = "";
-            Type = SessionType.SYSTEM;
+            Type = SessionTypes.SYSTEM;
             Values = new Dictionary<string, object>();
         }
 
@@ -47,7 +56,7 @@ namespace Brayns.Shaper
 
     public class SessionArgs
     {
-        public SessionType? Type { get; set; }
+        public Series<SessionTypes>? Type { get; set; }
         public CultureInfo? CultureInfo { get; set; }
         public Guid? Id { get; set; }
         public string? Address { get; set; }
@@ -60,7 +69,7 @@ namespace Brayns.Shaper
         internal static Dictionary<Guid, SessionData> SessionData { get; } = new Dictionary<Guid, SessionData>();
         internal static Dictionary<int, SessionData> SessionMap { get; } = new Dictionary<int, SessionData>();
 
-        public static SessionType Type
+        public static Series<SessionTypes> Type
         {
             get { return Instance.Type; }
             internal set { Instance.Type = value; }
@@ -151,7 +160,7 @@ namespace Brayns.Shaper
 
         public static void SendToClient(object o, bool optional = false)
         {
-            if ((Instance.WebTask == null) || (Instance.Type != SessionType.WEBCLIENT))
+            if ((Instance.WebTask == null) || (Instance.Type != SessionTypes.WEBCLIENT))
             {
                 if (optional)
                     return;
@@ -164,7 +173,7 @@ namespace Brayns.Shaper
 
         public static void Stop(bool destroy = false, bool ignoreErrors = false)
         {
-            if (Id != Guid.Empty)
+            if ((Id != Guid.Empty) && (Database != null))
             {
                 try
                 {
@@ -243,19 +252,22 @@ namespace Brayns.Shaper
             if (arg?.CultureInfo != null) CultureInfo = arg.CultureInfo;
             if (arg?.WebTask != null) Instance.WebTask = arg.WebTask;
 
-            switch (Application.Config.DatabaseType)
+            switch(Application.Config.DatabaseType)
             {
-                case Brayns.Shaper.Database.DatabaseType.SqlServer:
+                case DatabaseTypes.SQLSERVER:
                     Database = new SqlServer();
                     break;
             }
 
-            Database?.Connect();
-
-            if (Id != Guid.Empty)
+            if (Database != null)
             {
-                Application.SystemModule?.SessionStart();
-                Commit();
+                Database.Connect();
+
+                if (Id != Guid.Empty)
+                {
+                    Application.SystemModule?.SessionStart();
+                    Commit();
+                }
             }
         }
     }

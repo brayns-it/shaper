@@ -2,21 +2,45 @@
 
 namespace Brayns.Shaper.Fields
 {
-    public class FieldType : Brayns.Shaper.Objects.Option<FieldType>
+    public class FieldTypes 
     {
-        public static readonly FieldType NONE = New(0);
-        public static readonly FieldType CODE = New(1, "Code");
-        public static readonly FieldType INTEGER = New(2, "Integer");
-        public static readonly FieldType OPTION = New(3, "Option");
-        public static readonly FieldType TEXT = New(4, "Text");
-        public static readonly FieldType BIGINTEGER = New(5, "Big Integer");
-        public static readonly FieldType DECIMAL = New(6, "Decimal");
-        public static readonly FieldType DATE = New(7, "Date");
-        public static readonly FieldType DATETIME = New(8, "DateTime");
-        public static readonly FieldType BOOLEAN = New(9, "Boolean");
-        public static readonly FieldType TIME = New(10, "Time");
-        public static readonly FieldType BLOB = New(11, "Blob");
-        public static readonly FieldType GUID = New(12, "Guid");
+        public const int NONE = 0;
+
+        [Label("Code")]
+        public const int CODE = 1;
+
+        [Label("Integer")]
+        public const int INTEGER = 2;
+
+        [Label("Option")]
+        public const int OPTION = 3;
+
+        [Label("Text")]
+        public const int TEXT = 4;
+
+        [Label("Big Integer")]
+        public const int BIGINTEGER = 5;
+
+        [Label("Decimal")]
+        public const int DECIMAL = 6;
+
+        [Label("Date")]
+        public const int DATE = 7;
+
+        [Label("DateTime")]
+        public const int DATETIME = 8;
+
+        [Label("Boolean")]
+        public const int BOOLEAN = 9;
+
+        [Label("Time")]
+        public const int TIME = 10;
+
+        [Label("Blob")]
+        public const int BLOB = 11;
+
+        [Label("Guid")]
+        public const int GUID = 12;
     }
 
     public class FieldList : List<Fields.Field>
@@ -139,7 +163,7 @@ namespace Brayns.Shaper.Fields
 
     public abstract class Field
     {
-        public FieldType Type { get; init; }
+        public Series<FieldTypes> Type { get; init; }
         public string Name { get; init; }
         public string Caption { get; init; }
         public string CodeName { get; internal set; }
@@ -174,7 +198,7 @@ namespace Brayns.Shaper.Fields
 
         public Field()
         {
-            Type = FieldType.NONE;
+            Type = FieldTypes.NONE;
             Name = "";
             Caption = "";
             CodeName = "";
@@ -190,11 +214,18 @@ namespace Brayns.Shaper.Fields
 
         internal abstract object? CheckValue(object? value);
         internal abstract string Format(object? value);
+        internal abstract object? Evaluate(string text);
 
         public void Init()
         {
             Value = InitValue;
             XValue = InitValue;
+        }
+
+        internal void Validate(object? value)
+        {
+            Value = value;
+            Validating?.Invoke();
         }
 
         public void Validate<T>(T value)

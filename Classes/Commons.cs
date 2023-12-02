@@ -4,12 +4,12 @@
     {
         public static void Commit()
         {
-            Session.Database!.Commit();
+            Session.Database?.Commit();
         }
 
         public static void Rollback()
         {
-            Session.Database!.Rollback();
+            Session.Database?.Rollback();
         }
 
         public static string Label(string text)

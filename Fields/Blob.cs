@@ -22,7 +22,7 @@
 
         public Blob(string name, string caption)
         {
-            Type = FieldType.BLOB;
+            Type = FieldTypes.BLOB;
             Name = name;
             Caption = caption;
             Value = null;
@@ -31,6 +31,11 @@
             TestValue = null;
 
             Create();
+        }
+
+        internal override object? Evaluate(string text)
+        {
+            throw new NotImplementedException();
         }
 
         internal override object? CheckValue(object? value)

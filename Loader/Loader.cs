@@ -15,104 +15,113 @@ namespace Brayns.Shaper.Loader
     internal static class Loader
     {
         private static AssemblyLoadContext? Context { get; set; }
-        internal static Assembly? AppAssembly { get; private set; }
+        private static List<Assembly> AppAssemblies { get; set; } = new();
+        private static List<Type> TableTypes { get; set; } = new();
+        private static List<Type> CodeunitTypes { get; set; } = new();
+        private static List<Type> ModuleTypes { get; set; } = new();
+        internal static Dictionary<string, Type> UnitTypes { get; private set; } = new();
         internal static Dictionary<Type, Dictionary<string, List<ITableRelation>>> RelationLinks { get; set; } = new();
         internal static Dictionary<string, Dictionary<string, Dictionary<string, string>>> Translations { get; set; } = new();
 
-        internal static void LoadTranslations()
+        private static void LoadTranslations(Assembly asm)
         {
-            Translations.Clear();
-
-            List<Assembly> asms = new();
-            if (AppAssembly != null) asms.Add(AppAssembly);
-            asms.Add(Assembly.GetExecutingAssembly());
-
-            foreach (var a in asms)
+            foreach (var n in asm.GetManifestResourceNames())
             {
-                foreach (var n in a.GetManifestResourceNames())
-                {
-                    var fn = n.ToLower();
-                    if (!fn.EndsWith(".po")) continue;
-                    int p = fn.LastIndexOf("translation.");
-                    if (p == -1) continue;
+                var fn = n.ToLower();
+                if (!fn.EndsWith(".po")) continue;
+                int p = fn.LastIndexOf("translation.");
+                if (p == -1) continue;
 
-                    var locale = fn.Substring(p + 12, fn.Length - p - 12 - 3);
-                    locale = locale.Replace("_", "-");
+                var locale = fn.Substring(p + 12, fn.Length - p - 12 - 3);
+                locale = locale.Replace("_", "-");
 
-                    Language.LoadTranslation(locale, a.GetManifestResourceStream(n)!);
-                }
+                Language.LoadTranslation(locale, asm.GetManifestResourceStream(n)!);
             }
         }
 
         private static void FinalizeLoadApps()
         {
             Application.SystemModule = null;
+            TableTypes.Clear();
+            CodeunitTypes.Clear();
+            ModuleTypes.Clear();
+            Translations.Clear();
+            UnitTypes.Clear();
 
-            if (AppAssembly == null)
-                return;
-
-            foreach (Type t in AppAssembly.GetExportedTypes())
+            foreach (Assembly asm in AppAssemblies)
             {
-                if (t.GetCustomAttributes(typeof(SystemModuleAttribute), true).Length > 0)
+                LoadTranslations(asm);
+
+                foreach (Type t in asm.GetExportedTypes())
                 {
-                    Application.SystemModule = (SystemModule)Activator.CreateInstance(t)!;
-                    break;
+                    // system module
+                    if ((Application.SystemModule == null) && HasAttribute<SystemModuleAttribute>(t))
+                        Application.SystemModule = (SystemModule)Activator.CreateInstance(t)!;
+
+                    // units
+                    if (typeof(Unit).IsAssignableFrom(t))
+                        UnitTypes.Add(t.FullName!, t);
+
+                    // tables
+                    if (typeof(BaseTable).IsAssignableFrom(t))
+                        TableTypes.Add(t);
+
+                    // codeunits
+                    if (typeof(Codeunit).IsAssignableFrom(t))
+                        CodeunitTypes.Add(t);
+
+                    // app modules
+                    if (HasAttribute<AppModuleAttribute>(t))
+                        ModuleTypes.Add(t);
                 }
             }
         }
 
         internal static void LoadAppsFromDomain()
         {
-            AppAssembly = null;
-
-            foreach (var a in AppDomain.CurrentDomain.GetAssemblies())
+            foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
             {
-                if (a.GetCustomAttributes(typeof(AppCollectionAttribute), true).Length > 0)
-                {
-                    AppAssembly = a;
-                    break;
-                }
+                if (HasAttribute<AppCollectionAttribute>(asm))
+                    AppAssemblies.Add(asm);
             }
 
-            if (AppAssembly == null)
-                throw new Error(Label("No App assembly has been found"));
-
             FinalizeLoadApps();
+        }
+
+        internal static bool HasAttribute<T>(Type typ) where T : Attribute
+        {
+            return typ.GetCustomAttributes(typeof(T), true).Length > 0;
+        }
+
+        internal static bool HasAttribute<T>(Assembly asm) where T : Attribute
+        {
+            return asm.GetCustomAttributes(typeof(T), true).Length > 0;
         }
 
         internal static void LoadAppsFromRoot()
         {
             if (Context != null)
-            {
                 Context.Unload();
-                Context = null;
+
+            AppAssemblies.Clear();
+            Context = new AssemblyLoadContext("Apps", true);
+
+            var di = new DirectoryInfo(Application.RootPath + "var/apps");
+            foreach (var fi in di.GetFiles("*.dll", SearchOption.AllDirectories))
+            {
+                var fs = new FileStream(fi.FullName, FileMode.Open, FileAccess.Read);
+                var asm = Context.LoadFromStream(fs);
+                fs.Close();
+
+                if (HasAttribute<AppCollectionAttribute>(asm))
+                    AppAssemblies.Add(asm);
             }
 
-            AppAssembly = null;
-
-            if (Application.Config.CopyAppsFromPath != null)
+            if (AppAssemblies.Count == 0)
             {
-                DirectoryInfo di = new DirectoryInfo(Application.Config.CopyAppsFromPath);
-                foreach (FileInfo fp in di.GetFiles())
-                {
-                    FileInfo fd = new(Application.RootPath + "apps/" + fp.Name);
-                    if ((!fd.Exists) || (fd.LastWriteTimeUtc != fp.LastWriteTimeUtc) || (fd.Length != fp.Length))
-                        fp.CopyTo(fd.FullName, true);
-                }
-            }
-
-            if (Application.Config.AppsAssemblyName != null)
-            {
-                FileInfo fi = new FileInfo(Application.RootPath + "apps/" + Application.Config.AppsAssemblyName);
-                if (fi.Exists)
-                {
-                    Context = new AssemblyLoadContext("Apps", true);
-                    Context.Resolving += Context_Resolving;
-
-                    FileStream fs = new FileStream(fi.FullName, FileMode.Open, FileAccess.Read);
-                    AppAssembly = Context.LoadFromStream(fs);
-                    fs.Close();
-                }
+                // fallback to domain
+                LoadAppsFromDomain();
+                return;
             }
 
             FinalizeLoadApps();
@@ -187,13 +196,8 @@ namespace Brayns.Shaper.Loader
         {
             Application.Routes.Clear();
 
-            if (AppAssembly == null)
-                return;
-
-            foreach (Type t in AppAssembly.GetExportedTypes())
+            foreach (Type t in CodeunitTypes)
             {
-                if (!typeof(Codeunit).IsAssignableFrom(t)) continue;
-
                 foreach (var m in t.GetMethods(BindingFlags.Instance | BindingFlags.Public))
                 {
                     var r = m.GetCustomAttribute<ApiMethodAttribute>(true);
@@ -228,17 +232,14 @@ namespace Brayns.Shaper.Loader
         {
             Application.Apps.Clear();
 
-            if (AppAssembly == null)
-                return;
-
-            foreach (Type t in AppAssembly.GetExportedTypes())
+            foreach (Type t in ModuleTypes)
             {
-                if (t.GetCustomAttributes(typeof(AppModuleAttribute), true).Length > 0)
-                {
-                    var a = (AppModule)Activator.CreateInstance(t)!;
-                    a.Install();
-                    Application.Apps.Add(a.Id, a);
+                var a = (AppModule)Activator.CreateInstance(t)!;
+                Application.Apps.Add(a.Id, a);
 
+                if (Session.Database != null)
+                {
+                    a.Install();
                     Commit();
                 }
             }
@@ -248,45 +249,33 @@ namespace Brayns.Shaper.Loader
         {
             RelationLinks.Clear();
 
-            if (AppAssembly == null)
-                return;
-
-            foreach (Type t in AppAssembly.GetExportedTypes())
+            foreach (Type t in TableTypes)
             {
-                if (typeof(BaseTable).IsAssignableFrom(t))
+                var tab = (BaseTable)Activator.CreateInstance(t)!;
+                foreach (ITableRelation tr in tab.TableRelations)
                 {
-                    var tab = (BaseTable)Activator.CreateInstance(t)!;
-                    foreach (ITableRelation tr in tab.TableRelations)
-                    {
-                        var f = tr.GetFieldForCollect();
+                    var f = tr.GetFieldForCollect();
 
-                        if (!RelationLinks.ContainsKey(f.Item1))
-                            RelationLinks.Add(f.Item1, new Dictionary<string, List<ITableRelation>>());
-                        if (!RelationLinks[f.Item1].ContainsKey(f.Item2))
-                            RelationLinks[f.Item1].Add(f.Item2, new List<ITableRelation>());
+                    if (!RelationLinks.ContainsKey(f.Item1))
+                        RelationLinks.Add(f.Item1, new Dictionary<string, List<ITableRelation>>());
+                    if (!RelationLinks[f.Item1].ContainsKey(f.Item2))
+                        RelationLinks[f.Item1].Add(f.Item2, new List<ITableRelation>());
 
-                        RelationLinks[f.Item1][f.Item2].Add(tr);
-                    }
+                    RelationLinks[f.Item1][f.Item2].Add(tr);
                 }
             }
         }
 
         internal static void SyncSchema(bool onlyCheck)
         {
-            if (Application.Config.DatabaseType == Database.DatabaseType.None)
+            if (Application.Config.DatabaseType == Database.DatabaseTypes.NONE)
                 return;
 
-            if (AppAssembly == null)
-                return;
-
-            foreach (Type t in AppAssembly.GetExportedTypes())
+            foreach (Type t in TableTypes)
             {
-                if (typeof(BaseTable).IsAssignableFrom(t))
-                {
-                    var tab = (BaseTable)Activator.CreateInstance(t)!;
-                    Session.Database!.Compile(tab, onlyCheck);
-                    Commit();
-                }
+                var tab = (BaseTable)Activator.CreateInstance(t)!;
+                Session.Database!.Compile(tab, onlyCheck);
+                Commit();
             }
         }
     }

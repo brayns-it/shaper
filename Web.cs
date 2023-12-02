@@ -14,18 +14,25 @@ namespace Brayns.Shaper
         public Thread? CurrentThread { get; private set; }
         public SemaphoreSlim? Semaphore { get; private set; }
         public string? TypeName { get; set; }
+        public string? ObjectId { get; set; }
         public string? MethodName { get; set; }
         public string? Route { get; set; }
         public ApiAction? ApiAction { get; set; }
         public JObject? Parameters { get; set; }
         public CultureInfo? CultureInfo { get; set; }
         public Guid SessionId { get; set; }
+        public Guid? AuthorizationId { get; set; }
         public string? Address { get; set; }
         public bool SessionOwner { get; set; } = true;
         public bool IsWebClient { get; set; } = false;
         public bool Finished { get; private set; } = false;
         public Exception? Exception { get; private set; }
         public bool IsApiRequest { get; set; } = false;
+
+        public WebTask()
+        {
+            SessionId = Guid.NewGuid();
+        }
 
         public void Execute()
         {
@@ -38,7 +45,10 @@ namespace Brayns.Shaper
         {
             lock (lockResults)
             {
-                Results.Add(JToken.FromObject(o).ToString(Newtonsoft.Json.Formatting.Indented));
+                var jo = JObject.FromObject(o);
+                jo["type"] = "send";
+
+                Results.Add(jo.ToString(Newtonsoft.Json.Formatting.Indented));
                 Results.Add(WebDispatcher.Boundary);
             }
             Semaphore!.Release(1);
@@ -65,7 +75,7 @@ namespace Brayns.Shaper
                     Id = SessionId,
                     Address = Address,
                     CultureInfo = CultureInfo,
-                    Type = IsWebClient ? SessionType.WEBCLIENT : SessionType.WEB,
+                    Type = IsWebClient ? SessionTypes.WEBCLIENT : SessionTypes.WEB,
                     WebTask = this
                 };
 
@@ -80,7 +90,10 @@ namespace Brayns.Shaper
                 }
                 else
                 {
-                    proxy = Proxy.CreateFromName(TypeName!);
+                    if (ObjectId != null)
+                        proxy = Proxy.CreateFromId(ObjectId!);
+                    else
+                        proxy = Proxy.CreateFromName(TypeName!);
                     res = proxy.Invoke(MethodName!, Parameters!);
                 }
 
@@ -114,7 +127,7 @@ namespace Brayns.Shaper
             }
             catch (Exception ex)
             {
-                if (ex.InnerException != null)
+                while (ex.InnerException != null)
                     ex = ex.InnerException;
 
                 Results.Add(WebDispatcher.ExceptionToJson(ex));
@@ -123,9 +136,6 @@ namespace Brayns.Shaper
 
             try
             {
-                if (Session.UserId.Length > 0)
-                    SessionOwner = false;
-
                 Session.Stop(SessionOwner, true);
             }
             catch (Exception)
@@ -245,25 +255,18 @@ namespace Brayns.Shaper
 
                 if (ctx.Request.Headers.ContainsKey("X-Rpc-WebClient") && (ctx.Request.Headers["X-Rpc-WebClient"] == "1"))
                     task.IsWebClient = true;
-                else
-                    task.IsWebClient = false;
 
-                if (ctx.Request.Headers.ContainsKey("X-Session-Id"))
+                if (ctx.Request.Headers.ContainsKey("X-Rpc-SessionId"))
                 {
-                    task.SessionId = Guid.Parse(ctx.Request.Headers["X-Session-Id"]!);
+                    task.SessionId = Guid.Parse(ctx.Request.Headers["X-Rpc-SessionId"]!);
                     task.SessionOwner = false;
                 }
-                else if (ctx.Request.Headers.ContainsKey("Authorization") && 
+
+                if (ctx.Request.Headers.ContainsKey("Authorization") && 
                     ctx.Request.Headers["Authorization"].ToString().StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
-                {
-                    task.SessionId = Guid.Parse(ctx.Request.Headers["Authorization"].ToString().Substring(7));
-                    task.SessionOwner = false;
-                }
-                else
-                {
-                    task.SessionId = Guid.NewGuid();
-                    task.SessionOwner = true;
-                }
+                    task.AuthorizationId = Guid.Parse(ctx.Request.Headers["Authorization"].ToString().Substring(7));
+                else if (ctx.Request.Cookies.ContainsKey("X-Authorization"))
+                    task.AuthorizationId = Guid.Parse(ctx.Request.Cookies["X-Authorization"]!);
 
                 JObject? body = null;
                 if (ctx.Request.ContentLength > 0)
@@ -305,7 +308,10 @@ namespace Brayns.Shaper
                     {
                         if (body!["type"]!.ToString() == "request")
                         {
-                            task.TypeName = body!["classname"]!.ToString();
+                            if (body!.ContainsKey("objectid"))
+                                task.ObjectId = body!["objectid"]!.ToString();
+                            else
+                                task.TypeName = body!["classname"]!.ToString();
                             task.MethodName = body!["method"]!.ToString();
                             task.Parameters = (JObject)body!["arguments"]!;
                         }

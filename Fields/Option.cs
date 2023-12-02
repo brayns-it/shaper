@@ -5,35 +5,35 @@
         public Type? OptionType { get; internal set; }
     }
 
-    public class Option<T> : Option where T : Brayns.Shaper.Objects.Option<T>
+    public class Option<T> : Option
     {
-        public new T Value
+        public new Series<T> Value
         {
-            get { return (T)_value!; }
+            get { return (Series<T>)_value!; }
             set { _value = CheckValue(value); }
         }
 
-        public new T XValue
+        public new Series<T> XValue
         {
-            get { return (T)_xValue!; }
+            get { return (Series<T>)_xValue!; }
             set { _xValue = CheckValue(value); }
         }
 
-        public new T InitValue
+        public new Series<T> InitValue
         {
-            get { return (T)_initValue!; }
+            get { return (Series<T>)_initValue!; }
             set { _initValue = CheckValue(value); }
         }
 
         public Option(string name, string caption)
         {
-            Type = FieldType.OPTION;
+            Type = FieldTypes.OPTION;
             Name = name;
             Caption = caption;
-            Value = Brayns.Shaper.Objects.Option.GetDefault<T>();
-            XValue = Brayns.Shaper.Objects.Option.GetDefault<T>();
-            InitValue = Brayns.Shaper.Objects.Option.GetDefault<T>();
-            TestValue = Brayns.Shaper.Objects.Option.GetDefault<T>();
+            Value = 0;
+            XValue = 0;
+            InitValue = 0;
+            TestValue = 0;
             OptionType = typeof(T);
 
             Create();
@@ -41,12 +41,31 @@
 
         internal override object? CheckValue(object? value)
         {
-            return (T)value!;
+            return (Series<T>)value!;
+        }
+
+        internal override object? Evaluate(string text)
+        {
+            text = text.Trim();
+
+            int i;
+            if (int.TryParse(text, out i))
+                return new Series<T>(i);
+            
+            foreach (int n in Value.Names.Keys)
+                if (Value.Names[n].ToLower() == text.ToLower())
+                    return new Series<T>(n);
+
+            foreach (int n in Value.Captions.Keys)
+                if (Value.Captions[n].ToLower() == text.ToLower())
+                    return new Series<T>(n);
+
+            throw new Error(Label("{0} does not represent a valid {1} type"), text, Value.Type!.Name);
         }
 
         internal override string Format(object? value)
         {
-            return ((T)value!).Caption;
+            return ((Series<T>)value!).Caption;
         }
 
         public void SetRange(T value)

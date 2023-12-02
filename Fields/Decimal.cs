@@ -25,7 +25,7 @@
 
         public Decimal(string name, string caption)
         {
-            Type = FieldType.DECIMAL;
+            Type = FieldTypes.DECIMAL;
             Name = name;
             Caption = caption;
             Value = 0;
@@ -56,6 +56,11 @@
                 else
                     return val.ToString("0." + "".PadRight(Decimals, '0'), Session.CultureInfo);
             }
+        }
+
+        internal override object? Evaluate(string text)
+        {
+            throw new NotImplementedException();
         }
     }
 }

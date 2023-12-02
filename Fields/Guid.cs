@@ -22,7 +22,7 @@
 
         public Guid(string name, string caption)
         {
-            Type = FieldType.GUID;
+            Type = FieldTypes.GUID;
             Name = name;
             Caption = caption;
             Value = System.Guid.Empty;
@@ -47,6 +47,11 @@
         public void Validate(System.Guid value)
         {
             Validate<System.Guid>(value);
+        }
+
+        internal override object? Evaluate(string text)
+        {
+            throw new NotImplementedException();
         }
     }
 }

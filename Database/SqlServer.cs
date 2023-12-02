@@ -48,7 +48,7 @@ namespace Brayns.Shaper.Database
         {
             string res = "";
 
-            if ((field.Type == FieldType.CODE) || (field.Type == FieldType.TEXT))
+            if ((field.Type == FieldTypes.CODE) || (field.Type == FieldTypes.TEXT))
             {
                 var f = (Fields.Text)field;
                 if (f.Length == Fields.Text.MAX_LENGTH)
@@ -56,41 +56,41 @@ namespace Brayns.Shaper.Database
                 else
                     res += "nvarchar(" + f.Length.ToString() + ") NOT NULL";
             }
-            else if (field.Type == FieldType.INTEGER)
+            else if (field.Type == FieldTypes.INTEGER)
             {
                 var f = (Fields.Integer)field;
                 res += "int";
                 if (f.AutoIncrement) res += " IDENTITY(1,1)";
                 res += " NOT NULL";
             }
-            else if (field.Type == FieldType.BIGINTEGER)
+            else if (field.Type == FieldTypes.BIGINTEGER)
             {
                 var f = (Fields.BigInteger)field;
                 res += "bigint";
                 if (f.AutoIncrement) res += " IDENTITY(1,1)";
                 res += " NOT NULL";
             }
-            else if (field.Type == FieldType.DECIMAL)
+            else if (field.Type == FieldTypes.DECIMAL)
             {
                 res += "decimal(38,20) NOT NULL";
             }
-            else if ((field.Type == FieldType.DATE) || (field.Type == FieldType.TIME) || (field.Type == FieldType.DATETIME))
+            else if ((field.Type == FieldTypes.DATE) || (field.Type == FieldTypes.TIME) || (field.Type == FieldTypes.DATETIME))
             {
                 res += "datetime NOT NULL";
             }
-            else if (field.Type == FieldType.OPTION)
+            else if (field.Type == FieldTypes.OPTION)
             {
                 res += "int NOT NULL";
             }
-            else if (field.Type == FieldType.BOOLEAN)
+            else if (field.Type == FieldTypes.BOOLEAN)
             {
                 res += "tinyint NOT NULL";
             }
-            else if (field.Type == FieldType.GUID)
+            else if (field.Type == FieldTypes.GUID)
             {
                 res += "uniqueidentifier NOT NULL";
             }
-            else if (field.Type == FieldType.BLOB)
+            else if (field.Type == FieldTypes.BLOB)
             {
                 res += "varbinary(max) NULL";
             }
@@ -206,7 +206,7 @@ namespace Brayns.Shaper.Database
 
                             if (!newDef.Equals(curDef, StringComparison.OrdinalIgnoreCase))
                             {
-                                if ((field.Type == FieldType.TEXT) || (field.Type == FieldType.CODE))
+                                if ((field.Type == FieldTypes.TEXT) || (field.Type == FieldTypes.CODE))
                                 {
                                     var f = (Fields.Text)field;
                                     if ((f.Length == Fields.Text.MAX_LENGTH) || (f.Length > (Convert.ToInt32(row["max_length"]) / 2)))
@@ -271,30 +271,30 @@ namespace Brayns.Shaper.Database
                     var sql = "ALTER TABLE [" + table.TableSqlName + "] ADD " +
                         "[" + field.SqlName + "] " + GetFieldType(field);
 
-                    if (field.Type != FieldType.BLOB)
+                    if (field.Type != FieldTypes.BLOB)
                     {
                         sql += " CONSTRAINT [" + field.SqlName + "$DEF] DEFAULT ";
 
-                        if ((field.Type == FieldType.CODE) || (field.Type == FieldType.TEXT))
+                        if ((field.Type == FieldTypes.CODE) || (field.Type == FieldTypes.TEXT))
                             sql += "''";
-                        else if ((field.Type == FieldType.INTEGER) || (field.Type == FieldType.BIGINTEGER))
+                        else if ((field.Type == FieldTypes.INTEGER) || (field.Type == FieldTypes.BIGINTEGER))
                             sql += "0";
-                        else if ((field.Type == FieldType.DECIMAL) || (field.Type == FieldType.BOOLEAN))
+                        else if ((field.Type == FieldTypes.DECIMAL) || (field.Type == FieldTypes.BOOLEAN))
                             sql += "0";
-                        else if (field.Type == FieldType.OPTION)
+                        else if (field.Type == FieldTypes.OPTION)
                             sql += "0";
-                        else if (field.Type == FieldType.GUID)
+                        else if (field.Type == FieldTypes.GUID)
                             sql += "'00000000-0000-0000-0000-000000000000'";
-                        else if ((field.Type == FieldType.DATE) || (field.Type == FieldType.DATETIME))
+                        else if ((field.Type == FieldTypes.DATE) || (field.Type == FieldTypes.DATETIME))
                             sql += "'17530101'";
-                        else if (field.Type == FieldType.TIME)
+                        else if (field.Type == FieldTypes.TIME)
                             sql += "'17530101'";
                     }
 
                     if (!onlyCheck)
                         Execute(sql);
 
-                    if (field.Type != FieldType.BLOB)
+                    if (field.Type != FieldTypes.BLOB)
                     {
                         sql = "ALTER TABLE [" + table.TableSqlName + "] " +
                             "DROP CONSTRAINT [" + field.SqlName + "$DEF]";
@@ -404,28 +404,25 @@ namespace Brayns.Shaper.Database
 
         private object? FromSqlValue(Field f, object value)
         {
-            if ((f.Type == FieldType.CODE) || (f.Type == FieldType.TEXT))
+            if ((f.Type == FieldTypes.CODE) || (f.Type == FieldTypes.TEXT))
                 return value;
 
-            if ((f.Type == FieldType.INTEGER) || (f.Type == FieldType.BIGINTEGER))
+            if ((f.Type == FieldTypes.INTEGER) || (f.Type == FieldTypes.BIGINTEGER))
                 return value;
 
-            if (f.Type == FieldType.DECIMAL) 
+            if (f.Type == FieldTypes.DECIMAL) 
                 return value;
 
-            if (f.Type == FieldType.GUID)
+            if (f.Type == FieldTypes.GUID)
                 return value;
 
-            if (f.Type == FieldType.OPTION)
-            {
-                var fo = (Brayns.Shaper.Fields.Option)f;
-                return Brayns.Shaper.Objects.Option.GetByValue(fo.OptionType!, Convert.ToInt32(value));
-            }
+            if (f.Type == FieldTypes.OPTION)
+                return value;
 
-            if (f.Type == FieldType.BOOLEAN)
+            if (f.Type == FieldTypes.BOOLEAN)
                 return Convert.ToInt32(value) == 1;
 
-            if (f.Type == FieldType.DATETIME)
+            if (f.Type == FieldTypes.DATETIME)
             {
                 var dt = (System.DateTime)value;
                 if (dt == new System.DateTime(1753, 1, 1))
@@ -434,7 +431,7 @@ namespace Brayns.Shaper.Database
                     return dt.ToLocalTime();
             }
 
-            if (f.Type == FieldType.DATE)
+            if (f.Type == FieldTypes.DATE)
             {
                 var dt = (System.DateTime)value;
                 if (dt == new System.DateTime(1753, 1, 1))
@@ -443,7 +440,7 @@ namespace Brayns.Shaper.Database
                     return new System.DateTime(dt.Year, dt.Month, dt.Day);
             }
 
-            if (f.Type == FieldType.TIME)
+            if (f.Type == FieldTypes.TIME)
             {
                 var dt = (System.DateTime)value;
                 if (dt == new System.DateTime(1753, 1, 1))
@@ -452,7 +449,7 @@ namespace Brayns.Shaper.Database
                     return new System.DateTime(1754, 1, 1, dt.Hour, dt.Minute, dt.Second);
             }
 
-            if (f.Type == FieldType.BLOB)
+            if (f.Type == FieldTypes.BLOB)
                 return (value == DBNull.Value) ? null : value;
 
             throw new Error(Label("Unknown field type '{0}'"), f.Type);
@@ -460,25 +457,25 @@ namespace Brayns.Shaper.Database
 
         private object ToSqlValue(Field f, object? value)
         {
-            if ((f.Type == FieldType.CODE) || (f.Type == FieldType.TEXT))
+            if ((f.Type == FieldTypes.CODE) || (f.Type == FieldTypes.TEXT))
                 return value!;
 
-            if ((f.Type == FieldType.INTEGER) || (f.Type == FieldType.BIGINTEGER))
+            if ((f.Type == FieldTypes.INTEGER) || (f.Type == FieldTypes.BIGINTEGER))
                 return value!;
 
-            if (f.Type == FieldType.DECIMAL) 
+            if (f.Type == FieldTypes.DECIMAL) 
                 return value!;
 
-            if (f.Type == FieldType.GUID)
+            if (f.Type == FieldTypes.GUID)
                 return value!;
 
-            if (f.Type == FieldType.OPTION)
-                return ((Brayns.Shaper.Objects.Option)value!).Value;
+            if (f.Type == FieldTypes.OPTION)
+                return ((Series)value!).Value;
 
-            if (f.Type == FieldType.BOOLEAN)
+            if (f.Type == FieldTypes.BOOLEAN)
                 return ((bool)value!) ? 1 : 0;
 
-            if (f.Type == FieldType.DATETIME)
+            if (f.Type == FieldTypes.DATETIME)
             {
                 var dt = (System.DateTime)value!;
                 if (dt == System.DateTime.MinValue)
@@ -487,7 +484,7 @@ namespace Brayns.Shaper.Database
                     return dt.ToUniversalTime();
             }
 
-            if (f.Type == FieldType.DATE)
+            if (f.Type == FieldTypes.DATE)
             {
                 var dt = (System.DateTime)value!;
                 if (dt == System.DateTime.MinValue)
@@ -496,7 +493,7 @@ namespace Brayns.Shaper.Database
                     return new System.DateTime(dt.Year, dt.Month, dt.Day);
             }
 
-            if (f.Type == FieldType.TIME)
+            if (f.Type == FieldTypes.TIME)
             {
                 var dt = (System.DateTime)value!;
                 if (dt == System.DateTime.MinValue)
@@ -505,7 +502,7 @@ namespace Brayns.Shaper.Database
                     return new System.DateTime(1754, 1, 1, dt.Hour, dt.Minute, dt.Second);
             }
 
-            if (f.Type == FieldType.BLOB)
+            if (f.Type == FieldTypes.BLOB)
                 return value ?? DBNull.Value;
 
             throw new Error(Label("Unknown field type '{0}'"), f.Type);
@@ -621,7 +618,7 @@ namespace Brayns.Shaper.Database
 
             foreach (Field field in table.UnitFields)
             {
-                if ((field.Type == FieldType.INTEGER) || (field.Type == FieldType.BIGINTEGER))
+                if ((field.Type == FieldTypes.INTEGER) || (field.Type == FieldTypes.BIGINTEGER))
                 {
                     var f = (Fields.IInteger)field;
                     if (f.AutoIncrement)

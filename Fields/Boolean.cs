@@ -22,7 +22,7 @@
 
         public Boolean(string name, string caption)
         {
-            Type = FieldType.BOOLEAN;
+            Type = FieldTypes.BOOLEAN;
             Name = name;
             Caption = caption;
             Value = false;
@@ -32,6 +32,18 @@
             HasFormat = true;
 
             Create();
+        }
+
+        internal override object? Evaluate(string text)
+        {
+            text = text.Trim();
+            if (text.Length == 0) return false;
+            if (text == Label("Yes")) return true;
+            if (text == "1") return true;
+            if (text == Label("No")) return true;
+            if (text == "0") return true;
+
+            throw new Error(Label("{0} does not represent a valid boolean type"), text);
         }
 
         internal override object? CheckValue(object? value)

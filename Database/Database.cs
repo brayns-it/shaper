@@ -6,10 +6,12 @@ using System.Threading.Tasks;
 
 namespace Brayns.Shaper.Database
 {
-    public enum DatabaseType
+    public class DatabaseTypes 
     {
-        None = 0,
-        SqlServer = 1
+        public const int NONE = 0;
+
+        [Label("SQL Server")]
+        public const int SQLSERVER = 1;
     }
 
     public abstract class Database
