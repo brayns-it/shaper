@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Brayns.Shaper.Classes;
 using Brayns.Shaper.Fields;
 using System;
@@ -147,37 +148,37 @@ namespace Brayns.Shaper.Loader
             if (fi.Exists) fi.Delete();
 
             StreamWriter sw = new StreamWriter(fi.FullName);
-            JsonSerializer ser = new JsonSerializer();
-            ser.Formatting = Formatting.Indented;
-            ser.Serialize(sw, Application.Config);
+            sw.Write(Application.Config.ToJson());
             sw.Close();
         }
 
         internal static void LoadConfig()
         {
+            Application.Config = new();
+
             FileInfo fi = new FileInfo(Application.RootPath + "var/config.json");
             if (fi.Exists)
             {
-                StreamReader sr = new StreamReader(fi.FullName);
-                var cfg = JsonConvert.DeserializeObject<Classes.Config>(sr.ReadToEnd());
-                sr.Close();
+                try
+                { 
+                    StreamReader sr = new StreamReader(fi.FullName);
+                    Application.Config = Config.FromJson(sr.ReadToEnd());
+                    sr.Close();
 
-                if (cfg == null)
-                    throw new Error(Label("Invalid configuration file"));
-                else
-                    Application.Config = cfg;
-
-                if (Application.Config.EncryptPlainPasswords())
                     SaveConfig();
+                }
+                catch (Exception ex)
+                {
+                    Application.LogException("loadconf", ex);
+                }
             }
             else
             {
-                Application.Config = new Classes.Config();
                 SaveConfig();
             }
         }
 
-        internal static List<ITableRelation> GetAllTableRelations(Field f)
+        internal static List<ITableRelation> GetAllTableRelations(BaseField f)
         {
             var res = new List<ITableRelation>();
 

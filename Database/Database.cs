@@ -27,7 +27,7 @@ namespace Brayns.Shaper.Database
         public abstract bool IsEmpty(BaseTable table);
         public abstract void Insert(BaseTable table);
         public abstract void Modify(BaseTable table);
-        public abstract void ModifyAll(BaseTable table, Fields.Field field);
+        public abstract void ModifyAll(BaseTable table, Fields.BaseField field);
         public abstract void Delete(BaseTable table);
         public abstract void DeleteAll(BaseTable table);
         public abstract void Rename(BaseTable table, object[] newPkValues);

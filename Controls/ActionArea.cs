@@ -8,7 +8,7 @@ namespace Brayns.Shaper.Controls
 {
     public class ActionArea : Control
     {
-        public ActionArea(Page page)
+        public ActionArea(BasePage page)
         {
             SetParent(page);
         }

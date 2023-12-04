@@ -2,7 +2,7 @@
 
 namespace Brayns.Shaper.Objects
 {
-    public abstract class Series
+    public abstract class Opt
     {
         public int Value { get; set; } = 0;
         public Type? Type { get; protected set; }
@@ -48,33 +48,33 @@ namespace Brayns.Shaper.Objects
         }
     }
 
-    public class Series<T> : Series
+    public class Opt<T> : Opt
     {
-        public Series(int value)
+        public Opt(int value)
         {
             Type = typeof(T);
             Value = value;
             GetNames();
         }
         
-        public static implicit operator int(Series<T> opt)
+        public static implicit operator int(Opt<T> opt)
         {
             return opt.Value;
         }
 
-        public static implicit operator Series<T>(int val)
+        public static implicit operator Opt<T>(int val)
         {
             return new(val);
         }
 
-        public static bool operator ==(Series<T>? a, Series<T>? b)
+        public static bool operator ==(Opt<T>? a, Opt<T>? b)
         {
             if ((a is null) && (b is null)) return true;
             if ((a is null) || (b is null)) return false;
             return (a!.Value == b!.Value);
         }
 
-        public static bool operator !=(Series<T>? a, Series<T>? b)
+        public static bool operator !=(Opt<T>? a, Opt<T>? b)
         {
             if ((a is null) && (b is null)) return false;
             if ((a is null) || (b is null)) return true;
@@ -84,8 +84,8 @@ namespace Brayns.Shaper.Objects
         public override bool Equals(object? obj)
         {
             if (obj == null) return false;
-            if (obj.GetType() != typeof(Series<T>)) return false;
-            return (Value == ((Series<T>)(obj)).Value);
+            if (obj.GetType() != typeof(Opt<T>)) return false;
+            return (Value == ((Opt<T>)(obj)).Value);
         }
 
         public override int GetHashCode()

@@ -195,7 +195,7 @@ namespace Brayns.Shaper.Loader
                 else
                     throw new Error(Label("Missing parameter '{0}' in method '{1}'"), p.Name!, method.Name);
             }
-                return method.Invoke(_obj, pars.ToArray());
+            return method.Invoke(_obj, pars.ToArray());
         }
     }
 }

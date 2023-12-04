@@ -2,7 +2,7 @@
 
 namespace Brayns.Shaper.Controls
 {
-    public delegate void ActionTriggerHandler(EventArgs e);
+    public delegate void ActionTriggerHandler();
 
     public class Action : Control
     {
@@ -34,7 +34,7 @@ namespace Brayns.Shaper.Controls
 
         internal void Trigger()
         {
-            Triggering?.Invoke(EventArgs.Empty);
+            Triggering?.Invoke();
         }
     }
 }

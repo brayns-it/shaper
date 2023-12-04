@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Brayns.Shaper.Objects
 {
-    public delegate Field TableRelationFieldHandler<T>(T table) where T : BaseTable;
+    public delegate BaseField TableRelationFieldHandler<T>(T table) where T : BaseTable;
     public delegate void TableRelationConditionHandler<U>(U table) where U : BaseTable;
     public delegate void TableRelationFilterHandler<T>(T table) where T : BaseTable;
 
@@ -24,7 +24,7 @@ namespace Brayns.Shaper.Objects
         public Type TableTo { get; private set; }
         public Type? TableFrom { get; private set; }
         public string FieldFrom { get; init; }
-        public Field FieldFromInstance { get; init; }
+        public BaseField FieldFromInstance { get; init; }
 
         public TableRelationFilterHandler<T>? FilterHandler { get; set; }
         public TableRelationFieldHandler<T>? FieldHandler { get; set; }
@@ -32,7 +32,7 @@ namespace Brayns.Shaper.Objects
         public (Type, string) GetFieldForCollect()
         {
             var t = (T)Activator.CreateInstance(TableTo)!;
-            Field f = t.TablePrimaryKey[0];
+            BaseField f = t.TablePrimaryKey[0];
 
             if (FieldHandler != null)
             {
@@ -52,7 +52,7 @@ namespace Brayns.Shaper.Objects
             return (typeof(T), f.SqlName.ToLower());
         }
 
-        public TableRelation(Field fieldFrom)
+        public TableRelation(BaseField fieldFrom)
         {
             FieldFromInstance = fieldFrom;
             FieldFrom = fieldFrom.SqlName.ToLower();
@@ -64,7 +64,7 @@ namespace Brayns.Shaper.Objects
 
         protected void ModifyAll(BaseTable t, object? oldValue, object? newValue)
         {
-            Field? field = null;
+            BaseField? field = null;
             foreach (var f in t.UnitFields)
             {
                 if (f.SqlName.ToLower() == FieldFrom)
@@ -101,7 +101,7 @@ namespace Brayns.Shaper.Objects
     {
         public TableRelationConditionHandler<U>? ConditionHandler { get; set; }
 
-        public TableRelation(Field fieldFrom) : base(fieldFrom)
+        public TableRelation(BaseField fieldFrom) : base(fieldFrom)
         {
             if (TableFrom != null)
                 if (TableFrom != typeof(U))

@@ -1,6 +1,8 @@
-﻿namespace Brayns.Shaper.Fields
+﻿using Newtonsoft.Json.Linq;
+
+namespace Brayns.Shaper.Fields
 {
-    public class BigInteger : Field, IInteger, INumeric
+    public class BigInteger : BaseField, IInteger, INumeric
     {
         public new long Value
         {
@@ -57,6 +59,11 @@
                 return "";
             else
                 return val.ToString();
+        }
+
+        internal override JValue Serialize(object? value)
+        {
+            return new JValue((long)value!);
         }
     }
 }

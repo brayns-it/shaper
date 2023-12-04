@@ -10,7 +10,7 @@ namespace Brayns.Shaper
     internal class WebTask
     {
         private object lockResults = new object();
-        private List<string> Results { get; set; } = new();
+        private List<object?> Results { get; set; } = new();
         public Thread? CurrentThread { get; private set; }
         public SemaphoreSlim? Semaphore { get; private set; }
         public string? TypeName { get; set; }
@@ -25,8 +25,6 @@ namespace Brayns.Shaper
         public string? Address { get; set; }
         public bool SessionOwner { get; set; } = true;
         public bool IsWebClient { get; set; } = false;
-        public bool Finished { get; private set; } = false;
-        public Exception? Exception { get; private set; }
         public bool IsApiRequest { get; set; } = false;
 
         public WebTask()
@@ -54,13 +52,13 @@ namespace Brayns.Shaper
             Semaphore!.Release(1);
         }
 
-        public async Task<string[]> GetResults()
+        public async Task<object?[]> GetResults()
         {
             await Semaphore!.WaitAsync();
 
             lock (lockResults)
             {
-                string[] res = Results.ToArray();
+                object?[] res = Results.ToArray();
                 Results.Clear();
                 return res;
             }
@@ -130,8 +128,7 @@ namespace Brayns.Shaper
                 while (ex.InnerException != null)
                     ex = ex.InnerException;
 
-                Results.Add(WebDispatcher.ExceptionToJson(ex));
-                Exception = ex;
+                Results.Add(ex);
             }
 
             try
@@ -143,7 +140,7 @@ namespace Brayns.Shaper
                 // do nothing
             }
 
-            Finished = true;
+            Results.Add(null);
             Semaphore!.Release(1);
         }
     }
@@ -152,13 +149,13 @@ namespace Brayns.Shaper
     {
         internal static string Boundary { get; private set; } = "";
 
-        internal static string ExceptionToJson(Exception ex)
+        private static string ExceptionToJson(Exception ex)
         {
             var res = new JObject();
             res["classname"] = ex.GetType().FullName;
             res["message"] = ex.Message;
             res["type"] = "exception";
-            
+
             res["code"] = 0;
             if (typeof(Error).IsAssignableFrom(ex.GetType()))
                 res["code"] = ((Error)ex).ErrorCode;
@@ -174,10 +171,6 @@ namespace Brayns.Shaper
                 {
                     FileInfo fi = new FileInfo(fn);
                     trace.Add("in '" + fi.Name + "' line " + frame.GetFileLineNumber() + " method '" + frame.GetMethod()!.Name + "'");
-                }
-                else
-                {
-                    trace.Add("method '" + frame.GetMethod()!.Name + "'");
                 }
             }
 
@@ -225,7 +218,7 @@ namespace Brayns.Shaper
         {
             await Dispatch(ctx, false);
         }
-        
+
         private static int ErrorToStatusCode(Exception ex)
         {
             Error? e = ex as Error;
@@ -244,8 +237,10 @@ namespace Brayns.Shaper
 
             try
             {
+                /*TODO
                 if (Application.InMaintenance)
                     throw new Error(Error.E_SYSTEM_IN_MAINTENANCE, Label("Application is in maintenance, try again later"));
+                */
 
                 task = new();
                 task.Address = ctx.Connection.RemoteIpAddress!.ToString();
@@ -262,7 +257,7 @@ namespace Brayns.Shaper
                     task.SessionOwner = false;
                 }
 
-                if (ctx.Request.Headers.ContainsKey("Authorization") && 
+                if (ctx.Request.Headers.ContainsKey("Authorization") &&
                     ctx.Request.Headers["Authorization"].ToString().StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
                     task.AuthorizationId = Guid.Parse(ctx.Request.Headers["Authorization"].ToString().Substring(7));
                 else if (ctx.Request.Cookies.ContainsKey("X-Authorization"))
@@ -337,34 +332,45 @@ namespace Brayns.Shaper
 
             try
             {
-                bool isArray = false;
-                bool comma = false;
+                bool bodyWrited = false;
                 ctx.Response.StatusCode = 200;
                 ctx.Response.ContentType = "application/json";
 
-                while (!task.Finished)
+                bool eof = false;
+                while (!eof)
                 {
-                    string[] res = await task.GetResults();
-
-                    if ((res.Length > 1) && (!isArray))
+                    foreach (var r in await task.GetResults())
                     {
-                        await ctx.Response.WriteAsync("[");
-                        isArray = true;
-                    }
+                        if (r == null)
+                        {
+                            if (task.IsWebClient && bodyWrited)
+                                await ctx.Response.WriteAsync("]");
 
-                    foreach (var r in res)
-                    {
-                        if ((task.Exception != null) && (!isArray) && (!comma))
-                            ctx.Response.StatusCode = ErrorToStatusCode(task.Exception);
+                            eof = true;
+                            break;
+                        }
 
-                        if (comma) await ctx.Response.WriteAsync(",");
-                        await ctx.Response.WriteAsync(r);
-                        comma = true;
+                        var str = "";
+                        if (typeof(Exception).IsAssignableFrom(r.GetType()))
+                        {
+                            Exception ex = (r as Exception)!;
+                            if (!bodyWrited) ctx.Response.StatusCode = ErrorToStatusCode(ex);
+                            str = ExceptionToJson(ex);
+                        }
+                        else
+                            str = r.ToString()!;
+
+                        if (task.IsWebClient)
+                            if (bodyWrited)
+                                await ctx.Response.WriteAsync(",");
+                            else
+                                await ctx.Response.WriteAsync("[");
+
+                        await ctx.Response.WriteAsync(str);
+                        await ctx.Response.Body.FlushAsync();
+                        bodyWrited = true;
                     }
                 }
-
-                if (isArray)
-                    await ctx.Response.WriteAsync("]");
             }
             catch
             {

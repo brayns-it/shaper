@@ -1,6 +1,8 @@
-﻿namespace Brayns.Shaper.Fields
+﻿using Newtonsoft.Json.Linq;
+
+namespace Brayns.Shaper.Fields
 {
-    public class Text : Field
+    public class Text : BaseField
     {
         public const int MAX_LENGTH = -1;
 
@@ -60,7 +62,12 @@
 
         public void Validate(string value)
         {
-            Validate<string>(value);
+            base.Validate(value);
+        }
+
+        internal override JValue Serialize(object? value)
+        {
+            return new JValue((string)value!);
         }
     }
 }

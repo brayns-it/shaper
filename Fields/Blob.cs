@@ -1,6 +1,8 @@
-﻿namespace Brayns.Shaper.Fields
+﻿using Newtonsoft.Json.Linq;
+
+namespace Brayns.Shaper.Fields
 {
-    public class Blob : Field
+    public class Blob : BaseField
     {
         public new byte[]? Value
         {
@@ -49,6 +51,11 @@
                 return "";
             else
                 return "*";
+        }
+
+        internal override JValue Serialize(object? value)
+        {
+            throw new NotImplementedException();
         }
     }
 }

@@ -1,4 +1,6 @@
-﻿namespace Brayns.Shaper.Fields
+﻿using Newtonsoft.Json.Linq;
+
+namespace Brayns.Shaper.Fields
 {
     public class Time : DateTime
     {
@@ -19,6 +21,12 @@
         internal override object? Evaluate(string text)
         {
             throw new NotImplementedException();
+        }
+
+        internal override JValue Serialize(object? value)
+        {
+            var val = (System.DateTime)value!;
+            return new JValue(val.ToString("HH:mm:ss.fff"));
         }
     }
 }

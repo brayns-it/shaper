@@ -1,6 +1,8 @@
-﻿namespace Brayns.Shaper.Fields
+﻿using Newtonsoft.Json.Linq;
+
+namespace Brayns.Shaper.Fields
 {
-    public class Boolean : Field
+    public class Boolean : BaseField
     {
         public new bool Value
         {
@@ -63,6 +65,11 @@
         public void SetRange(bool value)
         {
             SetRange<bool>(value);
+        }
+
+        internal override JValue Serialize(object? value)
+        {
+            return new JValue((bool)value!);
         }
     }
 }

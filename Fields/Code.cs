@@ -14,10 +14,5 @@
             val = val.ToUpper();
             return base.CheckValue(val);
         }
-
-        internal override object? Evaluate(string text)
-        {
-            return text;
-        }
     }
 }

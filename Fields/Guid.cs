@@ -1,6 +1,8 @@
-﻿namespace Brayns.Shaper.Fields
+﻿using Newtonsoft.Json.Linq;
+
+namespace Brayns.Shaper.Fields
 {
-    public class Guid : Field
+    public class Guid : BaseField
     {
         public new System.Guid Value
         {
@@ -46,12 +48,18 @@
 
         public void Validate(System.Guid value)
         {
-            Validate<System.Guid>(value);
+            base.Validate(value);
         }
 
         internal override object? Evaluate(string text)
         {
             throw new NotImplementedException();
+        }
+
+        internal override JValue Serialize(object? value)
+        {
+            var val = (System.Guid)value!;
+            return new JValue(val.ToString());
         }
     }
 }

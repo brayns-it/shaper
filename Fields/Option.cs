@@ -1,27 +1,29 @@
-﻿namespace Brayns.Shaper.Fields
+﻿using Newtonsoft.Json.Linq;
+
+namespace Brayns.Shaper.Fields
 {
-    public abstract class Option : Field
+    public abstract class Option : BaseField
     {
         public Type? OptionType { get; internal set; }
     }
 
     public class Option<T> : Option
     {
-        public new Series<T> Value
+        public new Opt<T> Value
         {
-            get { return (Series<T>)_value!; }
+            get { return (Opt<T>)_value!; }
             set { _value = CheckValue(value); }
         }
 
-        public new Series<T> XValue
+        public new Opt<T> XValue
         {
-            get { return (Series<T>)_xValue!; }
+            get { return (Opt<T>)_xValue!; }
             set { _xValue = CheckValue(value); }
         }
 
-        public new Series<T> InitValue
+        public new Opt<T> InitValue
         {
-            get { return (Series<T>)_initValue!; }
+            get { return (Opt<T>)_initValue!; }
             set { _initValue = CheckValue(value); }
         }
 
@@ -41,7 +43,12 @@
 
         internal override object? CheckValue(object? value)
         {
-            return (Series<T>)value!;
+            Opt<T> val;
+            if (value!.GetType() == typeof(int))
+                val = (int)value!;
+            else
+                val = (Opt<T>)value!;
+            return val;
         }
 
         internal override object? Evaluate(string text)
@@ -50,27 +57,33 @@
 
             int i;
             if (int.TryParse(text, out i))
-                return new Series<T>(i);
+                return new Opt<T>(i);
             
             foreach (int n in Value.Names.Keys)
                 if (Value.Names[n].ToLower() == text.ToLower())
-                    return new Series<T>(n);
+                    return new Opt<T>(n);
 
             foreach (int n in Value.Captions.Keys)
                 if (Value.Captions[n].ToLower() == text.ToLower())
-                    return new Series<T>(n);
+                    return new Opt<T>(n);
 
             throw new Error(Label("{0} does not represent a valid {1} type"), text, Value.Type!.Name);
         }
 
         internal override string Format(object? value)
         {
-            return ((Series<T>)value!).Caption;
+            return ((Opt<T>)value!).Caption;
         }
 
         public void SetRange(T value)
         {
             SetRange<T>(value);
+        }
+
+        internal override JValue Serialize(object? value)
+        {
+            var val = (Opt<T>)value!;
+            return new JValue(val.Value);
         }
     }
 }

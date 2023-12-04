@@ -1,6 +1,8 @@
-﻿namespace Brayns.Shaper.Fields
+﻿using Newtonsoft.Json.Linq;
+
+namespace Brayns.Shaper.Fields
 {
-    public class Integer : Field, IInteger, INumeric
+    public class Integer : BaseField, IInteger, INumeric
     {
         public new int Value
         {
@@ -66,6 +68,12 @@
         public void SetRange(int minValue, int maxValue)
         {
             SetRange<int>(minValue, maxValue);
+        }
+
+        internal override JValue Serialize(object? value)
+        {
+            var val = (System.Guid)value!;
+            return new JValue(val.ToString());
         }
     }
 }

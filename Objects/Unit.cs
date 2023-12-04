@@ -20,7 +20,7 @@ namespace Brayns.Shaper.Objects
     public abstract class Unit
     {
         public System.Guid UnitID { get; protected set; }
-        public Series<UnitTypes> UnitType { get; protected set; }
+        public Opt<UnitTypes> UnitType { get; protected set; }
         public FieldList UnitFields { get; init; }
         public string UnitCaption { get; protected set; } = "";
 
@@ -41,11 +41,11 @@ namespace Brayns.Shaper.Objects
             UnitFields = new();
             UnitID = System.Guid.NewGuid();
 
-            foreach (PropertyInfo pi in GetType().GetProperties())
+            foreach (PropertyInfo pi in GetType().GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
             {
-                if (typeof(Fields.Field).IsAssignableFrom(pi.PropertyType))
+                if (typeof(Fields.BaseField).IsAssignableFrom(pi.PropertyType))
                 {
-                    var f = (Fields.Field)pi.GetValue(this)!;
+                    var f = (Fields.BaseField)pi.GetValue(this)!;
                     f.CodeName = pi.Name;
                     if (typeof(BaseTable).IsAssignableFrom(GetType()))
                         f.Table = (BaseTable)this;

@@ -3,7 +3,7 @@ using System.Reflection;
 
 namespace Brayns.Shaper.Objects
 {
-    public class TableRenameEventArgs : EventArgs
+    public class TableRenameEventArgs 
     {
         public object[] NewPrimaryKey { get; init; }
 
@@ -13,7 +13,7 @@ namespace Brayns.Shaper.Objects
         }
     }
 
-    public delegate void TableTriggerHandler<T>(T rec, EventArgs e);
+    public delegate void TableTriggerHandler<T>(T rec);
     public delegate void TableRenameHandler<T>(T rec, TableRenameEventArgs e);
 
     public abstract class BaseTable : Unit
@@ -28,7 +28,7 @@ namespace Brayns.Shaper.Objects
         public FieldList TablePrimaryKey { get; init; } = new();
         public string TableSqlName { get; internal set; } = "";
 
-        internal Error ErrorPrimaryKeyModify(Field f)
+        internal Error ErrorPrimaryKeyModify(BaseField f)
         {
             return new Classes.Error(Label("Cannot modify primary key '{0}', use rename instead"), f.Caption);
         }
@@ -54,7 +54,7 @@ namespace Brayns.Shaper.Objects
             return res;
         }
 
-        public abstract void ModifyAll(Field field, object? newValue, bool runTrigger = false);
+        public abstract void ModifyAll(BaseField field, object? newValue, bool runTrigger = false);
     }
 
     public abstract class Table<T> : BaseTable 
@@ -121,7 +121,7 @@ namespace Brayns.Shaper.Objects
             if (runTrigger)
             {
                 OnInsert();
-                Inserting?.Invoke((T)Convert.ChangeType(this, typeof(T)), EventArgs.Empty);
+                Inserting?.Invoke((T)Convert.ChangeType(this, typeof(T)));
             }
 
             TableDatabase!.Insert(this);
@@ -157,13 +157,13 @@ namespace Brayns.Shaper.Objects
             if (runTrigger)
             {
                 OnDelete();
-                Deleting?.Invoke((T)Convert.ChangeType(this, typeof(T)), EventArgs.Empty);
+                Deleting?.Invoke((T)Convert.ChangeType(this, typeof(T)));
             }
 
             TableDatabase!.Delete(this);
         }
 
-        public override void ModifyAll(Field field, object? newValue, bool runTrigger = false)
+        public override void ModifyAll(BaseField field, object? newValue, bool runTrigger = false)
         {
             if (runTrigger)
             {
@@ -188,14 +188,14 @@ namespace Brayns.Shaper.Objects
 
         public void Modify(bool runTrigger = false)
         {
-            foreach (Field f in UnitFields)
+            foreach (BaseField f in UnitFields)
                 if ((!Functions.AreEquals(f.Value, f.XValue)) && (TablePrimaryKey.Contains(f)))
                     throw ErrorPrimaryKeyModify(f);
 
             if (runTrigger)
             {
                 OnModify();
-                Modifying?.Invoke((T)Convert.ChangeType(this, typeof(T)), EventArgs.Empty);
+                Modifying?.Invoke((T)Convert.ChangeType(this, typeof(T)));
             }
             
             TableDatabase!.Modify(this);
@@ -216,7 +216,7 @@ namespace Brayns.Shaper.Objects
             TableDatabase!.Rename(this, newKey);
 
             int i = 0;
-            foreach (Field f in TablePrimaryKey)
+            foreach (BaseField f in TablePrimaryKey)
             {
                 if (f.Value != newKey[i])
                 {
@@ -254,13 +254,13 @@ namespace Brayns.Shaper.Objects
         public void Reset()
         {
             TableSort.Clear();
-            foreach (Field f in UnitFields)
+            foreach (BaseField f in UnitFields)
                 f.Filters.Clear();
         }
 
         public void Reset(FilterLevel level)
         {
-            foreach (Field f in UnitFields)
+            foreach (BaseField f in UnitFields)
             {
                 List<FieldFilter> toDel = new();
                 foreach (FieldFilter ff in f.Filters)
@@ -289,7 +289,7 @@ namespace Brayns.Shaper.Objects
             _lastFilters.Clear();
 
             int i = 0;
-            foreach (Field f in TablePrimaryKey)
+            foreach (BaseField f in TablePrimaryKey)
             {
                 if (pkValues.Length > i)
                     val.Add(pkValues[i]);
@@ -324,7 +324,7 @@ namespace Brayns.Shaper.Objects
             return true;
         }
 
-        public void AddRelation<S>(Field fieldFrom,
+        public void AddRelation<S>(BaseField fieldFrom,
                    TableRelationFieldHandler<S>? fieldTo = null,
                    TableRelationFilterHandler<S>? filterTo = null) where S : BaseTable
         {
@@ -334,7 +334,7 @@ namespace Brayns.Shaper.Objects
             TableRelations.Add(t);
         }
 
-        public void AddRelation<S, U>(Field fieldFrom,
+        public void AddRelation<S, U>(BaseField fieldFrom,
                    TableRelationFieldHandler<S>? fieldTo = null,
                    TableRelationConditionHandler<U>? conditionFrom = null,
                    TableRelationFilterHandler<S>? filterTo = null) where S : BaseTable where U : BaseTable
@@ -349,7 +349,7 @@ namespace Brayns.Shaper.Objects
         public void Init()
         {
             TableVersion = DBNull.Value;
-            foreach (Field f in UnitFields)
+            foreach (BaseField f in UnitFields)
                 f.Init();
         }
     }

@@ -1,6 +1,9 @@
-﻿namespace Brayns.Shaper.Fields
+﻿using System.Globalization;
+using Newtonsoft.Json.Linq;
+
+namespace Brayns.Shaper.Fields
 {
-    public class Decimal : Field, IDecimal, INumeric
+    public class Decimal : BaseField, IDecimal, INumeric
     {
         public new decimal Value
         {
@@ -56,6 +59,15 @@
                 else
                     return val.ToString("0." + "".PadRight(Decimals, '0'), Session.CultureInfo);
             }
+        }
+
+        internal override JValue Serialize(object? value)
+        {
+            var val = (decimal)value!;
+            NumberFormatInfo nfi = new NumberFormatInfo();
+            nfi.NumberGroupSeparator = "";
+            nfi.NumberDecimalSeparator = ".";
+            return new JValue(val.ToString());
         }
 
         internal override object? Evaluate(string text)

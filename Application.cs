@@ -17,14 +17,20 @@ namespace Brayns.Shaper
 
         internal static Dictionary<ApiAction, Dictionary<string, MethodInfo>> Routes { get; } = new();
         internal static Dictionary<Guid, AppModule> Apps { get; } = new();
-        public static string? RootPath { get; internal set; }
-        public static bool InMaintenance { get; internal set; } = true;
-        public static Config Config { get; internal set; } = new Config();
+        internal static Config Config { get; set; } = new Config();
         internal static SystemModule? SystemModule { get; set; }
         internal static ILogger? Logger { get; set; }
+        public static string? RootPath { get; internal set; }
 
-        public static event WebBuilderCreatedHandler? WebBuilderCreated;
-        public static event WebApplicationBuiltHandler? WebApplicationBuilt;
+        public static bool IsReady()
+        {
+            return Config.Ready;
+        }
+
+        public static string GetEnvironmentName()
+        {
+            return Config.EnvironmentName;
+        }
 
         private static void InitializeFromWebRoot(string rootPath)
         {
@@ -50,36 +56,42 @@ namespace Brayns.Shaper
 
             Loader.Loader.LoadConfig();
             Loader.Loader.LoadAppsFromRoot();
-            Initialize();
+
+            if (Config.Ready)
+            {
+                Initialize();
+                Session.Stop();
+            }
 
             WebDispatcher.Initialize();
-            InMaintenance = false;
         }
 
-        public static void InitializeFromDomain()
+        internal static void Initialize()
         {
-            Loader.Loader.LoadAppsFromDomain();
-            Initialize();
-        }
-
-        private static void Initialize()
-        {
-            Session.Start();
+            Session.DatabaseConnect();
 
             Loader.Loader.SyncSchema(false);
             Loader.Loader.CollectTableRelations();
             Loader.Loader.CollectApiEndpoints();
             Loader.Loader.InstallApps();
-
-            Session.Stop();
         }
-        
+
+        public static void InitializeShaper()
+        {
+            Loader.Loader.LoadAppsFromDomain();
+
+            if (Config.Ready)
+            {
+                Initialize();
+                Session.Stop();
+            }
+        }
+
         public static void InitializeShaper(this WebApplicationBuilder builder)
         {
             try
             {
                 InitializeFromWebRoot(builder.Environment.ContentRootPath);
-                WebBuilderCreated?.Invoke(builder);
             }
             catch (Exception ex)
             {

@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace Brayns.Shaper
 {
-    public class SessionTypes 
+    public class SessionTypes
     {
         [Label("Console")]
         public const int CONSOLE = 0;
@@ -29,7 +29,7 @@ namespace Brayns.Shaper
 
     internal class SessionData
     {
-        internal Series<SessionTypes> Type { get; set; }
+        internal Opt<SessionTypes> Type { get; set; }
         internal Database.Database? Database { get; set; }
         internal CultureInfo CultureInfo { get; set; }
         internal string UserId { get; set; }
@@ -56,7 +56,7 @@ namespace Brayns.Shaper
 
     public class SessionArgs
     {
-        public Series<SessionTypes>? Type { get; set; }
+        public Opt<SessionTypes>? Type { get; set; }
         public CultureInfo? CultureInfo { get; set; }
         public Guid? Id { get; set; }
         public string? Address { get; set; }
@@ -69,7 +69,7 @@ namespace Brayns.Shaper
         internal static Dictionary<Guid, SessionData> SessionData { get; } = new Dictionary<Guid, SessionData>();
         internal static Dictionary<int, SessionData> SessionMap { get; } = new Dictionary<int, SessionData>();
 
-        public static Series<SessionTypes> Type
+        public static Opt<SessionTypes> Type
         {
             get { return Instance.Type; }
             internal set { Instance.Type = value; }
@@ -173,7 +173,7 @@ namespace Brayns.Shaper
 
         public static void Stop(bool destroy = false, bool ignoreErrors = false)
         {
-            if ((Id != Guid.Empty) && (Database != null))
+            if ((Type != SessionTypes.SYSTEM) && (Database != null))
             {
                 try
                 {
@@ -228,31 +228,9 @@ namespace Brayns.Shaper
             }
         }
 
-        public static void Start(SessionArgs? arg = null)
+        internal static bool DatabaseConnect()
         {
-            if ((arg != null) && (arg.Id != null) && (arg.Id != Guid.Empty))
-            {
-                lock (_lockSessions)
-                {
-                    if (!SessionData.ContainsKey(arg.Id.Value))
-                    {
-                        var sd = new SessionData()
-                        {
-                            Id = arg.Id.Value
-                        };
-                        SessionData.Add(arg.Id.Value, sd);
-                    }
-
-                    Instance = SessionData[arg.Id.Value];
-                }
-            }
-
-            if (arg?.Type != null) Type = arg.Type;
-            if (arg?.Address != null) Address = arg.Address;
-            if (arg?.CultureInfo != null) CultureInfo = arg.CultureInfo;
-            if (arg?.WebTask != null) Instance.WebTask = arg.WebTask;
-
-            switch(Application.Config.DatabaseType)
+            switch (Application.Config.DatabaseType)
             {
                 case DatabaseTypes.SQLSERVER:
                     Database = new SqlServer();
@@ -262,13 +240,48 @@ namespace Brayns.Shaper
             if (Database != null)
             {
                 Database.Connect();
-
-                if (Id != Guid.Empty)
-                {
-                    Application.SystemModule?.SessionStart();
-                    Commit();
-                }
+                return true;
             }
+
+            return false;
+        }
+
+        public static void Start(SessionArgs? arg = null)
+        {
+            if (arg != null)
+            {
+                if ((arg.Id != null) && (arg.Id != Guid.Empty))
+                {
+                    lock (_lockSessions)
+                    {
+                        if (!SessionData.ContainsKey(arg.Id.Value))
+                        {
+                            var sd = new SessionData()
+                            {
+                                Id = arg.Id.Value
+                            };
+                            SessionData.Add(arg.Id.Value, sd);
+                        }
+
+                        Instance = SessionData[arg.Id.Value];
+                    }
+                }
+
+                if (arg.Type != null) Type = arg.Type;
+                if (arg.Address != null) Address = arg.Address;
+                if (arg.CultureInfo != null) CultureInfo = arg.CultureInfo;
+                if (arg.WebTask != null) Instance.WebTask = arg.WebTask;
+            }
+
+            if (Application.IsReady())
+                if (DatabaseConnect())
+                {
+                    if (Type != SessionTypes.SYSTEM)
+                    {
+                        Application.SystemModule?.SessionStart();
+                        Commit();
+                    }
+                }
         }
     }
 

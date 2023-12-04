@@ -1,4 +1,5 @@
 ﻿using System.Text.RegularExpressions;
+using Newtonsoft.Json.Linq;
 
 namespace Brayns.Shaper.Fields
 {
@@ -43,9 +44,9 @@ namespace Brayns.Shaper.Fields
         public const int GUID = 12;
     }
 
-    public class FieldList : List<Fields.Field>
+    public class FieldList : List<Fields.BaseField>
     {
-        public void Add(params Field[] args)
+        public void Add(params BaseField[] args)
         {
             AddRange(args);
         }
@@ -75,7 +76,7 @@ namespace Brayns.Shaper.Fields
 
     public class FieldFilter
     {
-        public Field Field { get; init; }
+        public BaseField Field { get; init; }
         public FilterLevel Level { get; set; }
         public FilterType Type { get; set; }
         public object? MinValue { get; set; }
@@ -84,12 +85,12 @@ namespace Brayns.Shaper.Fields
         public List<object> Values { get; init; } = new();
         public string? Expression { get; set; }
 
-        public FieldFilter(Field field)
+        public FieldFilter(BaseField field)
         {
             Field = field;
         }
 
-        public FieldFilter(Field field, object? equalTo)
+        public FieldFilter(BaseField field, object? equalTo)
         {
             Field = field;
             Type = FilterType.Equal;
@@ -161,9 +162,9 @@ namespace Brayns.Shaper.Fields
         }
     }
 
-    public abstract class Field
+    public abstract class BaseField
     {
-        public Series<FieldTypes> Type { get; init; }
+        public Opt<FieldTypes> Type { get; init; }
         public string Name { get; init; }
         public string Caption { get; init; }
         public string CodeName { get; internal set; }
@@ -196,7 +197,7 @@ namespace Brayns.Shaper.Fields
 
         protected object? TestValue { get; set; }
 
-        public Field()
+        public BaseField()
         {
             Type = FieldTypes.NONE;
             Name = "";
@@ -215,6 +216,7 @@ namespace Brayns.Shaper.Fields
         internal abstract object? CheckValue(object? value);
         internal abstract string Format(object? value);
         internal abstract object? Evaluate(string text);
+        internal abstract JValue Serialize(object? value);
 
         public void Init()
         {
@@ -223,12 +225,6 @@ namespace Brayns.Shaper.Fields
         }
 
         internal void Validate(object? value)
-        {
-            Value = value;
-            Validating?.Invoke();
-        }
-
-        public void Validate<T>(T value)
         {
             Value = value;
             Validating?.Invoke();
