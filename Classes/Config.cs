@@ -16,7 +16,7 @@ namespace Brayns.Shaper.Classes
         public string DatabasePassword { get; set; } = "";
         public string DatabaseServer { get; set; } = "";
         public string DatabaseName { get; set; } = "";
-        public string EnvironmentName { get; set; } = "Shaper";
+        public string EnvironmentName { get; set; } = "Production";
 
         public static Config FromJson(string json)
         {

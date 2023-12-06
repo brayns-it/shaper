@@ -60,5 +60,10 @@ namespace Brayns.Shaper.Fields
             var val = (System.DateTime)value!;
             return new JValue(val.ToString("o"));
         }
+
+        public void SetFilter(string expression, params DateTime[] pars)
+        {
+            SetFilter<DateTime>(expression, pars);
+        }
     }
 }

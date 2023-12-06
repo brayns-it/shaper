@@ -34,9 +34,12 @@ namespace Brayns.Shaper
         internal CultureInfo CultureInfo { get; set; }
         internal string UserId { get; set; }
         internal Guid Id { get; set; }
+        internal Guid? AuthenticationId { get; set; }
         internal string Address { get; set; }
         internal WebTask? WebTask { get; set; }
         internal Dictionary<string, object> Values { get; set; }
+        internal bool IsNew { get; set; }
+        internal string ApplicationName { get; set; }
 
         public SessionData()
         {
@@ -46,6 +49,7 @@ namespace Brayns.Shaper
             Address = "";
             Type = SessionTypes.SYSTEM;
             Values = new Dictionary<string, object>();
+            ApplicationName = "";
         }
 
         public override string ToString()
@@ -59,6 +63,7 @@ namespace Brayns.Shaper
         public Opt<SessionTypes>? Type { get; set; }
         public CultureInfo? CultureInfo { get; set; }
         public Guid? Id { get; set; }
+        public Guid? AuthenticationId { get; set; }
         public string? Address { get; set; }
         internal WebTask? WebTask { get; set; }
     }
@@ -85,6 +90,29 @@ namespace Brayns.Shaper
         {
             get { return Instance.Address; }
             internal set { Instance.Address = value; }
+        }
+
+        public static Guid? AuthenticationId
+        {
+            get { return Instance.AuthenticationId; }
+            set { Instance.AuthenticationId = value; }
+        }
+
+        public static string ApplicationName
+        {
+            get { return Instance.ApplicationName; }
+            set { Instance.ApplicationName = value; }
+        }
+
+        public static bool IsNew
+        {
+            get { return Instance.IsNew; }
+            internal set { Instance.IsNew = value; }
+        }
+
+        internal static WebTask? WebTask
+        {
+            get { return Instance.WebTask; }
         }
 
         public static Guid Id
@@ -158,38 +186,22 @@ namespace Brayns.Shaper
             }
         }
 
-        public static void SendToClient(object o, bool optional = false)
-        {
-            if ((Instance.WebTask == null) || (Instance.Type != SessionTypes.WEBCLIENT))
-            {
-                if (optional)
-                    return;
-                else
-                    throw new Error("Current session does not support client messaging");
-            }
-
-            Instance.WebTask.Send(o);
-        }
-
         public static void Stop(bool destroy = false, bool ignoreErrors = false)
         {
-            if ((Type != SessionTypes.SYSTEM) && (Database != null))
+            try
             {
-                try
-                {
-                    Rollback();
+                Rollback();
 
-                    Application.SystemModule?.SessionStop();
-                    if (destroy)
-                        Application.SystemModule?.SessionDestroy();
+                Application.SystemModule?.SessionStop();
+                if (destroy)
+                    Application.SystemModule?.SessionDestroy();
 
-                    Commit();
-                }
-                catch (Exception)
-                {
-                    if (!ignoreErrors)
-                        throw;
-                }
+                Commit();
+            }
+            catch (Exception)
+            {
+                if (!ignoreErrors)
+                    throw;
             }
 
             try
@@ -228,7 +240,7 @@ namespace Brayns.Shaper
             }
         }
 
-        internal static bool DatabaseConnect()
+        internal static void DatabaseConnect()
         {
             switch (Application.Config.DatabaseType)
             {
@@ -238,12 +250,7 @@ namespace Brayns.Shaper
             }
 
             if (Database != null)
-            {
                 Database.Connect();
-                return true;
-            }
-
-            return false;
         }
 
         public static void Start(SessionArgs? arg = null)
@@ -254,8 +261,10 @@ namespace Brayns.Shaper
                 {
                     lock (_lockSessions)
                     {
+                        bool isNew = false;
                         if (!SessionData.ContainsKey(arg.Id.Value))
                         {
+                            isNew = true;
                             var sd = new SessionData()
                             {
                                 Id = arg.Id.Value
@@ -264,6 +273,7 @@ namespace Brayns.Shaper
                         }
 
                         Instance = SessionData[arg.Id.Value];
+                        Instance.IsNew = isNew;
                     }
                 }
 
@@ -271,17 +281,14 @@ namespace Brayns.Shaper
                 if (arg.Address != null) Address = arg.Address;
                 if (arg.CultureInfo != null) CultureInfo = arg.CultureInfo;
                 if (arg.WebTask != null) Instance.WebTask = arg.WebTask;
+                if (arg.AuthenticationId != null) AuthenticationId = arg.AuthenticationId;
             }
 
             if (Application.IsReady())
-                if (DatabaseConnect())
-                {
-                    if (Type != SessionTypes.SYSTEM)
-                    {
-                        Application.SystemModule?.SessionStart();
-                        Commit();
-                    }
-                }
+                DatabaseConnect();
+
+            Application.SystemModule?.SessionStart();
+            Commit();
         }
     }
 

@@ -20,6 +20,7 @@ namespace Brayns.Shaper.Controls
         public LabelOrientation LabelOrientation { get; set; } = LabelOrientation.Horizontal;
         public FieldPerRow FieldPerRow { get; set; } = FieldPerRow.Two;
         public bool Collapsible { get; set; } = true;
+        public bool Primary { get; set; } = false;
 
         public Group(ContentArea contentArea, string caption = "")
         {
@@ -34,6 +35,7 @@ namespace Brayns.Shaper.Controls
             jo["labelOrientation"] = LabelOrientation.ToString();
             jo["fieldPerRow"] = FieldPerRow.ToString();
             jo["collapsible"] = Collapsible;
+            jo["primary"] = Primary;
             return jo;
         }
     }

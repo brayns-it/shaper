@@ -2,10 +2,11 @@
 
 namespace Brayns.Shaper.Objects
 {
-    public class PageTypes
+    public enum PageTypes
     {
-        public const int NORMAL = 0;
-        public const int LOGIN = 1;
+        Normal,
+        Login,
+        Start
     }
 
     public abstract class BasePage : Unit
@@ -15,13 +16,13 @@ namespace Brayns.Shaper.Objects
         internal JArray FDataSet { get; set; } = new();
 
         public List<Controls.Control> Items { get; private set; } = new();
-        public Opt<PageTypes> PageType { get; protected set; }
+        public PageTypes PageType { get; protected set; }
         public BaseTable? Rec { get; set; }
 
         public BasePage()
         {
             UnitType = UnitTypes.PAGE;
-            PageType = PageTypes.NORMAL;
+            PageType = PageTypes.Normal;
         }
 
         internal JArray GetSchema()
@@ -84,9 +85,9 @@ namespace Brayns.Shaper.Objects
             result["action"] = "datarow";
             result["pageid"] = UnitID.ToString();
             result["data"] = data;
-            result["fdataset"] = fdata;
+            result["fdata"] = fdata;
 
-            CurrentSession.SendToClient(result);
+            Client.SendMessage(result);
         }
 
         internal void SendDataSet()
@@ -113,19 +114,24 @@ namespace Brayns.Shaper.Objects
             result["data"] = DataSet;
             result["fdata"] = FDataSet;
 
-            CurrentSession.SendToClient(result);
+            Client.SendMessage(result);
         }
 
-        internal void SendPage()
+        internal void SendPage(bool modal)
         {
             var result = new JObject();
             result["id"] = UnitID.ToString();
             result["name"] = UnitName;
+            result["applicationName"] = CurrentSession.ApplicationName;
             result["unitType"] = GetType().ToString();
             result["pageType"] = PageType.ToString();
             result["caption"] = UnitCaption;
             result["action"] = "page";
-            result["display"] = "content";
+
+            if (modal)
+                result["display"] = "modal";
+            else
+                result["display"] = "content";
 
             var controls = new JArray();
             foreach (var c in Items)
@@ -134,15 +140,49 @@ namespace Brayns.Shaper.Objects
 
             result["schema"] = GetSchema();
 
-            CurrentSession.SendToClient(result);
+            var js = new JObject();
+            foreach (var c in AllItems.Values.OfType<Controls.Action>())
+                if (c.Shortcut.Length > 0)
+                    js[c.Shortcut] = c.ID.ToString();
+            result["shortcuts"] = js;
+
+            Client.SendMessage(result);
+        }
+
+        private void Run(bool modal)
+        {
+            OnLoad();
+            SessionRegister();
+            SendPage(modal);
+            SendDataSet();
         }
 
         public void Run()
         {
-            OnLoad();
-            SessionRegister();
-            SendPage();
-            SendDataSet();
+            Run(false);
+        }
+
+        public void RunModal()
+        {
+            Run(true);
+        }
+
+        public void Close()
+        {
+            OnClose();
+
+            var result = new JObject();
+            result["pageid"] = UnitID.ToString();
+            result["action"] = "closepage";
+
+            Client.SendMessage(result);
+        }
+
+        [PublicAccess]
+        internal void QueryClose()
+        {
+            if (OnQueryClose())
+                Close();
         }
 
         [PublicAccess]
@@ -155,6 +195,15 @@ namespace Brayns.Shaper.Objects
         }
 
         protected virtual void OnLoad()
+        {
+        }
+
+        protected virtual bool OnQueryClose()
+        {
+            return true;
+        }
+
+        protected void OnClose()
         {
         }
     }

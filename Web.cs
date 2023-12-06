@@ -21,7 +21,7 @@ namespace Brayns.Shaper
         public JObject? Parameters { get; set; }
         public CultureInfo? CultureInfo { get; set; }
         public Guid SessionId { get; set; }
-        public Guid? AuthorizationId { get; set; }
+        public Guid? AuthenticationId { get; set; }
         public string? Address { get; set; }
         public bool SessionOwner { get; set; } = true;
         public bool IsWebClient { get; set; } = false;
@@ -39,15 +39,11 @@ namespace Brayns.Shaper
             CurrentThread.Start();
         }
 
-        public void Send(object o)
+        public void Send(params ClientMessage[] msgs)
         {
             lock (lockResults)
             {
-                var jo = JObject.FromObject(o);
-                jo["type"] = "send";
-
-                Results.Add(jo.ToString(Newtonsoft.Json.Formatting.Indented));
-                Results.Add(WebDispatcher.Boundary);
+                Results.AddRange(msgs);
             }
             Semaphore!.Release(1);
         }
@@ -70,6 +66,7 @@ namespace Brayns.Shaper
             {
                 SessionArgs sa = new SessionArgs()
                 {
+                    AuthenticationId = AuthenticationId,
                     Id = SessionId,
                     Address = Address,
                     CultureInfo = CultureInfo,
@@ -147,8 +144,6 @@ namespace Brayns.Shaper
 
     public class WebDispatcher
     {
-        internal static string Boundary { get; private set; } = "";
-
         private static string ExceptionToJson(Exception ex)
         {
             var res = new JObject();
@@ -198,15 +193,6 @@ namespace Brayns.Shaper
             {
                 return null;
             }
-        }
-
-        internal static void Initialize()
-        {
-            // 8k buffer
-            StringBuilder sb = new StringBuilder();
-            for (int i = 0; i < 230; i++)
-                sb.Append("d4015c7b-152e-492e-8e8b-2021248db290");
-            Boundary = "\"" + sb.ToString() + "\"";
         }
 
         internal static async Task DispatchApi(HttpContext ctx)
@@ -259,9 +245,9 @@ namespace Brayns.Shaper
 
                 if (ctx.Request.Headers.ContainsKey("Authorization") &&
                     ctx.Request.Headers["Authorization"].ToString().StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
-                    task.AuthorizationId = Guid.Parse(ctx.Request.Headers["Authorization"].ToString().Substring(7));
+                    task.AuthenticationId = Guid.Parse(ctx.Request.Headers["Authorization"].ToString().Substring(7));
                 else if (ctx.Request.Cookies.ContainsKey("X-Authorization"))
-                    task.AuthorizationId = Guid.Parse(ctx.Request.Cookies["X-Authorization"]!);
+                    task.AuthenticationId = Guid.Parse(ctx.Request.Cookies["X-Authorization"]!);
 
                 JObject? body = null;
                 if (ctx.Request.ContentLength > 0)
@@ -336,29 +322,53 @@ namespace Brayns.Shaper
                 ctx.Response.StatusCode = 200;
                 ctx.Response.ContentType = "application/json";
 
-                bool eof = false;
-                while (!eof)
+                while (true)
                 {
                     foreach (var r in await task.GetResults())
                     {
-                        if (r == null)
-                        {
-                            if (task.IsWebClient && bodyWrited)
-                                await ctx.Response.WriteAsync("]");
+                        string? resText = null;
+                        bool doFlush = false;
 
-                            eof = true;
-                            break;
-                        }
-
-                        var str = "";
-                        if (typeof(Exception).IsAssignableFrom(r.GetType()))
+                        switch (r)
                         {
-                            Exception ex = (r as Exception)!;
-                            if (!bodyWrited) ctx.Response.StatusCode = ErrorToStatusCode(ex);
-                            str = ExceptionToJson(ex);
+                            case null:
+                                if (task.IsWebClient && bodyWrited)
+                                    await ctx.Response.WriteAsync("]");
+                                return;
+
+                            case ClientMessage msg when msg.Type == ClientMessageType.AuthenticationToken:
+                                if (!bodyWrited)
+                                    if (msg.Value != null)
+                                    {
+                                        CookieOptions opt = new();
+                                        opt.Expires = msg.Expires;
+                                        ctx.Response.Cookies.Append("X-Authorization", msg.Value, opt);
+                                    }
+                                    else
+                                        ctx.Response.Cookies.Delete("X-Authorization");
+                                continue;
+
+                            case ClientMessage msg when msg.Type == ClientMessageType.Boundary:
+                                resText = msg.Value;
+                                doFlush = true;
+                                break;
+
+                            case ClientMessage msg when msg.Type == ClientMessageType.Message:
+                                resText = msg.Value;
+                                break;
+
+                            case Exception ex:
+                                if (!bodyWrited) ctx.Response.StatusCode = ErrorToStatusCode(ex);
+                                resText = ExceptionToJson(ex);
+                                break;
+
+                            case string str:
+                                resText = str;
+                                break;
+
+                            default:
+                                throw new Error(Label("Unhandled type in web loop {0}"), r.GetType());
                         }
-                        else
-                            str = r.ToString()!;
 
                         if (task.IsWebClient)
                             if (bodyWrited)
@@ -366,9 +376,12 @@ namespace Brayns.Shaper
                             else
                                 await ctx.Response.WriteAsync("[");
 
-                        await ctx.Response.WriteAsync(str);
-                        await ctx.Response.Body.FlushAsync();
-                        bodyWrited = true;
+                        if (resText != null)
+                        {
+                            await ctx.Response.WriteAsync(resText);
+                            bodyWrited = true;
+                        }
+                        if (doFlush) await ctx.Response.Body.FlushAsync();
                     }
                 }
             }

@@ -66,6 +66,8 @@
             DatabaseName.Value = Application.Config.DatabaseName;
             DatabaseServer.Value = Application.Config.DatabaseServer;
             EnvironmentName.Value = Application.Config.EnvironmentName;
+
+            CurrentSession.ApplicationName = Label("New Shaper");
         }
 
         private void Save_Triggering()
@@ -94,6 +96,7 @@
             }
 
             Loader.Loader.SaveConfig();
+            Client.Reload();
         }
     }
 }

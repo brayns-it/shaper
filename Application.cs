@@ -62,8 +62,6 @@ namespace Brayns.Shaper
                 Initialize();
                 Session.Stop();
             }
-
-            WebDispatcher.Initialize();
         }
 
         internal static void Initialize()
@@ -74,6 +72,9 @@ namespace Brayns.Shaper
             Loader.Loader.CollectTableRelations();
             Loader.Loader.CollectApiEndpoints();
             Loader.Loader.InstallApps();
+
+            SystemModule?.ApplicationStart();
+            Commit();
         }
 
         public static void InitializeShaper()

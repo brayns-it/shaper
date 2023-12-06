@@ -61,5 +61,10 @@ namespace Brayns.Shaper.Fields
             var val = (System.Guid)value!;
             return new JValue(val.ToString());
         }
+
+        public void SetRange(Guid value)
+        {
+            SetRange<Guid>(value);
+        }
     }
 }

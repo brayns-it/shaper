@@ -6,15 +6,22 @@ namespace Brayns.Shaper.Controls
 
     public class Action : Control
     {
-        public string Caption { get; protected set; } = "";
-        public string Icon { get; protected set; } = "";
+        public string Caption { get; set; } = "";
+        public string Icon { get; set; } = "";
         public event ActionTriggerHandler? Triggering;
+        public string Shortcut { get; set; } = "";
 
         public Action(ActionArea area, string caption = "", string icon = "")
         {
             SetParent(area);
             Caption = caption;
             Icon = icon;
+        }
+
+        public Action(Group group, string caption = "")
+        {
+            SetParent(group);
+            Caption = caption;
         }
 
         public Action(Action action, string caption = "", string icon = "")
@@ -24,11 +31,19 @@ namespace Brayns.Shaper.Controls
             Icon = icon;
         }
 
+        public Action(UserCenter center, string caption = "", string icon = "")
+        {
+            SetParent(center);
+            Caption = caption;
+            Icon = icon;
+        }
+
         internal override JObject Render()
         {
             var jo = base.Render();
             jo["caption"] = Caption;
             jo["icon"] = Icon;
+            jo["shortcut"] = Shortcut;
             return jo;
         }
 

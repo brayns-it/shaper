@@ -269,8 +269,7 @@ namespace Brayns.Shaper.Loader
 
         internal static void SyncSchema(bool onlyCheck)
         {
-            if (Application.Config.DatabaseType == Database.DatabaseTypes.NONE)
-                return;
+            if (CurrentSession.Database == null) return;
 
             foreach (Type t in TableTypes)
             {

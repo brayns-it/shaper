@@ -10,3 +10,5 @@ global using ApiMethod = Brayns.Shaper.Classes.ApiMethodAttribute;
 global using ApiAction = Brayns.Shaper.Classes.ApiAction;
 global using CurrentSession = Brayns.Shaper.Session;
 global using Label = Brayns.Shaper.Classes.LabelAttribute;
+global using Newtonsoft.Json.Linq;
+global using Client = Brayns.Shaper.Client;

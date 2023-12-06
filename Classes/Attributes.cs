@@ -78,6 +78,7 @@ namespace Brayns.Shaper.Classes
 
     public abstract class SystemModule
     {
+        public abstract void ApplicationStart();
         public abstract void SessionStart();
         public abstract void SessionStop();
         public abstract void SessionDestroy();
