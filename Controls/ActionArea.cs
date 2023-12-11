@@ -8,9 +8,15 @@ namespace Brayns.Shaper.Controls
 {
     public class ActionArea : Control
     {
-        public ActionArea(BasePage page)
+        public static ActionArea Create(BasePage page)
         {
-            SetParent(page);
+            ActionArea? ret = page.Control<ActionArea>();
+            if (ret == null)
+            {
+                ret = new ActionArea();
+                ret.Attach(page);
+            }
+            return ret;
         }
     }
 }

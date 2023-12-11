@@ -5,7 +5,8 @@ namespace Brayns.Shaper
     public enum ClientMessageType
     {
         Message,
-        AuthenticationToken,
+        SetAuthentication,
+        ClearAuthentication,
         Boundary
     }
 
@@ -24,27 +25,22 @@ namespace Brayns.Shaper
 
     public static class Client
     {
-        private static readonly string _boundary;
-
-        static Client()
-        {
-            // 8k buffer
-            StringBuilder sb = new StringBuilder();
-            for (int i = 0; i < 230; i++)
-                sb.Append("d4015c7b-152e-492e-8e8b-2021248db290");
-            _boundary = "\"" + sb.ToString() + "\"";
-        }
-
         public static void ClearAuthenticationToken()
         {
-            var msg = new ClientMessage(ClientMessageType.AuthenticationToken);
+            var msg = new ClientMessage(ClientMessageType.ClearAuthentication);
             Send(msg);
         }
 
         public static void SetAuthenticationToken(Guid token, DateTimeOffset? expires = null)
         {
-            var msg = new ClientMessage(ClientMessageType.AuthenticationToken, token.ToString());
+            var msg = new ClientMessage(ClientMessageType.SetAuthentication, token.ToString());
             msg.Expires = expires;
+            Send(msg);
+        }
+
+        public static void Flush()
+        {
+            var msg = new ClientMessage(ClientMessageType.Boundary);
             Send(msg);
         }
 
@@ -53,23 +49,19 @@ namespace Brayns.Shaper
             var jo = JObject.FromObject(o);
             jo["type"] = "send";
 
-            var msg1 = new ClientMessage(ClientMessageType.Message, jo.ToString(Newtonsoft.Json.Formatting.Indented));
-            var msg2 = new ClientMessage(ClientMessageType.Boundary, _boundary);
-
-            Send(msg1, msg2);
+            var msg = new ClientMessage(ClientMessageType.Message, jo.ToString(Newtonsoft.Json.Formatting.Indented));
+            Send(msg);
         }
 
-        private static void Send(params ClientMessage[] msgs)
+        private static void Send(ClientMessage msg)
         {
             if (CurrentSession.WebTask == null)
                 throw new Error(Label("No client connected"));
 
-            if (CurrentSession.Type != SessionTypes.WEBCLIENT)
-                foreach (ClientMessage msg in msgs)
-                    if (msg.Type == ClientMessageType.Message)
-                        throw new Error("Current session does not support client messaging");
+            if ((CurrentSession.Type != SessionTypes.WEBCLIENT) && (msg.Type == ClientMessageType.Message))
+                throw new Error("Current session does not support client messaging");
 
-            CurrentSession.WebTask.Send(msgs);
+            CurrentSession.WebTask.Send(msg);
         }
 
         public static void Reload()

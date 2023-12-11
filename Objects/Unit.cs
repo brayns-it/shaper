@@ -3,6 +3,9 @@ using System.Reflection;
 
 namespace Brayns.Shaper.Objects
 {
+    public delegate void GenericHandler();
+    public delegate void GenericHandler<T>(T sender) where T : Unit;
+
     public class UnitTypes
     {
         public const int NONE = 0;
@@ -49,14 +52,25 @@ namespace Brayns.Shaper.Objects
                     f.CodeName = pi.Name;
                     if (typeof(BaseTable).IsAssignableFrom(GetType()))
                         f.Table = (BaseTable)this;
+                    if (typeof(BasePage).IsAssignableFrom(GetType()) && (f.Type == FieldTypes.TEXT))
+                        ((Fields.Text)f).Length = Fields.Text.MAX_LENGTH;
                     UnitFields.Add(f);
                 }
             }
         }
 
+        protected void Extend()
+        {
+            foreach (MethodInfo mi in GetType().GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
+            {
+                if (mi.GetCustomAttributes(typeof(Classes.ExtendedAttribute), true).Length > 0)
+                    mi.Invoke(this, null);
+            }
+        }
+
         internal void SessionRegister()
         {
-            CurrentSession.Values["object:" + UnitID.ToString()] = this;
+            CurrentSession.Units[UnitID.ToString()] = this;
         }
     }
 }

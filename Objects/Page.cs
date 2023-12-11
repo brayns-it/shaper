@@ -1,6 +1,4 @@
-﻿using Newtonsoft.Json.Linq;
-
-namespace Brayns.Shaper.Objects
+﻿namespace Brayns.Shaper.Objects
 {
     public enum PageTypes
     {
@@ -9,26 +7,111 @@ namespace Brayns.Shaper.Objects
         Start
     }
 
+    public delegate void PageQueryCloseHandler(ref bool canClose);
+
     public abstract class BasePage : Unit
     {
+        internal List<Fields.BaseField> DataFields { get; set; } = new();
         internal Dictionary<string, Controls.Control> AllItems { get; set; } = new();
-        internal JArray DataSet { get; set; } = new();
-        internal JArray FDataSet { get; set; } = new();
+        internal List<Dictionary<string, object>> DataSet { get; set; } = new();
+        internal List<int> Selection { get; set; } = new();
+        internal bool MultipleRows { get; set; } = false;
 
         public List<Controls.Control> Items { get; private set; } = new();
         public PageTypes PageType { get; protected set; }
         public BaseTable? Rec { get; set; }
+        public event GenericHandler? Loading;
+        public event GenericHandler? Closing;
+        public event PageQueryCloseHandler? QueryClosing;
+        public event GenericHandler? DataReading;
+        public bool AllowInsert { get; set; } = true;
+        public bool AllowDelete { get; set; } = true;
+        public bool AllowModify { get; set; } = true;
 
         public BasePage()
         {
             UnitType = UnitTypes.PAGE;
             PageType = PageTypes.Normal;
+
+            CreateDataActions();
+        }
+
+        private void CreateDataActions()
+        {
+            var actArea = Controls.ActionArea.Create(this);
+            {
+                var actData = new Controls.Action(actArea, "act-data", Label("Data"));
+                {
+                    var actNew = new Controls.Action(actData, "act-data-new", Label("New"));
+
+                    var actDelete = new Controls.Action(actData, "act-data-delete", Label("Delete"));
+                    actDelete.Triggering += ActDelete_Triggering;
+
+                    var actRefresh = new Controls.Action(actData, "act-data-refresh", Label("Refresh"));
+                    actRefresh.Triggering += ActRefresh_Triggering;
+                }
+            }
+        }
+
+        private void ActDelete_Triggering()
+        {
+            if (MultipleRows && (Selection.Count == 0)) return;
+
+            string lbl;
+            if ((!MultipleRows) || (Selection.Count == 1))
+                lbl = Label("Delete {0}?", Rec!.UnitCaption);
+            else
+                lbl = Label("Delete selected {0} {1}?", Selection.Count,  Rec!.UnitCaption);
+
+            new Confirm(lbl, () =>
+            {
+                if (MultipleRows)
+                {
+                    foreach (var i in Selection)
+                    {
+                        Rec!.SetDataset(DataSet[i]);
+                        Rec!.Delete(true);
+                    }
+
+                    SendDataSet();
+                }
+                else
+                {
+                    Rec!.Delete(true);
+                    Close();
+                }
+            }).RunModal();
+        }
+
+        private void ActRefresh_Triggering()
+        {
+            SendDataSet();
+        }
+
+        private void ApplyDataActions()
+        {
+            if ((!AllowInsert) || (Rec == null))
+                Control<Controls.Action>("act-data-new")?.Detach();
+
+            if ((!AllowDelete) || (Rec == null))
+                Control<Controls.Action>("act-data-delete")?.Detach();
+
+            if (Rec == null)
+                Control<Controls.Action>("act-data-refresh")?.Detach();
+
+            var actData = Control<Controls.Action>("act-data");
+            if ((actData != null) && (actData.Items.Count == 0))
+                actData.Detach();
+
+            var actArea = Control<Controls.ActionArea>();
+            if ((actArea != null) && (actArea.Items.Count == 0))
+                actArea.Detach();
         }
 
         internal JArray GetSchema()
         {
             var result = new JArray();
-            foreach (var field in UnitFields)
+            foreach (var field in DataFields)
             {
                 var item = new JObject();
                 item["caption"] = field.Caption;
@@ -58,7 +141,7 @@ namespace Brayns.Shaper.Objects
         internal JArray GetDataRow(bool format = false)
         {
             var line = new JArray();
-            foreach (var field in UnitFields)
+            foreach (var field in DataFields)
             {
                 if (format)
                 {
@@ -93,29 +176,54 @@ namespace Brayns.Shaper.Objects
         internal void SendDataSet()
         {
             DataSet.Clear();
-            FDataSet.Clear();
-            int count = 0;
+            Selection.Clear();
 
+            JArray jset = new();
+            JArray jfSet = new();
+            int count = 0;
+            
             if (Rec != null)
             {
+                if (Rec.FindSet())
+                {
+                    while (Rec.Read())
+                    {
+                        DataReading?.Invoke();
+                        DataSet.Add(Rec.GetDataset());
+                        jset.Add(GetDataRow(false));
+                        jfSet.Add(GetDataRow(true));
+                        count++;
 
+                        if (!MultipleRows)
+                            break;
+                    }
+                }
+                else if (!MultipleRows)
+                {
+                    Rec.Init();
+                    DataReading?.Invoke();
+                    jset.Add(GetDataRow(false));
+                    jfSet.Add(GetDataRow(true));
+                    count++;
+                }
             }
             else
             {
-                DataSet.Add(GetDataRow(false));
-                FDataSet.Add(GetDataRow(true));
-                count = 1;
+                DataReading?.Invoke();
+                jset.Add(GetDataRow(false));
+                jfSet.Add(GetDataRow(true));
+                count++;
             }
 
             var result = new JObject();
             result["action"] = "dataset";
             result["pageid"] = UnitID.ToString();
             result["count"] = count;
-            result["data"] = DataSet;
-            result["fdata"] = FDataSet;
+            result["data"] = jset;
+            result["fdata"] = jfSet;
 
             Client.SendMessage(result);
-        }
+        }        
 
         internal void SendPage(bool modal)
         {
@@ -151,7 +259,8 @@ namespace Brayns.Shaper.Objects
 
         private void Run(bool modal)
         {
-            OnLoad();
+            Loading?.Invoke();
+            ApplyDataActions();
             SessionRegister();
             SendPage(modal);
             SendDataSet();
@@ -169,7 +278,7 @@ namespace Brayns.Shaper.Objects
 
         public void Close()
         {
-            OnClose();
+            Closing?.Invoke();
 
             var result = new JObject();
             result["pageid"] = UnitID.ToString();
@@ -181,8 +290,17 @@ namespace Brayns.Shaper.Objects
         [PublicAccess]
         internal void QueryClose()
         {
-            if (OnQueryClose())
+            bool canClose = true;
+            QueryClosing?.Invoke(ref canClose);
+            if (canClose)
                 Close();
+        }
+
+        [PublicAccess]
+        internal void SelectRows(int[] rows)
+        {
+            Selection.Clear();
+            Selection.AddRange(rows);
         }
 
         [PublicAccess]
@@ -194,17 +312,40 @@ namespace Brayns.Shaper.Objects
             prx.Invoke(method, args);
         }
 
-        protected virtual void OnLoad()
+        public bool ControlExists(string name)
         {
+            foreach (Controls.Control ctl in AllItems.Values)
+                if (ctl.Name == name)
+                    return true;
+
+            return false;
         }
 
-        protected virtual bool OnQueryClose()
+        public bool ControlExists<T>()
         {
-            return true;
+            foreach (Controls.Control ctl in AllItems.Values)
+                if (ctl.GetType() == typeof(T))
+                    return true;
+
+            return false;
         }
 
-        protected void OnClose()
+        public T? Control<T>(string name) where T : Controls.Control
         {
+            foreach (Controls.Control ctl in AllItems.Values)
+                if (ctl.Name == name)
+                    return (T)ctl;
+
+            return null;
+        }
+
+        public T? Control<T>() where T : Controls.Control
+        {
+            foreach (Controls.Control ctl in AllItems.Values)
+                if (ctl.GetType() == typeof(T))
+                    return (T)ctl;
+
+            return null;
         }
     }
 
@@ -215,25 +356,15 @@ namespace Brayns.Shaper.Objects
 
     public abstract class Page<T, R> : Page<T> where T : BasePage where R : BaseTable
     {
-        public new R? Rec
+        public new R Rec
         {
-            get { return base.Rec as R; }
-            set
-            {
-                base.Rec = value;
+            get { return (R)base.Rec!; }
+            set { base.Rec = value; }
+        }
 
-                List<Fields.BaseField> toDel = new();
-                foreach (var field in UnitFields)
-                    if (field.Table != null)
-                        toDel.Add(field);
-
-                foreach (var field in toDel)
-                    UnitFields.Remove(field);
-
-                if (value != null)
-                    foreach (var field in value.UnitFields)
-                        UnitFields.Add(field);
-            }
+        public Page()
+        {
+            Rec = (R)Activator.CreateInstance(typeof(R))!;
         }
     }
 

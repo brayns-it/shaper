@@ -26,11 +26,15 @@ namespace Brayns.Shaper
         [Label("Web Client")]
         public const int WEBCLIENT = 4;
     }
+    
+    internal class ThreadData
+    {
+        internal Database.Database? Database { get; set; }
+    }
 
     internal class SessionData
     {
         internal Opt<SessionTypes> Type { get; set; }
-        internal Database.Database? Database { get; set; }
         internal CultureInfo CultureInfo { get; set; }
         internal string UserId { get; set; }
         internal Guid Id { get; set; }
@@ -38,6 +42,7 @@ namespace Brayns.Shaper
         internal string Address { get; set; }
         internal WebTask? WebTask { get; set; }
         internal Dictionary<string, object> Values { get; set; }
+        internal Dictionary<string, Unit> Units { get; set; }
         internal bool IsNew { get; set; }
         internal string ApplicationName { get; set; }
 
@@ -49,6 +54,7 @@ namespace Brayns.Shaper
             Address = "";
             Type = SessionTypes.SYSTEM;
             Values = new Dictionary<string, object>();
+            Units = new Dictionary<string, Unit>();
             ApplicationName = "";
         }
 
@@ -70,9 +76,14 @@ namespace Brayns.Shaper
 
     public static class Session
     {
+        public static event GenericHandler? Starting;
+        public static event GenericHandler? Stopping;
+        public static event GenericHandler? Destroying;
+
         internal static object _lockSessions = new object();
         internal static Dictionary<Guid, SessionData> SessionData { get; } = new Dictionary<Guid, SessionData>();
         internal static Dictionary<int, SessionData> SessionMap { get; } = new Dictionary<int, SessionData>();
+        internal static Dictionary<int, ThreadData> ThreadMap { get; } = new Dictionary<int, ThreadData>();
 
         public static Opt<SessionTypes> Type
         {
@@ -82,8 +93,8 @@ namespace Brayns.Shaper
 
         public static Database.Database? Database
         {
-            get { return Instance.Database; }
-            internal set { Instance.Database = value; }
+            get { return ThreadData.Database; }
+            internal set { ThreadData.Database = value; }
         }
 
         public static string Address
@@ -156,10 +167,31 @@ namespace Brayns.Shaper
                 return Thread.CurrentThread.ManagedThreadId;
             }
         }
+        
+        internal static Dictionary<string, Unit> Units
+        {
+            get { return Instance.Units; }
+        }
 
         public static Dictionary<string, object> Values
         {
             get { return Instance.Values; }
+        }
+
+        private static ThreadData ThreadData
+        {
+            get
+            {
+                var no = Thread.CurrentThread.ManagedThreadId;
+                if (!ThreadMap.ContainsKey(no))
+                {
+                    lock (_lockSessions)
+                    {
+                        ThreadMap.Add(no, new ThreadData());
+                    }
+                }
+                return ThreadMap[no];
+            }
         }
 
         private static SessionData Instance
@@ -192,9 +224,9 @@ namespace Brayns.Shaper
             {
                 Rollback();
 
-                Application.SystemModule?.SessionStop();
+                Stopping?.Invoke();
                 if (destroy)
-                    Application.SystemModule?.SessionDestroy();
+                    Destroying?.Invoke();
 
                 Commit();
             }
@@ -235,6 +267,13 @@ namespace Brayns.Shaper
                     lock (_lockSessions)
                     {
                         SessionMap.Remove(no);
+                    }
+                }
+                if (ThreadMap.ContainsKey(no))
+                {
+                    lock (_lockSessions)
+                    {
+                        ThreadMap.Remove(no);
                     }
                 }
             }
@@ -287,7 +326,7 @@ namespace Brayns.Shaper
             if (Application.IsReady())
                 DatabaseConnect();
 
-            Application.SystemModule?.SessionStart();
+            Starting?.Invoke();
             Commit();
         }
     }

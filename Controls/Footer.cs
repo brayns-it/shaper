@@ -8,11 +8,26 @@ namespace Brayns.Shaper.Controls
 {
     public class Footer : Control
     {
-        public string Caption { get; set; } = "";
-
-        public Footer(Footer page)
+        private string _caption = "";
+        public string Caption
         {
-            SetParent(page);
+            get { return _caption; }
+            set
+            {
+                _caption = value;
+                _caption = _caption.Replace("%Y", DateTime.Now.Year.ToString());
+            }
+        }
+
+        public static Footer Create(BasePage page)
+        {
+            Footer? ret = page.Control<Footer>();
+            if (ret == null)
+            {
+                ret = new Footer();
+                ret.Attach(page);
+            }
+            return ret;
         }
 
         internal override JObject Render()

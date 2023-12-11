@@ -8,9 +8,15 @@ namespace Brayns.Shaper.Controls
 {
     public class AppCenter : Control
     {
-        public AppCenter(BasePage page)
+        public static AppCenter Create(BasePage page)
         {
-            SetParent(page);
+            AppCenter? ret = page.Control<AppCenter>();
+            if (ret == null)
+            {
+                ret = new AppCenter();
+                ret.Attach(page);
+            }
+            return ret;
         }
     }
 }

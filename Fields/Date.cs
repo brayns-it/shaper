@@ -9,6 +9,10 @@ namespace Brayns.Shaper.Fields
             Type = FieldTypes.DATE;
         }
 
+        public Date(string caption) : this("", caption)
+        {
+        }
+
         internal override string Format(object? value)
         {
             var val = (System.DateTime)value!;

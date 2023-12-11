@@ -13,6 +13,7 @@ namespace Brayns.Shaper.Classes
         public const int E_RECORD_NOT_FOUND = 2;
         public const int E_UNAUTHORIZED = 3;
         public const int E_INVALID_ROUTE = 4;
+        public const int E_SYSTEM_NOT_READY = 5;
 
         public int ErrorCode { get; private set; } = 0;
 

@@ -8,9 +8,6 @@ using System.Runtime.Loader;
 
 namespace Brayns.Shaper
 {
-    public delegate void WebBuilderCreatedHandler(WebApplicationBuilder builder);
-    public delegate void WebApplicationBuiltHandler(WebApplicationBuilder builder, WebApplication app);
-
     public static class Application
     {
         private static readonly object _lockLog = new();
@@ -18,9 +15,9 @@ namespace Brayns.Shaper
         internal static Dictionary<ApiAction, Dictionary<string, MethodInfo>> Routes { get; } = new();
         internal static Dictionary<Guid, AppModule> Apps { get; } = new();
         internal static Config Config { get; set; } = new Config();
-        internal static SystemModule? SystemModule { get; set; }
         internal static ILogger? Logger { get; set; }
         public static string? RootPath { get; internal set; }
+        public static event GenericHandler? Initializing;
 
         public static bool IsReady()
         {
@@ -73,7 +70,7 @@ namespace Brayns.Shaper
             Loader.Loader.CollectApiEndpoints();
             Loader.Loader.InstallApps();
 
-            SystemModule?.ApplicationStart();
+            Initializing?.Invoke();
             Commit();
         }
 

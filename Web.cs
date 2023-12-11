@@ -39,11 +39,11 @@ namespace Brayns.Shaper
             CurrentThread.Start();
         }
 
-        public void Send(params ClientMessage[] msgs)
+        public void Send(ClientMessage msg)
         {
             lock (lockResults)
             {
-                Results.AddRange(msgs);
+                Results.Add(msg);
             }
             Semaphore!.Release(1);
         }
@@ -144,6 +144,17 @@ namespace Brayns.Shaper
 
     public class WebDispatcher
     {
+        private static readonly string _boundary;
+        
+        static WebDispatcher()
+        {
+            // 8k buffer
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < 230; i++)
+                sb.Append("d4015c7b-152e-492e-8e8b-2021248db290");
+            _boundary = "\"" + sb.ToString() + "\"";
+        }
+
         private static string ExceptionToJson(Exception ex)
         {
             var res = new JObject();
@@ -336,20 +347,22 @@ namespace Brayns.Shaper
                                     await ctx.Response.WriteAsync("]");
                                 return;
 
-                            case ClientMessage msg when msg.Type == ClientMessageType.AuthenticationToken:
+                            case ClientMessage msg when msg.Type == ClientMessageType.SetAuthentication:
                                 if (!bodyWrited)
-                                    if (msg.Value != null)
-                                    {
-                                        CookieOptions opt = new();
-                                        opt.Expires = msg.Expires;
-                                        ctx.Response.Cookies.Append("X-Authorization", msg.Value, opt);
-                                    }
-                                    else
-                                        ctx.Response.Cookies.Delete("X-Authorization");
+                                {
+                                    CookieOptions opt = new();
+                                    opt.Expires = msg.Expires;
+                                    ctx.Response.Cookies.Append("X-Authorization", msg.Value, opt);
+                                }
+                                continue;
+
+                            case ClientMessage msg when msg.Type == ClientMessageType.ClearAuthentication:
+                                if (!bodyWrited)
+                                    ctx.Response.Cookies.Delete("X-Authorization");
                                 continue;
 
                             case ClientMessage msg when msg.Type == ClientMessageType.Boundary:
-                                resText = msg.Value;
+                                resText = _boundary;
                                 doFlush = true;
                                 break;
 

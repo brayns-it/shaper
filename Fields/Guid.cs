@@ -35,6 +35,10 @@ namespace Brayns.Shaper.Fields
             Create();
         }
 
+        public Guid(string caption) : this("", caption)
+        {
+        }
+
         internal override object? CheckValue(object? value)
         {
             return (System.Guid)value!;

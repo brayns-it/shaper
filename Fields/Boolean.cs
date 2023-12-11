@@ -36,6 +36,10 @@ namespace Brayns.Shaper.Fields
             Create();
         }
 
+        public Boolean(string caption) : this("", caption)
+        {
+        }
+
         internal override object? Evaluate(string text)
         {
             text = text.Trim();

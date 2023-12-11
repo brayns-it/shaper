@@ -8,9 +8,15 @@ namespace Brayns.Shaper.Controls
 {
     public class ContentArea : Control
     {
-        public ContentArea(BasePage page)
+        public static ContentArea Create(BasePage page)
         {
-            SetParent(page);
+            ContentArea? ret = page.Control<ContentArea>();
+            if (ret == null)
+            {
+                ret = new ContentArea();
+                ret.Attach(page);
+            }
+            return ret;
         }
     }
 }

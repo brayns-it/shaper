@@ -26,5 +26,37 @@ namespace Brayns.Shaper.Classes
             }
             return sqlname;
         }
+
+        public static string Format(TimeSpan ts, int? stepCount = null)
+        {
+            List<string> steps = new();
+
+            int days = Convert.ToInt32(Math.Floor(ts.TotalDays));
+            if (days > 0) steps.Add(Label("{0} days", days));
+
+            int hours = Convert.ToInt32(Math.Floor(ts.TotalHours - (days * 24)));
+            if (hours > 0) steps.Add(Label("{0} hours", hours));
+
+            int minutes = Convert.ToInt32(Math.Floor(ts.TotalMinutes - (days * 24 * 60) - (hours * 60)));
+            if (minutes > 0) steps.Add(Label("{0} minutes", minutes));
+
+            int seconds = Convert.ToInt32(Math.Floor(ts.TotalSeconds - (days * 24 * 60 * 60) - (hours * 60 * 60) - (minutes * 60)));
+            if (seconds > 0) steps.Add(Label("{0} seconds", seconds));
+
+            if (steps.Count == 0)
+                return Label("Now");
+            else
+            {
+                string str = "";
+                for (int i = 0; i < steps.Count; i++)
+                {
+                    if (stepCount.HasValue && (stepCount.Value > 0) && (i >= stepCount.Value))
+                        break;
+
+                    str += steps[i] + " ";
+                }
+                return str.Trim();
+            }
+        }
     }
 }

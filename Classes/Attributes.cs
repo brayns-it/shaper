@@ -18,11 +18,6 @@ namespace Brayns.Shaper.Classes
     }
 
     [AttributeUsage(AttributeTargets.Class)]
-    public class SystemModuleAttribute : Attribute
-    {
-    }
-
-    [AttributeUsage(AttributeTargets.Class)]
     public class PublishedAttribute : Attribute
     {
     }
@@ -66,21 +61,8 @@ namespace Brayns.Shaper.Classes
         }
     }
 
-    public abstract class AppModule
+    [AttributeUsage(AttributeTargets.Method)]
+    public class ExtendedAttribute : Attribute
     {
-        public abstract string Name { get; }
-        public abstract string Author { get; }
-        public abstract Guid Id { get; }
-        public abstract Version Version { get; }
-
-        public abstract void Install();
-    }
-
-    public abstract class SystemModule
-    {
-        public abstract void ApplicationStart();
-        public abstract void SessionStart();
-        public abstract void SessionStop();
-        public abstract void SessionDestroy();
     }
 }

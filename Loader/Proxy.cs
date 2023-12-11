@@ -85,10 +85,10 @@ namespace Brayns.Shaper.Loader
 
         public static Proxy CreateFromId(string id)
         {
-            if (!CurrentSession.Values.ContainsKey("object:" + id))
+            if (!CurrentSession.Units.ContainsKey(id))
                 throw new Error(Label("Invalid object ID '{0}'"), id);
 
-            return new Proxy(CurrentSession.Values["object:" + id]);
+            return new Proxy(CurrentSession.Units[id]);
         }
 
         public static Proxy CreateFromName(string fullName)

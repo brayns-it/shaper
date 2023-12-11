@@ -41,6 +41,10 @@ namespace Brayns.Shaper.Fields
             Create();
         }
 
+        public BigInteger(string caption) : this("", caption)
+        {
+        }
+
         internal override object? Evaluate(string text)
         {
             if (text.Length == 0) return 0;

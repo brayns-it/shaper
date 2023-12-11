@@ -6,21 +6,21 @@ using System.Threading.Tasks;
 
 namespace Brayns.Shaper.Controls
 {
-    public class Html : Control
+    public class Grid : Control
     {
-        public string Content { get; set; }
-
-        public Html(ContentArea area, string name = "")
+        public Grid(ContentArea area, string name = "")
         {
             Attach(area);
-            Content = "";
             Name = name;
+
+            if (Page != null)
+                Page.MultipleRows = true;
         }
 
         internal override JObject Render()
         {
             var jo = base.Render();
-            jo["content"] = Content;
+            jo["labelNodata"] = Label("No data available");
             return jo;
         }
     }

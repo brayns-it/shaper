@@ -1,5 +1,4 @@
 ﻿using Brayns.Shaper.Fields;
-using System.Reflection;
 
 namespace Brayns.Shaper.Objects
 {
@@ -13,11 +12,27 @@ namespace Brayns.Shaper.Objects
         }
     }
 
-    public delegate void TableTriggerHandler<T>(T rec);
-    public delegate void TableRenameHandler<T>(T rec, TableRenameEventArgs e);
+    public delegate void TableRenameHandler(TableRenameEventArgs e);
 
     public abstract class BaseTable : Unit
     {
+        private List<Dictionary<string, object>> _dataset = new();
+        private int _currentRow = -1;
+        private List<FieldFilter> _lastFilters = new List<FieldFilter>();
+
+        private Database.Database? _database;
+        internal Database.Database? TableDatabase
+        {
+            get
+            {
+                if (_database != null)
+                    return _database;
+                else
+                    return Session.Database;
+            }
+            set { _database = value; }
+        }
+
         internal List<ITableRelation> TableRelations { get; init; } = new();
 
         public FilterLevel TableFilterLevel { get; set; }
@@ -27,7 +42,11 @@ namespace Brayns.Shaper.Objects
         public FieldList TableSort { get; init; } = new();
         public FieldList TablePrimaryKey { get; init; } = new();
         public string TableSqlName { get; internal set; } = "";
-
+        public event GenericHandler? Inserting;
+        public event GenericHandler? Deleting;
+        public event GenericHandler? Modifying;
+        public event TableRenameHandler? Renaming;
+        
         internal Error ErrorPrimaryKeyModify(BaseField f)
         {
             return new Classes.Error(Label("Cannot modify primary key '{0}', use rename instead"), f.Caption);
@@ -54,38 +73,63 @@ namespace Brayns.Shaper.Objects
             return res;
         }
 
-        public abstract void ModifyAll(BaseField field, object? newValue, bool runTrigger = false);
-    }
-
-    public abstract class Table<T> : BaseTable 
-    {
-        public static event TableTriggerHandler<T>? Inserting;
-        public static event TableTriggerHandler<T>? Modifying;
-        public static event TableTriggerHandler<T>? Deleting;
-        public static event TableRenameHandler<T>? Renaming;
-
-        private List<Dictionary<string, object>> _dataset = new();
-        private int _currentRow = -1;
-        private List<FieldFilter> _lastFilters = new List<FieldFilter>();
-
-        internal Database.Database? _database;
-        internal Database.Database? TableDatabase
+        internal void SetDataset(Dictionary<string, object> dataset)
         {
-            get
-            {
-                if (_database != null)
-                    return _database;
-                else
-                    return Session.Database;
-            }
-            set { _database = value; }
+            TableDatabase!.LoadRow(this, dataset);
+            AcceptChanges();
         }
 
-        public Table()
+        internal Dictionary<string, object> GetDataset()
         {
-            UnitType = UnitTypes.TABLE;
-            if (typeof(T) != GetType())
-                throw new Error(Label("Table type must be '{0}'"), GetType());
+            return _dataset![_currentRow];
+        }
+
+        public bool Read()
+        {
+            _currentRow++;
+            if (_currentRow >= _dataset!.Count)
+            {
+                _currentRow = 0;
+                _dataset = TableDatabase!.NextSet(this);
+                if (_dataset.Count == 0)
+                    return false;
+            }
+
+            TableDatabase!.LoadRow(this, _dataset![_currentRow]);
+            AcceptChanges();
+            return true;
+        }
+
+        public void ModifyAll(BaseField field, object? newValue, bool runTrigger = false)
+        {
+            if (runTrigger)
+            {
+                if (FindSet())
+                    while (Read())
+                    {
+                        field.Value = newValue;
+                        Modify(true);
+                    }
+            }
+            else
+            {
+                field.Value = newValue;
+                TableDatabase!.ModifyAll(this, field);
+                AcceptChanges();
+            }
+        }
+
+        public bool FindSet()
+        {
+            _dataset = TableDatabase!.FindSet(this);
+            _currentRow = -1;
+            return (_dataset.Count > 0);
+        }
+
+        internal void AcceptChanges()
+        {
+            foreach (var f in UnitFields)
+                f.XValue = f.Value;
         }
 
         public Error ErrorNotFound()
@@ -106,32 +150,21 @@ namespace Brayns.Shaper.Objects
                 TableSqlName = Functions.ToSqlName(value);
             }
         }
-        
+
         public bool IsEmpty()
         {
             return TableDatabase!.IsEmpty(this);
-        }
-
-        protected virtual void OnInsert()
-        {
         }
 
         public void Insert(bool runTrigger = false)
         {
             if (runTrigger)
             {
-                OnInsert();
-                Inserting?.Invoke((T)Convert.ChangeType(this, typeof(T)));
+                Inserting?.Invoke();
             }
 
             TableDatabase!.Insert(this);
             AcceptChanges();
-        }
-
-        internal void AcceptChanges()
-        {
-            foreach (var f in UnitFields)
-                f.XValue = f.Value;
         }
 
         public void DeleteAll(bool runTrigger = false)
@@ -148,42 +181,14 @@ namespace Brayns.Shaper.Objects
             }
         }
 
-        protected virtual void OnDelete()
-        {
-        }
-
         public void Delete(bool runTrigger = false)
         {
             if (runTrigger)
             {
-                OnDelete();
-                Deleting?.Invoke((T)Convert.ChangeType(this, typeof(T)));
+                Deleting?.Invoke();
             }
 
             TableDatabase!.Delete(this);
-        }
-
-        public override void ModifyAll(BaseField field, object? newValue, bool runTrigger = false)
-        {
-            if (runTrigger)
-            {
-                if (FindSet())
-                    while (Read())
-                    {
-                        field.Value = newValue;
-                        Modify(true);
-                    }
-            }
-            else
-            {
-                field.Value = newValue;
-                TableDatabase!.ModifyAll(this, field);
-                AcceptChanges();
-            }
-        }
-
-        protected virtual void OnModify()
-        {
         }
 
         public void Modify(bool runTrigger = false)
@@ -194,24 +199,17 @@ namespace Brayns.Shaper.Objects
 
             if (runTrigger)
             {
-                OnModify();
-                Modifying?.Invoke((T)Convert.ChangeType(this, typeof(T)));
+                Modifying?.Invoke();
             }
-            
+
             TableDatabase!.Modify(this);
             AcceptChanges();
         }
 
-        protected virtual void OnRename(params object[] newKey)
-        {
-        }
-
         public void Rename(params object[] newKey)
         {
-            OnRename(newKey);
-
             var e = new TableRenameEventArgs(newKey);
-            Renaming?.Invoke((T)Convert.ChangeType(this, typeof(T)), e);
+            Renaming?.Invoke(e);
 
             TableDatabase!.Rename(this, newKey);
 
@@ -276,13 +274,6 @@ namespace Brayns.Shaper.Objects
             return TableDatabase!.Count(this);
         }
 
-        public bool FindSet()
-        {
-            _dataset = TableDatabase!.FindSet(this);
-            _currentRow = -1;
-            return (_dataset.Count > 0);
-        }
-
         public bool Get(params object[] pkValues)
         {
             List<object> val = new();
@@ -306,22 +297,6 @@ namespace Brayns.Shaper.Objects
                 return Read();
             else
                 return false;
-        }
-
-        public bool Read()
-        {
-            _currentRow++;
-            if (_currentRow >= _dataset!.Count)
-            {
-                _currentRow = 0;
-                _dataset = TableDatabase!.NextSet(this);
-                if (_dataset.Count == 0)
-                    return false;
-            }
-
-            TableDatabase!.LoadRow(this, _dataset![_currentRow]);
-            AcceptChanges();
-            return true;
         }
 
         public void AddRelation<S>(BaseField fieldFrom,
@@ -351,6 +326,16 @@ namespace Brayns.Shaper.Objects
             TableVersion = DBNull.Value;
             foreach (BaseField f in UnitFields)
                 f.Init();
+        }
+    }
+
+    public abstract class Table<T> : BaseTable 
+    {
+        public Table()
+        {
+            UnitType = UnitTypes.TABLE;
+            if (typeof(T) != GetType())
+                throw new Error(Label("Table type must be '{0}'"), GetType());
         }
     }
 }

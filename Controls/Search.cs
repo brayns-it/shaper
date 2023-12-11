@@ -6,10 +6,15 @@ namespace Brayns.Shaper.Controls
     {
         public string Caption { get; set; } = "";
 
-        public Search(AppCenter center)
+        public static Search Create(AppCenter center)
         {
-            SetParent(center);
-            Caption = Label("Search");
+            Search? ret = center.Page!.Control<Search>();
+            if (ret == null)
+            {
+                ret = new Search();
+                ret.Attach(center);
+            }
+            return ret;
         }
     }
 }

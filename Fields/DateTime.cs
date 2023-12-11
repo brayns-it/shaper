@@ -36,6 +36,10 @@ namespace Brayns.Shaper.Fields
             Create();
         }
 
+        public DateTime(string caption) : this("", caption)
+        {
+        }
+
         internal override object? CheckValue(object? value)
         {
             return (System.DateTime)value!;

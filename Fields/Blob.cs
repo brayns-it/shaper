@@ -35,6 +35,10 @@ namespace Brayns.Shaper.Fields
             Create();
         }
 
+        public Blob(string caption) : this("", caption)
+        {
+        }
+
         internal override object? Evaluate(string text)
         {
             throw new NotImplementedException();

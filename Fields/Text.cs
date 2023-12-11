@@ -1,12 +1,10 @@
-﻿using Newtonsoft.Json.Linq;
-
-namespace Brayns.Shaper.Fields
+﻿namespace Brayns.Shaper.Fields
 {
     public class Text : BaseField
     {
         public const int MAX_LENGTH = -1;
 
-        public int Length { get; init; }
+        public int Length { get; internal set; }
 
         public new string Value
         {
@@ -40,6 +38,10 @@ namespace Brayns.Shaper.Fields
             Create();
         }
 
+        public Text(string caption) : this("", caption, 0)
+        {
+        }
+
         internal override object? CheckValue(object? value)
         {
             string val = (string)value!;
@@ -68,6 +70,11 @@ namespace Brayns.Shaper.Fields
         internal override JValue Serialize(object? value)
         {
             return new JValue((string)value!);
+        }
+
+        public void SetFilter(string expression, params string[] pars)
+        {
+            SetFilter<string>(expression, pars);
         }
     }
 }

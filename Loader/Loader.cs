@@ -42,7 +42,6 @@ namespace Brayns.Shaper.Loader
 
         private static void FinalizeLoadApps()
         {
-            Application.SystemModule = null;
             TableTypes.Clear();
             CodeunitTypes.Clear();
             ModuleTypes.Clear();
@@ -55,13 +54,14 @@ namespace Brayns.Shaper.Loader
 
                 foreach (Type t in asm.GetExportedTypes())
                 {
-                    // system module
-                    if ((Application.SystemModule == null) && HasAttribute<SystemModuleAttribute>(t))
-                        Application.SystemModule = (SystemModule)Activator.CreateInstance(t)!;
+                    if (t.IsAbstract) continue;
 
                     // units
                     if (typeof(Unit).IsAssignableFrom(t))
+                    {
                         UnitTypes.Add(t.FullName!, t);
+                        System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(t.TypeHandle);
+                    }
 
                     // tables
                     if (typeof(BaseTable).IsAssignableFrom(t))

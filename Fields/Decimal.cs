@@ -42,6 +42,10 @@ namespace Brayns.Shaper.Fields
             Create();
         }
 
+        public Decimal(string caption) : this("", caption)
+        {
+        }
+
         internal override object? CheckValue(object? value)
         {
             return (decimal)value!;

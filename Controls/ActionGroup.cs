@@ -6,19 +6,21 @@ using System.Threading.Tasks;
 
 namespace Brayns.Shaper.Controls
 {
-    public class UserCenter : Control
+    public class ActionGroup : Control
     {
         public string Caption { get; set; } = "";
 
-        public static UserCenter Create(AppCenter center)
+        public ActionGroup(NavigationPane pane, string name, string caption)
         {
-            UserCenter? ret = center.Page!.Control<UserCenter>();
-            if (ret == null)
-            {
-                ret = new UserCenter();
-                ret.Attach(center);
-            }
-            return ret;
+            Attach(pane);
+            Caption = caption;
+            Name = name;
+        }
+
+        public ActionGroup(NavigationPane pane, string caption)
+        {
+            Attach(pane);
+            Caption = caption;
         }
 
         internal override JObject Render()

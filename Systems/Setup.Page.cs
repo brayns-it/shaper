@@ -2,20 +2,20 @@
 {
     public class Setup : Page<Setup>
     {
-        private Fields.Option<Database.DatabaseTypes> DatabaseType { get; } = new("Database type", Label("Database type"));
-        private Fields.Text DatabaseConnection { get; } = new("Database connection", Label("Database connection"), 512);
-        private Fields.Text DatabaseLogin { get; } = new("Database login", Label("Database login"), 512);
-        private Fields.Text DatabasePassword { get; } = new("Database password", Label("Database password"), 512);
-        private Fields.Text DatabaseName { get; } = new("Database name", Label("Database name"), 512);
-        private Fields.Text DatabaseServer { get; } = new("Database server", Label("Database server"), 512);
-        private Fields.Text EnvironmentName { get; } = new("Environment name", Label("Environment name"), 512);
+        private Fields.Option<Database.DatabaseTypes> DatabaseType { get; } = new(Label("Database type"));
+        private Fields.Text DatabaseConnection { get; } = new(Label("Database connection"));
+        private Fields.Text DatabaseLogin { get; } = new(Label("Database login"));
+        private Fields.Text DatabasePassword { get; } = new(Label("Database password"));
+        private Fields.Text DatabaseName { get; } = new(Label("Database name"));
+        private Fields.Text DatabaseServer { get; } = new(Label("Database server"));
+        private Fields.Text EnvironmentName { get; } = new(Label("Environment name"));
 
         public Setup()
         {
             UnitName = "Setup";
             UnitCaption = Label("Setup");
 
-            var content = new Controls.ContentArea(this);
+            var content = Controls.ContentArea.Create(this);
             {
                 var general = new Controls.Group(content, Label("General"));
                 {
@@ -40,24 +40,16 @@
                 }
             }
 
-            var actions = new Controls.ActionArea(this);
+            var actions = Controls.ActionArea.Create(this);
             {
-                var save = new Controls.Action(actions, Label("Save"), "fas fa-save");
+                var save = new Controls.Action(actions, Label("Save"), Icon.FromName("fas fa-save"));
                 save.Triggering += Save_Triggering;
             }
+
+            Loading += Setup_Loading;
         }
 
-        private void DbPar_Validating()
-        {
-            switch (DatabaseType.Value)
-            {
-                case Database.DatabaseTypes.SQLSERVER:
-                    DatabaseConnection.Value = Database.SqlServer.GetConnectionString(DatabaseServer.Value, DatabaseName.Value, EnvironmentName.Value);
-                    break;
-            }
-        }
-
-        protected override void OnLoad()
+        private void Setup_Loading()
         {
             DatabaseType.Value = Application.Config.DatabaseType;
             DatabaseConnection.Value = Application.Config.DatabaseConnection;
@@ -68,6 +60,16 @@
             EnvironmentName.Value = Application.Config.EnvironmentName;
 
             CurrentSession.ApplicationName = Label("New Shaper");
+        }
+
+        private void DbPar_Validating()
+        {
+            switch (DatabaseType.Value)
+            {
+                case Database.DatabaseTypes.SQLSERVER:
+                    DatabaseConnection.Value = Database.SqlServer.GetConnectionString(DatabaseServer.Value, DatabaseName.Value, EnvironmentName.Value);
+                    break;
+            }
         }
 
         private void Save_Triggering()

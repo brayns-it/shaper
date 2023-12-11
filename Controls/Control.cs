@@ -8,13 +8,39 @@ namespace Brayns.Shaper.Controls
         public BasePage? Page { get; protected set; }
         public Control? Parent { get; protected set; }
         public List<Control> Items { get; private set; } = new();
+        public String Name { get; protected set; }
 
         public Control()
         {
             ID = System.Guid.NewGuid();
+            Name = "";
         }
 
-        protected void SetParent(BasePage page)
+        public void MoveFirst()
+        {
+            if (Parent == null) return;
+
+            int n = Parent.Items.IndexOf(this);
+            if (n > 0)
+            {
+                Parent.Items.Remove(this);
+                Parent.Items.Insert(0, this);
+            }
+        }
+
+        public void Detach()
+        {
+            if (Parent != null)
+                Parent.Items.Remove(this);
+            if (Page != null)
+            {
+                if (Page.Items.Contains(this))
+                    Page.Items.Remove(this);
+                Page.AllItems.Remove(ID.ToString());
+            }
+        }
+
+        protected void Attach(BasePage page)
         {
             Parent = null;
             Page = page;
@@ -22,13 +48,15 @@ namespace Brayns.Shaper.Controls
             Page.AllItems.Add(ID.ToString(), this);
         }
 
-        protected void SetParent(Control parent)
+        protected void Attach(Control parent)
         {
             Parent = parent;
             Page = parent.Page;
             Parent.Items.Add(this);
             if (Page != null)
+            {
                 Page.AllItems.Add(ID.ToString(), this);
+            }
         }
 
         internal virtual JObject Render()

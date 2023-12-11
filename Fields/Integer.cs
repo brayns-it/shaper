@@ -41,6 +41,10 @@ namespace Brayns.Shaper.Fields
             Create();
         }
 
+        public Integer(string caption) : this("", caption)
+        {
+        }
+
         internal override object? CheckValue(object? value)
         {
             return (int)value!;

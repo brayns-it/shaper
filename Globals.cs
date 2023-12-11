@@ -2,13 +2,17 @@
 global using Functions = Brayns.Shaper.Classes.Functions;
 global using Fields = Brayns.Shaper.Fields;
 global using Brayns.Shaper.Objects;
+global using Controls = Brayns.Shaper.Controls;
 global using Error = Brayns.Shaper.Classes.Error;
 global using PublicAccess = Brayns.Shaper.Classes.PublicAccessAttribute;
 global using Published = Brayns.Shaper.Classes.PublishedAttribute;
 global using LoggedAccess = Brayns.Shaper.Classes.LoggedAccessAttribute;
 global using ApiMethod = Brayns.Shaper.Classes.ApiMethodAttribute;
 global using ApiAction = Brayns.Shaper.Classes.ApiAction;
+global using UnitConstructor = Brayns.Shaper.Classes.ExtendedAttribute;
 global using CurrentSession = Brayns.Shaper.Session;
 global using Label = Brayns.Shaper.Classes.LabelAttribute;
 global using Newtonsoft.Json.Linq;
 global using Client = Brayns.Shaper.Client;
+global using Confirm = Brayns.Shaper.Systems.Confirm;
+global using Icon = Brayns.Shaper.Controls.Icon;

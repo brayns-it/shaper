@@ -22,9 +22,16 @@ namespace Brayns.Shaper.Controls
         public bool Collapsible { get; set; } = true;
         public bool Primary { get; set; } = false;
 
+        public Group(ContentArea contentArea, string name, string caption = "")
+        {
+            Attach(contentArea);
+            Caption = caption;
+            Name = name;
+        }
+
         public Group(ContentArea contentArea, string caption = "")
         {
-            SetParent(contentArea);
+            Attach(contentArea);
             Caption = caption;
         }
 

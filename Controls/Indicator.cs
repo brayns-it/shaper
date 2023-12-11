@@ -6,9 +6,15 @@ namespace Brayns.Shaper.Controls
     {
         public string Caption { get; set; } = "";
 
-        public Indicator(AppCenter center)
+        public static Indicator Create(AppCenter center)
         {
-            SetParent(center);
+            Indicator? ret = center.Page!.Control<Indicator>();
+            if (ret == null)
+            {
+                ret = new Indicator();
+                ret.Attach(center);
+            }
+            return ret;
         }
 
         internal override JObject Render()

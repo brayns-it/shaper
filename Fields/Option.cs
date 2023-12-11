@@ -41,6 +41,10 @@ namespace Brayns.Shaper.Fields
             Create();
         }
 
+        public Option(string caption) : this("", caption)
+        {
+        }
+
         internal override object? CheckValue(object? value)
         {
             Opt<T> val;
