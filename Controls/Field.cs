@@ -19,8 +19,11 @@ namespace Brayns.Shaper.Controls
         public Fields.BaseField BaseField { get; protected set; }
         public InputType InputType { get; set; }
         public event Fields.ValidatingHandler? Validating;
+        public bool ReadOnly { get; set; } = false;
 
+#pragma warning disable CS8618
         public Field(Group group, string name, Shaper.Fields.BaseField baseField)
+#pragma warning restore CS8618
         {
             Init(group, name, baseField);
         }
@@ -29,7 +32,9 @@ namespace Brayns.Shaper.Controls
         {
         }
 
+#pragma warning disable CS8618
         public Field(Grid grid, string name, Shaper.Fields.BaseField baseField)
+#pragma warning restore CS8618
         {
             Init(grid, name, baseField);
         }
@@ -56,6 +61,7 @@ namespace Brayns.Shaper.Controls
             jo["caption"] = Caption;
             jo["codename"] = BaseField.CodeName;
             jo["inputType"] = InputType.ToString();
+            jo["readOnly"] = ReadOnly;
             return jo;
         }
 
@@ -66,22 +72,7 @@ namespace Brayns.Shaper.Controls
 
             BaseField.Validate(value);
             Validating?.Invoke();
-
-            if ((Page!.Rec != null) && Page!.Rec.UnitFields.Contains(BaseField))
-            {
-                bool isKey = Page!.Rec.TablePrimaryKey.Contains(BaseField);
-                bool lastKey = (Page!.Rec.TablePrimaryKey.IndexOf(BaseField) == (Page!.Rec.TablePrimaryKey.Count - 1));
-                
-                if ((isKey && lastKey) || (!isKey))
-                {
-                    if (Page!.Rec.TableVersion == DBNull.Value)
-                        Page!.Rec.Insert(true);
-                    else
-                        Page!.Rec.Modify(true);
-                }
-            }
-
-            Page!.SendDataRow();
+            Page!.AfterValidate(BaseField);
         }
     }
 }

@@ -76,8 +76,7 @@ namespace Brayns.Shaper.Fields
 
         internal override JValue Serialize(object? value)
         {
-            var val = (System.Guid)value!;
-            return new JValue(val.ToString());
+            return new JValue((int)value!);
         }
     }
 }

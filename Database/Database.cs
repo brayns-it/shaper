@@ -30,7 +30,7 @@ namespace Brayns.Shaper.Database
         public abstract void ModifyAll(BaseTable table, Fields.BaseField field);
         public abstract void Delete(BaseTable table);
         public abstract void DeleteAll(BaseTable table);
-        public abstract void Rename(BaseTable table, object[] newPkValues);
+        public abstract void Rename(BaseTable table);
         public abstract int Count(BaseTable table);
         public abstract int GetConnectionId();
         public abstract List<Dictionary<string, object>> FindFirst(BaseTable table);

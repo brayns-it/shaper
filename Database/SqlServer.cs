@@ -515,7 +515,7 @@ namespace Brayns.Shaper.Database
             throw new Error(Label("Unknown field type '{0}'"), f.Type);
         }
 
-        private string GetWherePrimaryKey(BaseTable table, List<object> pars, bool withTimestamp = true)
+        private string GetWherePrimaryKey(BaseTable table, List<object> pars, bool withTimestamp = true, bool useXvalues = false)
         {
             var sql = "";
 
@@ -526,7 +526,11 @@ namespace Brayns.Shaper.Database
                 comma = true;
 
                 sql += "([" + f.SqlName + "] = @p" + pars.Count + ")";
-                pars.Add(ToSqlValue(f, f.Value));
+
+                if (useXvalues)
+                    pars.Add(ToSqlValue(f, f.XValue));
+                else
+                    pars.Add(ToSqlValue(f, f.Value));
             }
 
             if (withTimestamp)
@@ -838,20 +842,16 @@ namespace Brayns.Shaper.Database
             SetVersion(table);
         }
 
-        public override void Rename(BaseTable table, object[] newPkValues)
+        public override void Rename(BaseTable table)
         {
             List<object> pars = new();
 
             List<BaseField> fields = new();
-            int i = 0;
             foreach (BaseField f in table.TablePrimaryKey)
             {
-                if ((f.Value == null) && (newPkValues[i] == null))
-                    continue;
-                if (f.Value!.Equals(newPkValues[i]))
+                if (Functions.AreEquals(f.Value, f.XValue))
                     continue;
                 fields.Add(f);
-                i++;
             }
             if (fields.Count == 0)
                 return;
@@ -859,18 +859,17 @@ namespace Brayns.Shaper.Database
             var sql = "UPDATE [" + table.TableSqlName + "] SET ";
 
             bool comma = false;
-            i = 0;
             foreach (BaseField f in fields)
             {
                 if (comma) sql += ", ";
                 comma = true;
 
                 sql += "[" + f.SqlName + "] = @p" + pars.Count;
-                pars.Add(ToSqlValue(f, f.CheckValue(newPkValues[i])));
+                pars.Add(ToSqlValue(f, f.Value));
             }
 
             sql += " WHERE ";
-            sql += GetWherePrimaryKey(table, pars);
+            sql += GetWherePrimaryKey(table, pars, true, true);
 
             int a = Execute(sql, pars.ToArray());
             if (a != 1)

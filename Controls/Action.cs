@@ -24,6 +24,8 @@ namespace Brayns.Shaper.Controls
             }
         }
 
+        public bool RunAsPrincipal { get; set; } = false;
+
         public Action(ActionArea area, string name, string caption, Icon? icon = null)
         {
             Init(area, name, caption);
@@ -102,6 +104,12 @@ namespace Brayns.Shaper.Controls
         {
             if (Run != null)
             {
+                if (RunAsPrincipal)
+                    foreach (var u in CurrentSession.Units.Values)
+                        if (u != Page)
+                            if (typeof(BasePage).IsAssignableFrom(u.GetType()))
+                                ((BasePage)u).Close();
+
                 var p = (BasePage)Activator.CreateInstance(Run)!;
                 p.Run();
             }

@@ -16,14 +16,20 @@
         internal List<Dictionary<string, object>> DataSet { get; set; } = new();
         internal List<int> Selection { get; set; } = new();
         internal bool MultipleRows { get; set; } = false;
+        internal bool OpenAsNew { get; set; } = false;
+        internal BasePage? SourcePage { get; set; }
 
         public List<Controls.Control> Items { get; private set; } = new();
         public PageTypes PageType { get; protected set; }
         public BaseTable? Rec { get; set; }
+        public Type? Card { get; set; }
+        public event GenericHandler? Inserting;
+        public event GenericHandler? Renaming;
         public event GenericHandler? Loading;
         public event GenericHandler? Closing;
         public event PageQueryCloseHandler? QueryClosing;
         public event GenericHandler? DataReading;
+        public event GenericHandler? CaptionSetting;
         public bool AllowInsert { get; set; } = true;
         public bool AllowDelete { get; set; } = true;
         public bool AllowModify { get; set; } = true;
@@ -43,6 +49,7 @@
                 var actData = new Controls.Action(actArea, "act-data", Label("Data"));
                 {
                     var actNew = new Controls.Action(actData, "act-data-new", Label("New"));
+                    actNew.Triggering += ActNew_Triggering;
 
                     var actDelete = new Controls.Action(actData, "act-data-delete", Label("Delete"));
                     actDelete.Triggering += ActDelete_Triggering;
@@ -50,6 +57,24 @@
                     var actRefresh = new Controls.Action(actData, "act-data-refresh", Label("Refresh"));
                     actRefresh.Triggering += ActRefresh_Triggering;
                 }
+            }
+        }
+
+        private void ActNew_Triggering()
+        {
+            if (Card != null)
+            {
+                var c = (BasePage)Activator.CreateInstance(Card)!;
+                c.OpenAsNew = true;
+                c.SourcePage = this;
+                c.Closing += () => SendDataSet();
+                c.Run();
+            }
+            else
+            {
+                Rec!.Init();
+                SendDataRow();
+                SendCaption();
             }
         }
 
@@ -61,7 +86,7 @@
             if ((!MultipleRows) || (Selection.Count == 1))
                 lbl = Label("Delete {0}?", Rec!.UnitCaption);
             else
-                lbl = Label("Delete selected {0} {1}?", Selection.Count,  Rec!.UnitCaption);
+                lbl = Label("Delete selected {0} {1}?", Selection.Count, Rec!.UnitCaption);
 
             new Confirm(lbl, () =>
             {
@@ -79,6 +104,9 @@
                 {
                     Rec!.Delete(true);
                     Close();
+
+                    if ((SourcePage != null) && (SourcePage.Rec != null) && (SourcePage.Rec!.UnitName == Rec.UnitName))
+                        SourcePage.SendDataSet();
                 }
             }).RunModal();
         }
@@ -91,6 +119,9 @@
         private void ApplyDataActions()
         {
             if ((!AllowInsert) || (Rec == null))
+                Control<Controls.Action>("act-data-new")?.Detach();
+
+            if (AllowInsert && MultipleRows && (Card == null))
                 Control<Controls.Action>("act-data-new")?.Detach();
 
             if ((!AllowDelete) || (Rec == null))
@@ -170,6 +201,9 @@
             result["data"] = data;
             result["fdata"] = fdata;
 
+            if (Selection.Count > 0)
+                result["selectedrow"] = Selection[0];
+
             Client.SendMessage(result);
         }
 
@@ -181,10 +215,10 @@
             JArray jset = new();
             JArray jfSet = new();
             int count = 0;
-            
+
             if (Rec != null)
             {
-                if (Rec.FindSet())
+                if ((!OpenAsNew) && Rec.FindSet())
                 {
                     while (Rec.Read())
                     {
@@ -223,7 +257,7 @@
             result["fdata"] = jfSet;
 
             Client.SendMessage(result);
-        }        
+        }
 
         internal void SendPage(bool modal)
         {
@@ -264,6 +298,7 @@
             SessionRegister();
             SendPage(modal);
             SendDataSet();
+            SendCaption();
         }
 
         public void Run()
@@ -276,9 +311,58 @@
             Run(true);
         }
 
+        internal void SendCaption()
+        {
+            if ((Rec != null) && (!MultipleRows))
+            {
+                if (Rec.TableVersion == DBNull.Value)
+                {
+                    UnitCaption = Label("New {0}", Rec.UnitCaption);
+                }
+                else if (SourcePage != null)
+                {
+                    var pk = Rec.TablePrimaryKey[Rec.TablePrimaryKey.Count - 1];
+                    UnitCaption = pk.Format(pk.Value);
+                }
+            }
+
+
+            CaptionSetting?.Invoke();
+
+            var result = new JObject();
+            result["action"] = "property";
+            result["pageid"] = UnitID.ToString();
+            result["target"] = "page";
+            result["property"] = "caption";
+            result["value"] = UnitCaption;
+
+            Client.SendMessage(result);
+        }
+
+        [PublicAccess]
+        internal void OpenRecord()
+        {
+            var pk = Rec!.GetPrimaryKey();
+
+            var c = (BasePage)Activator.CreateInstance(Card!)!;
+            c.Rec!.FilterByPrimaryKey(pk);
+            c.SourcePage = this;
+            c.Closing += Refresh;
+            c.Run();
+        }
+
+        internal void Refresh()
+        {
+            Rec!.Refresh();
+            if (Selection.Count > 0)
+                DataSet[Selection[0]] = Rec!.GetDataset();
+            SendDataRow();
+        }
+
         public void Close()
         {
             Closing?.Invoke();
+            SessionUnregister();
 
             var result = new JObject();
             result["pageid"] = UnitID.ToString();
@@ -301,6 +385,9 @@
         {
             Selection.Clear();
             Selection.AddRange(rows);
+
+            if (Selection.Count > 0)
+                Rec!.SetDataset(DataSet[Selection[0]]);
         }
 
         [PublicAccess]
@@ -346,6 +433,43 @@
                     return (T)ctl;
 
             return null;
+        }
+
+        internal void AfterValidate(Fields.BaseField field)
+        {
+            if ((Rec != null) && Rec.UnitFields.Contains(field))
+            {
+                bool isKey = Rec.TablePrimaryKey.Contains(field);
+                bool lastKey = (Rec.TablePrimaryKey.IndexOf(field) == (Rec.TablePrimaryKey.Count - 1));
+
+                if (Rec.TableVersion == DBNull.Value)
+                {
+                    if ((isKey && lastKey) || (!isKey))
+                    {
+                        Rec.Insert(true);
+                        Inserting?.Invoke();
+                        SendCaption();
+                    }
+                }
+                else
+                {
+                    if (isKey)
+                    {
+                        Rec.Rename();
+                        Renaming?.Invoke();
+                        SendCaption();
+
+                        if ((SourcePage != null) && (SourcePage.Rec != null) && (SourcePage.Rec!.UnitName == Rec.UnitName))
+                            SourcePage.SendDataSet();
+                    }
+                    else
+                    {
+                        Rec.Modify(true);
+                    }
+                }
+            }
+
+            SendDataRow();
         }
     }
 

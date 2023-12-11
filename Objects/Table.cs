@@ -2,18 +2,6 @@
 
 namespace Brayns.Shaper.Objects
 {
-    public class TableRenameEventArgs 
-    {
-        public object[] NewPrimaryKey { get; init; }
-
-        public TableRenameEventArgs(object[] newPK)
-        {
-            NewPrimaryKey = newPK;
-        }
-    }
-
-    public delegate void TableRenameHandler(TableRenameEventArgs e);
-
     public abstract class BaseTable : Unit
     {
         private List<Dictionary<string, object>> _dataset = new();
@@ -45,7 +33,7 @@ namespace Brayns.Shaper.Objects
         public event GenericHandler? Inserting;
         public event GenericHandler? Deleting;
         public event GenericHandler? Modifying;
-        public event TableRenameHandler? Renaming;
+        public event GenericHandler? Renaming;
         
         internal Error ErrorPrimaryKeyModify(BaseField f)
         {
@@ -206,25 +194,15 @@ namespace Brayns.Shaper.Objects
             AcceptChanges();
         }
 
-        public void Rename(params object[] newKey)
+        public void Rename()
         {
-            var e = new TableRenameEventArgs(newKey);
-            Renaming?.Invoke(e);
+            Renaming?.Invoke();
+            TableDatabase!.Rename(this);
 
-            TableDatabase!.Rename(this, newKey);
-
-            int i = 0;
             foreach (BaseField f in TablePrimaryKey)
-            {
-                if (f.Value != newKey[i])
-                {
+                if (!Functions.AreEquals(f.Value, f.XValue))
                     foreach (var tr in Loader.Loader.GetAllTableRelations(f))
-                        tr.ModifyAll(f.Value, newKey[i]);
-
-                    f.Value = newKey[i];
-                }
-                i++;
-            }
+                        tr.ModifyAll(f.XValue, f.Value);
 
             AcceptChanges();
         }
@@ -251,6 +229,7 @@ namespace Brayns.Shaper.Objects
 
         public void Reset()
         {
+            TableFilterLevel = FilterLevel.Public;
             TableSort.Clear();
             foreach (BaseField f in UnitFields)
                 f.Filters.Clear();
@@ -274,7 +253,32 @@ namespace Brayns.Shaper.Objects
             return TableDatabase!.Count(this);
         }
 
+        public List<object> GetPrimaryKey()
+        {
+            List<object> result = new();
+            foreach (var f in TablePrimaryKey)
+                    result.Add(f.Value!);
+            return result;
+        }
+
+        public void FilterByPrimaryKey(List<object> pkValues)
+        {
+            Reset();
+            for (int i = 0; i < TablePrimaryKey.Count; i++)
+                TablePrimaryKey[i].SetRange(pkValues[i]);
+        }
+
+        public bool Refresh()
+        {
+            return Get(GetPrimaryKey());
+        }
+
         public bool Get(params object[] pkValues)
+        {
+            return Get(pkValues.ToList());
+        }
+
+        public bool Get(List<object> pkValues)
         {
             List<object> val = new();
             _lastFilters.Clear();
@@ -282,7 +286,7 @@ namespace Brayns.Shaper.Objects
             int i = 0;
             foreach (BaseField f in TablePrimaryKey)
             {
-                if (pkValues.Length > i)
+                if (pkValues.Count > i)
                     val.Add(pkValues[i]);
                 else
                     val.Add(f.InitValue!);

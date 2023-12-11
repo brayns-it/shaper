@@ -37,6 +37,7 @@ namespace Brayns.Shaper.Fields
             InitValue = 0;
             TestValue = 0;
             OptionType = typeof(T);
+            HasFormat = true;
 
             Create();
         }

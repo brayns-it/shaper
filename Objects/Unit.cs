@@ -72,5 +72,11 @@ namespace Brayns.Shaper.Objects
         {
             CurrentSession.Units[UnitID.ToString()] = this;
         }
+
+        internal void SessionUnregister()
+        {
+            if (CurrentSession.Units.ContainsKey(UnitID.ToString()))
+                CurrentSession.Units.Remove(UnitID.ToString());
+        }
     }
 }
