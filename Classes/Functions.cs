@@ -33,5 +33,25 @@ namespace Brayns.Shaper.Classes
             }
             throw new Error(Label("Cannot increment {0}"), value);
         }
+
+        public static string UnitNameFromType(Type t)
+        {
+            string name = t.Name;
+            return name;
+        }
+
+        public static Opt<UnitTypes> UnitTypeFromType(Type t)
+        {
+            if (typeof(Codeunit).IsAssignableFrom(t))
+                return UnitTypes.CODEUNIT;
+
+            if (typeof(BasePage).IsAssignableFrom(t))
+                return UnitTypes.PAGE;
+
+            if (typeof(BaseTable).IsAssignableFrom(t))
+                return UnitTypes.TABLE;
+
+            return UnitTypes.NONE;
+        }
     }
 }

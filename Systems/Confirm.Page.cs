@@ -4,7 +4,6 @@
     {
         public Confirm(string text = "", Controls.ActionTriggerHandler? onYes = null, Controls.ActionTriggerHandler? onNo = null)
         {
-            UnitName = "Confirm";
             UnitCaption = Label("Confirm");
             PageType = PageTypes.Normal;
 

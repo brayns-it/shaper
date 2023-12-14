@@ -130,7 +130,8 @@ namespace Brayns.Shaper.Loader
                 if (mi.GetCustomAttributes(typeof(LoggedAccess), true).Length > 0)
                     return;
 
-                // TODO check for permission
+                if (Session.HasPermission(mi.DeclaringType!, PermissionType.Execute, false))
+                    return;
             }
 
             throw new Error(Error.E_UNAUTHORIZED, Label("Unauthorized access to method '{0}'"), mi.Name);

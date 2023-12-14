@@ -31,11 +31,10 @@ namespace Brayns.Shaper.Database
         private List<string> GetPrimaryKey(BaseTable table)
         {
             var res = Query(@"SELECT c.name FROM sys.objects o, sys.indexes i, sys.index_columns x, sys.columns c 
-                WHERE (o.name = @p0) AND (o.type = @p1) AND (o.object_id = i.object_id) AND (i.name = @p2) AND
+                WHERE (o.name = @p0) AND (o.type = @p1) AND (o.object_id = i.object_id) AND (i.is_primary_key = 1) AND
                 (x.object_id = o.object_id) AND (x.index_id = i.index_id) AND (c.object_id = o.object_id) AND
                 (c.column_id = x.column_id) ORDER BY x.key_ordinal",
-                table.TableSqlName, "U",
-                table.TableSqlName + "$PK");
+                table.TableSqlName, "U");
 
             var pk = new List<string>();
             foreach (var row in res)
@@ -153,8 +152,16 @@ namespace Brayns.Shaper.Database
 
         private void DropPrimaryKey(BaseTable table, bool onlyCheck)
         {
+            var res = Query(@"SELECT i.[name] FROM sys.objects o, sys.indexes i
+                WHERE (o.name = @p0) AND (o.type = @p1) AND (o.object_id = i.object_id) AND
+                (i.is_primary_key = 1)",
+                table.TableSqlName, "U");
+
+            if (res.Count == 0)
+                return;
+
             var sql = "ALTER TABLE [" + table.TableSqlName + "] " +
-                "DROP CONSTRAINT [" + table.TableSqlName + "$PK]";
+                "DROP CONSTRAINT [" + res[0]["name"] + "]";
 
             //TODO core.application.Application.log('syncschem', 'W', sql)
             if (!onlyCheck)
@@ -700,7 +707,7 @@ namespace Brayns.Shaper.Database
             {
                 if (nextSet)
                 {
-                    List<BaseField> ck = table.GetCurrentKey();
+                    List<BaseField> ck = table.GetCurrentSort();
                     int k = ck.Count;
                     int l = k;
                     var wn = new List<string>();
@@ -738,7 +745,7 @@ namespace Brayns.Shaper.Database
                 sql += " ORDER BY ";
 
                 bool comma = false;
-                foreach (BaseField f in table.GetCurrentKey())
+                foreach (BaseField f in table.GetCurrentSort())
                 {
                     if (comma) sql += ", ";
                     comma = true;

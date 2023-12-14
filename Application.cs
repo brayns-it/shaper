@@ -5,6 +5,7 @@ using Brayns.Shaper.Classes;
 using System;
 using System.Reflection;
 using System.Runtime.Loader;
+using System.Diagnostics;
 
 namespace Brayns.Shaper
 {
@@ -111,7 +112,21 @@ namespace Brayns.Shaper
 
         public static void LogException(string context, Exception ex)
         {
-            Log(context, "E", ex.Message + " " + ex.StackTrace);
+            string trace = "";
+
+            var st = new StackTrace(ex, true);
+            var frames = st.GetFrames();
+            foreach (var frame in frames)
+            {
+                string? fn = frame.GetFileName();
+                if (fn != null)
+                {
+                    FileInfo fi = new FileInfo(fn);
+                    trace += (" in '" + fi.Name + "' line " + frame.GetFileLineNumber() + " method '" + frame.GetMethod()!.Name + "'");
+                }
+            }
+
+            Log(context, "E", ex.Message + trace);
         }
 
         /// <summary>

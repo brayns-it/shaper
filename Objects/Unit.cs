@@ -27,15 +27,9 @@ namespace Brayns.Shaper.Objects
         public FieldList UnitFields { get; init; }
         public string UnitCaption { get; protected set; } = "";
 
-        private string _unitName = "";
-        public virtual string UnitName
+        public string UnitName
         {
-            get { return _unitName; }
-            set
-            {
-                _unitName = value;
-                UnitCaption = _unitName;
-            }
+            get { return Functions.UnitNameFromType(GetType()); }
         }
 
         public Unit()

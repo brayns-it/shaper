@@ -50,7 +50,7 @@ namespace Brayns.Shaper.Objects
             return new Classes.Error(Label("Another user has modified table '{0}' try again"), UnitCaption);
         }
 
-        internal FieldList GetCurrentKey()
+        internal FieldList GetCurrentSort()
         {
             var res = new FieldList();
             foreach (var f in TableSort)
@@ -129,12 +129,13 @@ namespace Brayns.Shaper.Objects
                 return new Error(Error.E_RECORD_NOT_FOUND, Label("'{0}' not found: {1}"), UnitCaption, flt);
         }
 
-        public override string UnitName
+        private string _tableName = "";
+        public string TableName
         {
-            get => base.UnitName;
+            get => _tableName;
             set
             {
-                base.UnitName = value;
+                _tableName = value;
                 TableSqlName = Functions.ToSqlName(value);
             }
         }
@@ -253,7 +254,7 @@ namespace Brayns.Shaper.Objects
             return TableDatabase!.Count(this);
         }
 
-        public List<object> GetPrimaryKey()
+        public List<object> PrimaryKeyValues()
         {
             List<object> result = new();
             foreach (var f in TablePrimaryKey)
@@ -270,7 +271,7 @@ namespace Brayns.Shaper.Objects
 
         public bool Refresh()
         {
-            return Get(GetPrimaryKey());
+            return Get(PrimaryKeyValues());
         }
 
         public bool Get(params object[] pkValues)
@@ -330,6 +331,25 @@ namespace Brayns.Shaper.Objects
             TableVersion = DBNull.Value;
             foreach (BaseField f in UnitFields)
                 f.Init();
+        }
+
+        public BaseField? FieldByName(string name)
+        {
+            foreach (var f in UnitFields)
+                if (f.Name == name)
+                    return f;
+            return null;
+        }
+
+        public void CopyFilters<T>(T fromTable) where T : BaseTable
+        {
+            Reset();
+            foreach (var f in UnitFields)
+            {
+                var fromF = fromTable.FieldByName(f.Name)!;
+                foreach (var ff in fromF.Filters)
+                    f.Filters.Add(ff.Clone(f));
+            }
         }
     }
 

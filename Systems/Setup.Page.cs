@@ -12,7 +12,6 @@
 
         public Setup()
         {
-            UnitName = "Setup";
             UnitCaption = Label("Setup");
 
             var content = Controls.ContentArea.Create(this);

@@ -18,6 +18,7 @@
         internal bool MultipleRows { get; set; } = false;
         internal bool OpenAsNew { get; set; } = false;
         internal BasePage? SourcePage { get; set; }
+        internal Controls.BaseSubpage? Parent { get; set; }
 
         public List<Controls.Control> Items { get; private set; } = new();
         public PageTypes PageType { get; protected set; }
@@ -33,6 +34,7 @@
         public bool AllowInsert { get; set; } = true;
         public bool AllowDelete { get; set; } = true;
         public bool AllowModify { get; set; } = true;
+        public bool AutoIncrementKey { get; set; } = false;
 
         public BasePage()
         {
@@ -67,12 +69,16 @@
                 var c = (BasePage)Activator.CreateInstance(Card)!;
                 c.OpenAsNew = true;
                 c.SourcePage = this;
-                c.Closing += () => SendDataSet();
+                c.Closing += SendDataSet;
+
+                if (Rec != null)
+                    c.Rec!.CopyFilters(Rec);
+
                 c.Run();
             }
             else
             {
-                Rec!.Init();
+                InitNewRec();
                 SendDataRow();
                 SendCaption();
             }
@@ -137,6 +143,37 @@
             var actArea = Control<Controls.ActionArea>();
             if ((actArea != null) && (actArea.Items.Count == 0))
                 actArea.Detach();
+        }
+
+        private void ApplyPermissions()
+        {
+            List<Controls.Control> toDel = new();
+            List<Controls.Control> parents = new();
+
+            foreach (var c in AllItems.Values.OfType<Controls.Action>())
+                if (c.Run != null)
+                    if (!Session.HasPermission(c.Run, PermissionType.Execute, false))
+                        toDel.Add(c);
+
+            while (true)
+            {
+                foreach (var c in toDel)
+                {
+                    c.Detach();
+                    if (c.Parent != null)
+                        if (!parents.Contains(c.Parent))
+                            parents.Add(c.Parent);
+                }
+
+                toDel.Clear();
+                foreach (var c in parents)
+                    if (c.Items.Count == 0)
+                        toDel.Add(c);
+
+                parents.Clear();
+                if (toDel.Count == 0)
+                    break;
+            }
         }
 
         internal JArray GetSchema()
@@ -234,7 +271,7 @@
                 }
                 else if (!MultipleRows)
                 {
-                    Rec.Init();
+                    InitNewRec();
                     DataReading?.Invoke();
                     jset.Add(GetDataRow(false));
                     jfSet.Add(GetDataRow(true));
@@ -270,6 +307,9 @@
             result["caption"] = UnitCaption;
             result["action"] = "page";
 
+            if (Parent != null)
+                result["parentId"] = Parent.ID.ToString();
+
             if (modal)
                 result["display"] = "modal";
             else
@@ -293,12 +333,20 @@
 
         private void Run(bool modal)
         {
+            if (Rec != null)
+                Rec.TableFilterLevel = Fields.FilterLevel.Public;
+
             Loading?.Invoke();
             ApplyDataActions();
+            ApplyPermissions();
             SessionRegister();
             SendPage(modal);
             SendDataSet();
             SendCaption();
+
+            foreach (var c in AllItems.Values)
+                if (typeof(Controls.BaseSubpage).IsAssignableFrom(c.GetType()))
+                    ((Controls.BaseSubpage)c).Run();
         }
 
         public void Run()
@@ -342,21 +390,30 @@
         [PublicAccess]
         internal void OpenRecord()
         {
-            var pk = Rec!.GetPrimaryKey();
+            if (Card == null)
+                return;
+
+            var pk = Rec!.PrimaryKeyValues();
 
             var c = (BasePage)Activator.CreateInstance(Card!)!;
             c.Rec!.FilterByPrimaryKey(pk);
             c.SourcePage = this;
-            c.Closing += Refresh;
+            c.Closing += RefreshRow;
             c.Run();
         }
 
-        internal void Refresh()
+        internal void RefreshRow()
         {
-            Rec!.Refresh();
-            if (Selection.Count > 0)
-                DataSet[Selection[0]] = Rec!.GetDataset();
-            SendDataRow();
+            if (Rec == null)
+                return;
+
+            if (Rec.Refresh())
+            {
+                if (Selection.Count > 0)
+                    DataSet[Selection[0]] = Rec!.GetDataset();
+
+                SendDataRow();
+            }
         }
 
         public void Close()
@@ -435,6 +492,49 @@
             return null;
         }
 
+        private void InitNewRec()
+        {
+            Rec!.Init();
+
+            foreach (var f in Rec!.TablePrimaryKey)
+            {
+                object? val = f.GetFilterValue();
+                if (val != null)
+                    f.Value = val;
+            }
+        }
+
+        private void HandleAutoIncrementKey()
+        {
+            if (!AutoIncrementKey)
+                return;
+
+            var lastKey = Rec!.TablePrimaryKey[Rec.TablePrimaryKey.Count - 1];
+            if (lastKey.Type != Fields.FieldTypes.INTEGER)
+                return;
+
+            int val = (int)lastKey.Value!;
+            if (val != 0)
+                return;
+
+            var rec2 = (BaseTable)Activator.CreateInstance(Rec.GetType())!;
+            rec2.FilterByPrimaryKey(Rec.PrimaryKeyValues());
+
+            var lastKey2 = rec2.TablePrimaryKey[rec2.TablePrimaryKey.Count - 1];
+            lastKey2.SetRange();
+            if (rec2.FindLast())
+                lastKey.Value = 10000 + (int)lastKey2.Value!;
+            else
+                lastKey.Value = 10000;
+        }
+
+        internal void ReapplySubpageFilters()
+        {
+            foreach (var c in AllItems.Values)
+                if (typeof(Controls.BaseSubpage).IsAssignableFrom(c.GetType()))
+                    ((Controls.BaseSubpage)c).ApplyFilter();
+        }
+
         internal void AfterValidate(Fields.BaseField field)
         {
             if ((Rec != null) && Rec.UnitFields.Contains(field))
@@ -446,9 +546,11 @@
                 {
                     if ((isKey && lastKey) || (!isKey))
                     {
+                        HandleAutoIncrementKey();
                         Rec.Insert(true);
                         Inserting?.Invoke();
                         SendCaption();
+                        ReapplySubpageFilters();
                     }
                 }
                 else

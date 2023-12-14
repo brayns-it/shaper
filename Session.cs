@@ -45,6 +45,8 @@ namespace Brayns.Shaper
         internal Dictionary<string, Unit> Units { get; set; }
         internal bool IsNew { get; set; }
         internal string ApplicationName { get; set; }
+        internal bool IsSuperuser { get; set; }
+        internal List<Permission> Permissions { get; set; }
 
         public SessionData()
         {
@@ -56,6 +58,8 @@ namespace Brayns.Shaper
             Values = new Dictionary<string, object>();
             Units = new Dictionary<string, Unit>();
             ApplicationName = "";
+            IsSuperuser = false;
+            Permissions = new();
         }
 
         public override string ToString()
@@ -72,6 +76,37 @@ namespace Brayns.Shaper
         public Guid? AuthenticationId { get; set; }
         public string? Address { get; set; }
         internal WebTask? WebTask { get; set; }
+    }
+
+    public enum PermissionMode
+    {
+        Allow,
+        AllowIndirect,
+        Deny
+    }
+
+    public enum PermissionType
+    {
+        Insert,
+        Modify,
+        Delete,
+        Execute
+    }
+
+    public class Permission
+    {
+        public Opt<UnitTypes> UnitType { get; set; }
+        public string UnitName { get; set; }
+        public PermissionType PermissionType { get; set; }
+        public PermissionMode PermissionMode { get; set; }
+
+        public Permission(Opt<UnitTypes> unitType, string unitName, PermissionType permType, PermissionMode permMode)
+        {
+            UnitType = unitType;
+            UnitName = unitName;
+            PermissionType = permType;
+            PermissionMode = permMode;
+        }
     }
 
     public static class Session
@@ -113,6 +148,12 @@ namespace Brayns.Shaper
         {
             get { return Instance.ApplicationName; }
             set { Instance.ApplicationName = value; }
+        }
+
+        public static bool IsSuperuser
+        {
+            get { return Instance.IsSuperuser; }
+            set { Instance.IsSuperuser = value; }
         }
 
         public static bool IsNew
@@ -290,6 +331,36 @@ namespace Brayns.Shaper
 
             if (Database != null)
                 Database.Connect();
+        }
+
+        public static void AddPermission(Opt<UnitTypes> unitType, string unitName, PermissionType permType, PermissionMode permMode)
+        {
+            Instance.Permissions.Add(new(unitType, unitName, permType, permMode));
+        }
+
+        public static bool HasPermission(Type unitType, PermissionType permType, bool indirect)
+        {
+            if (IsSuperuser)
+                return true;
+
+            bool denied = false;
+            bool allowed = false;
+
+            foreach (var p in Instance.Permissions)
+            {
+                if (Functions.UnitTypeFromType(unitType) != p.UnitType) continue;
+                if ((p.UnitName.Length > 0) && (p.UnitName != Functions.UnitNameFromType(unitType))) continue;
+                if (p.PermissionMode == PermissionMode.Deny)
+                {
+                    denied = true;
+                    break;
+                }
+                if ((p.PermissionMode == PermissionMode.AllowIndirect) && (!indirect)) continue;
+                allowed = true;
+            }
+
+            if (denied) return false;
+            return allowed;
         }
 
         public static void Start(SessionArgs? arg = null)

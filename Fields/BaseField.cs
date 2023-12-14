@@ -97,6 +97,19 @@ namespace Brayns.Shaper.Fields
             Value = equalTo;
         }
 
+        public FieldFilter Clone(BaseField newField)
+        {
+            FieldFilter ff = new(newField);
+            ff.Level = Level;
+            ff.Type = Type;
+            ff.MinValue = MinValue;
+            ff.MaxValue = MaxValue;
+            ff.Value = Value;
+            ff.Values.AddRange(Values);
+            ff.Expression = Expression;
+            return ff;
+        }
+
         public bool TestFilter()
         {
             if (Type == FilterType.Equal)
@@ -281,6 +294,11 @@ namespace Brayns.Shaper.Fields
                 Filters.Remove(ff);
         }
 
+        public bool IsEmpty()
+        {
+            return Functions.AreEquals(Value, TestValue);
+        }
+
         public void Test()
         {
             if (Functions.AreEquals(Value, TestValue))
@@ -291,6 +309,16 @@ namespace Brayns.Shaper.Fields
         {
             if (!Functions.AreEquals(Value, valueToTest))
                 throw new Error(Label("Field {0} must be equal to {1}"), Caption, valueToTest!);
+        }
+
+        public object? GetFilterValue()
+        {
+            foreach (FieldFilter ff in Filters)
+            {
+                if (ff.Type == FilterType.Equal)
+                    return ff.Value;
+            }
+            return null;
         }
     }
 }

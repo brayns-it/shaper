@@ -16,6 +16,19 @@ namespace Brayns.Shaper.Controls
             Name = "";
         }
 
+        internal bool HasParentOfType(Type t)
+        {
+            Control? p = Parent;
+            while (p != null)
+            {
+                if (p.GetType() == t)
+                    return true;
+
+                p = p.Parent;
+            }
+            return false;
+        }
+
         public void MoveFirst()
         {
             if (Parent == null) return;

@@ -89,6 +89,9 @@ namespace Brayns.Shaper.Controls
             Attach(parent);
             Caption = caption;
             Name = name;
+
+            if (HasParentOfType(typeof(NavigationPane)))
+                RunAsPrincipal = true;
         }
 
         internal override JObject Render()
