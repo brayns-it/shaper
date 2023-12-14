@@ -23,11 +23,11 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <None Remove="Translation\it_IT.po" />
+      <None Remove="Translation\*.po" />
     </ItemGroup>
 
     <ItemGroup>
-      <EmbeddedResource Include="Translation\it_IT.po" />
+      <EmbeddedResource Include="Translation\*.po" />
     </ItemGroup>
 
     <ItemGroup>
@@ -38,16 +38,4 @@
       <PackageReference Include="Microsoft.Data.SqlClient" Version="5.1.1" />
       <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     </ItemGroup>
-
-    <ItemGroup>
-      <None Update="LICENSE">
-        <Pack>True</Pack>
-        <PackagePath>\</PackagePath>
-      </None>
-      <None Update="README.md">
-        <Pack>True</Pack>
-        <PackagePath>\</PackagePath>
-      </None>
-    </ItemGroup>
-
 </Project>

@@ -7,7 +7,22 @@ namespace Brayns.Shaper.Objects
         public int Value { get; set; } = 0;
         public Type? Type { get; protected set; }
         public Dictionary<int, string> Names { get; private set; } = new();
-        public Dictionary<int, string> Captions { get; private set; } = new();
+
+        private bool _translated = false;
+        private Dictionary<int, string> _captions = new();
+        public Dictionary<int, string> Captions 
+        { 
+            get
+            {
+                if (!_translated)
+                {
+                    _translated = true;
+                    foreach (int i in _captions.Keys)
+                        _captions[i] = Classes.Language.TranslateText(_captions[i], Type!);
+                }
+                return _captions;
+            }
+        } 
 
         public string Caption
         {
@@ -23,7 +38,7 @@ namespace Brayns.Shaper.Objects
         protected void GetNames()
         {
             Names.Clear();
-            Captions.Clear();
+            _captions.Clear();
 
             if (Type != null)
                 foreach (FieldInfo f in Type.GetFields(BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy))
@@ -33,9 +48,9 @@ namespace Brayns.Shaper.Objects
 
                         Label? l = f.GetCustomAttribute<Label>();
                         if (l != null)
-                            Captions.Add((int)f.GetValue(null)!, l.Label);
+                            _captions.Add((int)f.GetValue(null)!, l.Label);
                         else
-                            Captions.Add((int)f.GetValue(null)!, "");
+                            _captions.Add((int)f.GetValue(null)!, "");
                     }
         }
 

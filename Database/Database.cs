@@ -14,12 +14,24 @@ namespace Brayns.Shaper.Database
         public const int SQLSERVER = 1;
     }
 
+    public enum DatabaseCompileMode
+    {
+        Normal,
+        Force,
+        CheckOnly
+    }
+
     public abstract class Database
     {
+        protected BaseTable? CompilingTable { get; set; }
+
         internal int DatasetSize { get; set; } = 50;
+        internal DatabaseCompileMode CompileMode { get; set; } = DatabaseCompileMode.Normal;
+        internal List<string> CompileResult { get; init; } = new();
+
         public abstract void Connect();
         public abstract void Disconnect();
-        public abstract void Compile(BaseTable table, bool onlyCheck);
+        public abstract void Compile(BaseTable table);
         public abstract List<Dictionary<string, object>> Query(string sql, params object[] args);
         public abstract int Execute(string sql, params object[] args);
         public abstract void Commit();
@@ -39,5 +51,27 @@ namespace Brayns.Shaper.Database
         public abstract List<Dictionary<string, object>> NextSet(BaseTable table);
         public abstract List<Dictionary<string, object>> Get(BaseTable table, object[] pkValues);
         public abstract void LoadRow(BaseTable table, Dictionary<string, object> row);
+
+        protected int CompileExec(string sql, bool disruptive, params object[] args)
+        {
+            switch(CompileMode)
+            {
+                case DatabaseCompileMode.Force:
+                    return Execute(sql, args);
+
+                case DatabaseCompileMode.Normal:
+                    if (disruptive)
+                        throw new Error(Label("Prevent disruptive SQL {0}"), sql);
+                    else
+                        return Execute(sql, args);
+
+                case DatabaseCompileMode.CheckOnly:
+                    if (disruptive)
+                        CompileResult.Add(sql);
+                    break;
+            }
+
+            return 0;
+        }
     }
 }

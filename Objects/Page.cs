@@ -152,7 +152,7 @@
 
             foreach (var c in AllItems.Values.OfType<Controls.Action>())
                 if (c.Run != null)
-                    if (!Session.HasPermission(c.Run, PermissionType.Execute, false))
+                    if (!Loader.Permissions.IsAllowed(c.Run, Loader.PermissionType.Execute, false))
                         toDel.Add(c);
 
             while (true)
@@ -414,6 +414,12 @@
 
                 SendDataRow();
             }
+        }
+
+        public void Update()
+        {
+            SendDataRow();
+            Client.Flush();
         }
 
         public void Close()

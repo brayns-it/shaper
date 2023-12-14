@@ -33,9 +33,10 @@ namespace Brayns.Shaper.Classes
             sw.WriteLine("\"X-Generator: Shaper\\n\"");
             sw.WriteLine();
 
-            Regex regLbl = new Regex("Label\\(\"(.*)\"\\)");
+            Regex regLbl = new Regex("Label\\(\"(.*?)\".*\\)");
             Regex regNam = new Regex("^namespace\\s(.*)$");
             Regex regCla = new Regex(".*class\\s(\\w*)");
+            List<string> dups = new();
 
             foreach (FileInfo src in di.GetFiles("*.cs", SearchOption.AllDirectories))
             {
@@ -62,6 +63,10 @@ namespace Brayns.Shaper.Classes
                     {
                         foreach (Match n in regLbl.Matches(line))
                         {
+                            string k = nSpace + "_" + clName + "_" + n.Groups[1].Value;
+                            if (dups.Contains(k)) continue;
+                            dups.Add(k);
+
                             sw.WriteLine("msgctxt \"" + nSpace + "." + clName + "\"");
                             sw.WriteLine("msgid \"" + n.Groups[1].Value + "\"");
                             sw.WriteLine("msgstr \"\"");
@@ -78,10 +83,15 @@ namespace Brayns.Shaper.Classes
 
         public static string TranslateText(string text)
         {
+            var m = new StackTrace().GetFrame(2)!.GetMethod();
+            return TranslateText(text, m!.ReflectedType!);
+        }
+
+        public static string TranslateText(string text, Type reflectedType)
+        {
             string res = text;
             var g = Session.CultureInfo.Name.ToLower();
-            var m = new StackTrace().GetFrame(2)!.GetMethod();
-            var fn = m!.ReflectedType!.Namespace! + "." + m.ReflectedType!.Name;
+            var fn = reflectedType.Namespace! + "." + reflectedType.Name;
 
             if (Loader.Loader.Translations.ContainsKey(g) &&
                 Loader.Loader.Translations[g].ContainsKey(fn) &&
@@ -101,6 +111,9 @@ namespace Brayns.Shaper.Classes
                     res = Loader.Loader.Translations[g][fn][text];
                 }
             }
+
+            if (res.Length == 0)
+                res = text;
 
             return res;
         }

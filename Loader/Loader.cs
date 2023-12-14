@@ -18,6 +18,7 @@ namespace Brayns.Shaper.Loader
         private static AssemblyLoadContext? Context { get; set; }
         private static List<Assembly> AppAssemblies { get; set; } = new();
         private static List<Type> TableTypes { get; set; } = new();
+        private static List<string> TableNames { get; set; } = new();
         private static List<Type> CodeunitTypes { get; set; } = new();
         private static List<Type> ModuleTypes { get; set; } = new();
         internal static Dictionary<string, Type> UnitTypes { get; private set; } = new();
@@ -253,6 +254,10 @@ namespace Brayns.Shaper.Loader
             foreach (Type t in TableTypes)
             {
                 var tab = (BaseTable)Activator.CreateInstance(t)!;
+
+                // assert unique names
+                TableNames.Add(tab.TableName);
+
                 foreach (ITableRelation tr in tab.TableRelations)
                 {
                     var f = tr.GetFieldForCollect();
@@ -267,14 +272,16 @@ namespace Brayns.Shaper.Loader
             }
         }
 
-        internal static void SyncSchema(bool onlyCheck)
+        internal static void CompileTables(Database.DatabaseCompileMode mode)
         {
             if (CurrentSession.Database == null) return;
+
+            CurrentSession.Database.CompileMode = mode;
 
             foreach (Type t in TableTypes)
             {
                 var tab = (BaseTable)Activator.CreateInstance(t)!;
-                Session.Database!.Compile(tab, onlyCheck);
+                Session.Database!.Compile(tab);
                 Commit();
             }
         }

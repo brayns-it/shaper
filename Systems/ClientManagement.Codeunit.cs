@@ -22,6 +22,13 @@ namespace Brayns.Shaper.Systems
                 return;
             }
 
+            if (Application.InMaintenance)
+            {
+                var admin = new Admin();
+                admin.Run();
+                return;
+            }
+
             ClientInitializing?.Invoke(this);
         }
     }

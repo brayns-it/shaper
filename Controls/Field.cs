@@ -10,7 +10,8 @@ namespace Brayns.Shaper.Controls
     public enum InputType
     {
         Text,
-        Password
+        Password,
+        Html
     }
 
     public class Field : Control

@@ -13,6 +13,8 @@ namespace Brayns.Shaper.Loader
 {
     public class Proxy
     {
+        private static List<Type> _typesMaintAllowed = new();
+
         private object _obj;
         private Type _typ;
         private MethodInfo? _met;
@@ -21,6 +23,14 @@ namespace Brayns.Shaper.Loader
 
         public string ResultName { get; init; } = "value";
         public bool SkipMethodSecurity { get; set; }
+
+        static Proxy()
+        {
+            _typesMaintAllowed.Add(typeof(Systems.ClientManagement));
+            _typesMaintAllowed.Add(typeof(Systems.Confirm));
+            _typesMaintAllowed.Add(typeof(Systems.Setup));
+            _typesMaintAllowed.Add(typeof(Systems.Admin));
+        }
 
         private Proxy(object obj)
         {
@@ -122,6 +132,9 @@ namespace Brayns.Shaper.Loader
 
         private static void AssertMethodSecurity(MethodInfo mi)
         {
+            if (Application.InMaintenance && (!_typesMaintAllowed.Contains(mi.ReflectedType!)))
+                throw new Error(Error.E_SYSTEM_IN_MAINTENANCE, Label("Application is in maintenance, try again later"));
+
             if (mi.GetCustomAttributes(typeof(PublicAccess), true).Length > 0)
                 return;
 
@@ -130,7 +143,7 @@ namespace Brayns.Shaper.Loader
                 if (mi.GetCustomAttributes(typeof(LoggedAccess), true).Length > 0)
                     return;
 
-                if (Session.HasPermission(mi.DeclaringType!, PermissionType.Execute, false))
+                if (Permissions.IsAllowed(mi.DeclaringType!, PermissionType.Execute, false))
                     return;
             }
 

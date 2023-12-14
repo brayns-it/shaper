@@ -12,13 +12,32 @@ namespace Brayns.Shaper
     public static class Application
     {
         private static readonly object _lockLog = new();
+        private static readonly object _lockValues = new();
 
+        internal static Dictionary<string, object> Values = new();
         internal static Dictionary<ApiAction, Dictionary<string, MethodInfo>> Routes { get; } = new();
         internal static Dictionary<Guid, AppModule> Apps { get; } = new();
         internal static Config Config { get; set; } = new Config();
         internal static ILogger? Logger { get; set; }
         public static string? RootPath { get; internal set; }
         public static event GenericHandler? Initializing;
+        public static bool InMaintenance { get; internal set; } = true;
+        
+        private static string? _debugPath;
+        public static string? DebugPath
+        {
+            get { return _debugPath; }
+            set
+            {
+                _debugPath = value;
+                if (_debugPath != null)
+                {
+                    _debugPath = _debugPath.Replace("\\", "/");
+                    if (!_debugPath.EndsWith("/"))
+                        _debugPath += "/";
+                }
+            }
+        }
 
         public static bool IsReady()
         {
@@ -32,6 +51,8 @@ namespace Brayns.Shaper
 
         private static void InitializeFromWebRoot(string rootPath)
         {
+            var q = new Opt<Database.DatabaseTypes>(0);
+
             if (!Directory.Exists(rootPath))
                 throw new Error(Label("Root path '{0}' does not exists"), rootPath);
 
@@ -55,34 +76,47 @@ namespace Brayns.Shaper
             Loader.Loader.LoadConfig();
             Loader.Loader.LoadAppsFromRoot();
 
-            if (Config.Ready)
+            try
             {
                 Initialize();
-                Session.Stop();
+            }
+            finally
+            {
+                Session.Stop(true, true);
             }
         }
 
         internal static void Initialize()
         {
-            Session.DatabaseConnect();
+            InMaintenance = true;
 
-            Loader.Loader.SyncSchema(false);
-            Loader.Loader.CollectTableRelations();
-            Loader.Loader.CollectApiEndpoints();
-            Loader.Loader.InstallApps();
+            if (Config.Ready)
+            {
+                Session.DatabaseConnect();
 
-            Initializing?.Invoke();
-            Commit();
+                Loader.Loader.CompileTables(Database.DatabaseCompileMode.Normal);
+                Loader.Loader.CollectTableRelations();
+                Loader.Loader.CollectApiEndpoints();
+                Loader.Loader.InstallApps();
+
+                Initializing?.Invoke();
+                Commit();
+            }
+
+            InMaintenance = false;
         }
 
         public static void InitializeShaper()
         {
             Loader.Loader.LoadAppsFromDomain();
 
-            if (Config.Ready)
+            try
             {
                 Initialize();
-                Session.Stop();
+            }
+            finally
+            {
+                Session.Stop(true, true);
             }
         }
 
@@ -108,6 +142,23 @@ namespace Brayns.Shaper
 
             // client entry point
             app.MapPost("/rpc", WebDispatcher.DispatchRpc);
+        }
+                
+        internal static void SetValue(string key, object value)
+        {
+            lock(_lockValues)
+            {
+                Values[key] = value;
+            }
+        }
+
+        internal static void DelValue(string key)
+        {
+            lock (_lockValues)
+            {
+                if (Values.ContainsKey(key))
+                    Values.Remove(key);
+            }
         }
 
         public static void LogException(string context, Exception ex)

@@ -234,11 +234,6 @@ namespace Brayns.Shaper
 
             try
             {
-                /*TODO
-                if (Application.InMaintenance)
-                    throw new Error(Error.E_SYSTEM_IN_MAINTENANCE, Label("Application is in maintenance, try again later"));
-                */
-
                 task = new();
                 task.Address = ctx.Connection.RemoteIpAddress!.ToString();
 

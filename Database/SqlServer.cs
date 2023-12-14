@@ -19,13 +19,16 @@ namespace Brayns.Shaper.Database
         SqlConnection? _connection;
         SqlTransaction? _transaction;
 
-        public override void Compile(BaseTable table, bool onlyCheck)
+        public override void Compile(BaseTable table)
         {
             if (table.TablePrimaryKey.Count == 0)
                 throw table.ErrorNoPrimaryKey();
 
-            ProcessTable(table, onlyCheck);
-            ProcessPrimaryKey(table, onlyCheck);
+            CompileResult.Clear();
+            CompilingTable = table;
+
+            ProcessTable();
+            ProcessPrimaryKey();
         }
 
         private List<string> GetPrimaryKey(BaseTable table)
@@ -112,27 +115,26 @@ namespace Brayns.Shaper.Database
             return Convert.ToInt32(Query("SELECT @@SPID [spid]")[0]["spid"]!);
         }
 
-        private void ProcessPrimaryKey(BaseTable table, bool onlyCheck)
+        private void ProcessPrimaryKey()
         {
-            var curPk = String.Join(", ", GetPrimaryKey(table));
-            var newPk = String.Join(", ", table.TablePrimaryKey.Select(f => f.SqlName));
+            var curPk = String.Join(", ", GetPrimaryKey(CompilingTable!));
+            var newPk = String.Join(", ", CompilingTable!.TablePrimaryKey.Select(f => f.SqlName));
 
             if (curPk == newPk)
                 return;
 
             if (curPk.Length > 0)
-                DropPrimaryKey(table, onlyCheck);
+                DropPrimaryKey();
 
             if (newPk.Length > 0)
             {
-                var sql = "ALTER TABLE [" + table.TableSqlName + "] " +
-                    "ADD CONSTRAINT [" + table.TableSqlName + "$PK] " +
+                var sql = "ALTER TABLE [" + CompilingTable!.TableSqlName + "] " +
+                    "ADD CONSTRAINT [" + CompilingTable!.TableSqlName + "$PK] " +
                     "PRIMARY KEY (" +
-                    ListFields(table.TablePrimaryKey) +
+                    ListFields(CompilingTable!.TablePrimaryKey) +
                     ")";
 
-                if (!onlyCheck)
-                    Execute(sql);
+                CompileExec(sql, false);
             }
         }
 
@@ -150,42 +152,40 @@ namespace Brayns.Shaper.Database
             return res;
         }
 
-        private void DropPrimaryKey(BaseTable table, bool onlyCheck)
+        private void DropPrimaryKey()
         {
             var res = Query(@"SELECT i.[name] FROM sys.objects o, sys.indexes i
                 WHERE (o.name = @p0) AND (o.type = @p1) AND (o.object_id = i.object_id) AND
                 (i.is_primary_key = 1)",
-                table.TableSqlName, "U");
+                CompilingTable!.TableSqlName, "U");
 
             if (res.Count == 0)
                 return;
 
-            var sql = "ALTER TABLE [" + table.TableSqlName + "] " +
+            var sql = "ALTER TABLE [" + CompilingTable!.TableSqlName + "] " +
                 "DROP CONSTRAINT [" + res[0]["name"] + "]";
 
-            //TODO core.application.Application.log('syncschem', 'W', sql)
-            if (!onlyCheck)
-                Execute(sql);
+            CompileExec(sql, false);
         }
 
-        private void ProcessTable(BaseTable table, bool onlyCheck)
+        private void ProcessTable()
         {
             if (Query("SELECT TOP 1 NULL FROM sysobjects WHERE (xtype = @p0) AND (name = @p1)",
-                "U", table.TableSqlName).Count > 0)
+                "U", CompilingTable!.TableSqlName).Count > 0)
             {
                 var res = Query(@"SELECT c.is_identity, c.max_length, t.name AS typename, c.precision, c.scale, 
                     c.name, c.is_nullable FROM sys.objects o, sys.columns c, sys.types t 
                     WHERE (o.name = @p0) AND (o.type = @p1) AND (c.object_id = o.object_id) AND 
                     (c.system_type_id = t.system_type_id) AND (c.user_type_id = t.user_type_id)",
-                    table.TableSqlName,
+                    CompilingTable!.TableSqlName,
                     "U");
 
                 var toDelete = new List<string>();
                 var toAdd = new List<Fields.BaseField>();
                 var toChange = new List<Fields.BaseField>();
-                var curPk = GetPrimaryKey(table);
+                var curPk = GetPrimaryKey(CompilingTable!);
 
-                foreach (var field in table.UnitFields)
+                foreach (var field in CompilingTable!.UnitFields)
                 {
                     bool ok = false;
 
@@ -247,7 +247,7 @@ namespace Brayns.Shaper.Database
 
                     bool ok = false;
 
-                    foreach (var field in table.UnitFields)
+                    foreach (var field in CompilingTable!.UnitFields)
                     {
                         if ((string)row["name"]! == field.SqlName)
                         {
@@ -263,19 +263,17 @@ namespace Brayns.Shaper.Database
                 foreach (string fn in toDelete)
                 {
                     if (curPk.Contains(fn))
-                        DropPrimaryKey(table, onlyCheck);
+                        DropPrimaryKey();
 
-                    var sql = "ALTER TABLE [" + table.TableSqlName + "] " +
+                    var sql = "ALTER TABLE [" + CompilingTable.TableSqlName + "] " +
                         "DROP COLUMN [" + fn + "]";
 
-                    //TODO core.application.Application.log('syncschem', 'W', sql)
-                    if (!onlyCheck)
-                        Execute(sql);
+                    CompileExec(sql, true);
                 }
 
                 foreach (BaseField field in toAdd)
                 {
-                    var sql = "ALTER TABLE [" + table.TableSqlName + "] ADD " +
+                    var sql = "ALTER TABLE [" + CompilingTable!.TableSqlName + "] ADD " +
                         "[" + field.SqlName + "] " + GetFieldType(field);
 
                     if (field.Type != FieldTypes.BLOB)
@@ -298,41 +296,37 @@ namespace Brayns.Shaper.Database
                             sql += "'17530101'";
                     }
 
-                    if (!onlyCheck)
-                        Execute(sql);
+                    CompileExec(sql, false);
 
                     if (field.Type != FieldTypes.BLOB)
                     {
-                        sql = "ALTER TABLE [" + table.TableSqlName + "] " +
+                        sql = "ALTER TABLE [" + CompilingTable!.TableSqlName + "] " +
                             "DROP CONSTRAINT [" + field.SqlName + "$DEF]";
 
-                        if (!onlyCheck)
-                            Execute(sql);
+                        CompileExec(sql, false);
                     }
                 }
 
                 foreach (BaseField field in toChange)
                 {
                     if (curPk.Contains(field.SqlName))
-                        DropPrimaryKey(table, onlyCheck);
+                        DropPrimaryKey();
 
-                    var sql = "ALTER TABLE [" + table.TableSqlName + "] " +
+                    var sql = "ALTER TABLE [" + CompilingTable!.TableSqlName + "] " +
                         "ALTER COLUMN [" + field.SqlName + "] " +
                         GetFieldType(field);
 
-                    if (!onlyCheck)
-                        Execute(sql);
+                    CompileExec(sql, false);
                 }
             }
             else
             {
-                var sql = "CREATE TABLE [" + table.TableSqlName + "] (";
-                foreach (BaseField field in table.UnitFields)
+                var sql = "CREATE TABLE [" + CompilingTable!.TableSqlName + "] (";
+                foreach (BaseField field in CompilingTable!.UnitFields)
                     sql += "[" + field.SqlName + "] " + GetFieldType(field) + ", ";
                 sql += "[timestamp] timestamp)";
 
-                if (!onlyCheck)
-                    Execute(sql);
+                CompileExec(sql, false);
             }
         }
 

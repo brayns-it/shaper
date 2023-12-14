@@ -8,12 +8,11 @@ namespace Brayns.Shaper.Controls
 {
     public class Html : Control
     {
-        public string Content { get; set; }
+        public string Content { get; set; } = "";
 
-        public Html(ContentArea area, string name = "")
+        public Html(ContentArea contentArea, string name = "")
         {
-            Attach(area);
-            Content = "";
+            Attach(contentArea);
             Name = name;
         }
 
