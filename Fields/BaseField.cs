@@ -3,7 +3,7 @@ using Newtonsoft.Json.Linq;
 
 namespace Brayns.Shaper.Fields
 {
-    public class FieldTypes 
+    public class FieldTypes
     {
         public const int NONE = 0;
 
@@ -153,7 +153,7 @@ namespace Brayns.Shaper.Fields
                 else
                 {
                     int n = allValues.Count;
-                    allValues.Add(m.Value);
+                    allValues.Add(Field.Evaluate(m.Value)!);
                     return "{" + n.ToString() + "}";
                 }
             });
@@ -166,6 +166,22 @@ namespace Brayns.Shaper.Fields
             expr = " " + expr + " ";
             re = new Regex("([^>^<^=])({\\d})");
             expr = re.Replace(expr, m => m.Groups[1] + "=" + m.Groups[2]);
+
+            // like operator
+            if ((Field.Type == FieldTypes.CODE) || (Field.Type == FieldTypes.TEXT))
+            {
+                for (int n = 0; n < allValues.Count; n++)
+                {
+                    string strVal = allValues[n].ToString()!;
+                    if (strVal.Contains("*"))
+                    {
+                        allValues[n] = strVal.Replace("*", "%");
+                        re = new Regex("([=]\\s*)(\\{" + n.ToString() +"\\})");
+                        expr = re.Replace(expr, m => " LIKE " + m.Groups[2]);
+                    }
+                    n++;
+                }
+            }
 
             // resolve logical
             expr = expr.Replace("&", " AND ");
@@ -189,7 +205,7 @@ namespace Brayns.Shaper.Fields
 
         protected object? _value;
         public object? Value
-        { 
+        {
             get { return _value; }
             set { _value = CheckValue(value); }
         }
@@ -243,6 +259,17 @@ namespace Brayns.Shaper.Fields
             Validating?.Invoke();
         }
 
+        internal void SetFilter(string expression)
+        {
+            SetRange();
+
+            var ff = new FieldFilter(this);
+            ff.Type = FilterType.Expression;
+            ff.Level = Table!.TableFilterLevel;
+            ff.Expression = expression;
+            Filters.Add(ff);
+        }
+
         public void SetFilter<T>(string expression, params T[] pars)
         {
             SetRange();
@@ -282,7 +309,7 @@ namespace Brayns.Shaper.Fields
         public void SetRange()
         {
             if (Table == null)
-                throw new Error(Label("Field '{0}' does not belongs to table"), Caption);
+                throw new Error(Label("Field '{0}' does not belongs to table", Caption));
 
             List<FieldFilter> toDelete = new List<FieldFilter>();
             foreach (FieldFilter ff in Filters)
@@ -302,13 +329,13 @@ namespace Brayns.Shaper.Fields
         public void Test()
         {
             if (Functions.AreEquals(Value, TestValue))
-                throw new Error(Label("Field {0} is empty"), Caption);
+                throw new Error(Label("Field {0} is empty", Caption));
         }
 
         public void Test<T>(T valueToTest)
         {
             if (!Functions.AreEquals(Value, valueToTest))
-                throw new Error(Label("Field {0} must be equal to {1}"), Caption, valueToTest!);
+                throw new Error(Label("Field {0} must be equal to {1}", Caption, valueToTest!));
         }
 
         public object? GetFilterValue()

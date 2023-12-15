@@ -29,7 +29,7 @@ namespace Brayns.Shaper.Objects
 
         public string UnitName
         {
-            get { return Functions.UnitNameFromType(GetType()); }
+            get { return GetType().FullName!; }
         }
 
         public Unit()

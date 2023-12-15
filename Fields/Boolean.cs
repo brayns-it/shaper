@@ -49,7 +49,7 @@ namespace Brayns.Shaper.Fields
             if (text == Label("No")) return true;
             if (text == "0") return true;
 
-            throw new Error(Label("{0} does not represent a valid boolean type"), text);
+            throw new Error(Label("{0} does not represent a valid boolean type", text));
         }
 
         internal override object? CheckValue(object? value)

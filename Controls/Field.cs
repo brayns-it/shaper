@@ -61,6 +61,7 @@ namespace Brayns.Shaper.Controls
             var jo = base.Render();
             jo["caption"] = Caption;
             jo["codename"] = BaseField.CodeName;
+            jo["fieldType"] = BaseField.Type.ToString();
             jo["inputType"] = InputType.ToString();
             jo["readOnly"] = ReadOnly;
             return jo;

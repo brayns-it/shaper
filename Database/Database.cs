@@ -47,7 +47,7 @@ namespace Brayns.Shaper.Database
         public abstract int GetConnectionId();
         public abstract List<Dictionary<string, object>> FindFirst(BaseTable table);
         public abstract List<Dictionary<string, object>> FindLast(BaseTable table);
-        public abstract List<Dictionary<string, object>> FindSet(BaseTable table, int? size = null, int? offset = null);
+        public abstract List<Dictionary<string, object>> FindSet(BaseTable table, int? pageSize = null, int? offset = null);
         public abstract List<Dictionary<string, object>> NextSet(BaseTable table);
         public abstract List<Dictionary<string, object>> Get(BaseTable table, object[] pkValues);
         public abstract void LoadRow(BaseTable table, Dictionary<string, object> row);
@@ -61,7 +61,7 @@ namespace Brayns.Shaper.Database
 
                 case DatabaseCompileMode.Normal:
                     if (disruptive)
-                        throw new Error(Label("Prevent disruptive SQL {0}"), sql);
+                        throw new Error(Label("Prevent disruptive SQL {0}", sql));
                     else
                         return Execute(sql, args);
 

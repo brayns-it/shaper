@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 
 namespace Brayns.Shaper.Classes
@@ -79,12 +80,6 @@ namespace Brayns.Shaper.Classes
             }
 
             sw.Close();
-        }
-
-        public static string TranslateText(string text)
-        {
-            var m = new StackTrace().GetFrame(2)!.GetMethod();
-            return TranslateText(text, m!.ReflectedType!);
         }
 
         public static string TranslateText(string text, Type reflectedType)

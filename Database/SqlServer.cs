@@ -24,7 +24,6 @@ namespace Brayns.Shaper.Database
             if (table.TablePrimaryKey.Count == 0)
                 throw table.ErrorNoPrimaryKey();
 
-            CompileResult.Clear();
             CompilingTable = table;
 
             ProcessTable();
@@ -98,7 +97,7 @@ namespace Brayns.Shaper.Database
             }
             else
             {
-                throw new Error(Label("Unknown field type '{0}'"), field.Type);
+                throw new Error(Label("Unknown field type '{0}'", field.Type));
             }
 
             return res;
@@ -460,7 +459,7 @@ namespace Brayns.Shaper.Database
             if (f.Type == FieldTypes.BLOB)
                 return (value == DBNull.Value) ? null : value;
 
-            throw new Error(Label("Unknown field type '{0}'"), f.Type);
+            throw new Error(Label("Unknown field type '{0}'", f.Type));
         }
 
         private object ToSqlValue(BaseField f, object? value)
@@ -513,7 +512,7 @@ namespace Brayns.Shaper.Database
             if (f.Type == FieldTypes.BLOB)
                 return value ?? DBNull.Value;
 
-            throw new Error(Label("Unknown field type '{0}'"), f.Type);
+            throw new Error(Label("Unknown field type '{0}'", f.Type));
         }
 
         private string GetWherePrimaryKey(BaseTable table, List<object> pars, bool withTimestamp = true, bool useXvalues = false)
@@ -673,7 +672,7 @@ namespace Brayns.Shaper.Database
             table.TableVersion = (byte[])Query("SELECT @@DBTS [dbts]")[0]["dbts"]!;
         }
 
-        private List<Dictionary<string, object>> FindSet(BaseTable table, int? size, int? offset, bool nextSet, bool? ascending, object[]? pkValues)
+        private List<Dictionary<string, object>> FindSet(BaseTable table, int? pageSize, int? offset, bool nextSet, bool? ascending, object[]? pkValues)
         {
             List<object> pars = new();
             ascending = ascending ?? table.TableAscending;
@@ -750,9 +749,9 @@ namespace Brayns.Shaper.Database
                 }
 
                 offset = offset ?? 0;
-                size = size ?? DatasetSize;
+                pageSize = pageSize ?? DatasetSize;
 
-                sql += " OFFSET " + offset.ToString() + " ROWS FETCH FIRST " + size.ToString() + " ROWS ONLY";
+                sql += " OFFSET " + offset.ToString() + " ROWS FETCH FIRST " + pageSize.ToString() + " ROWS ONLY";
             }
 
             return Query(sql, pars.ToArray());
@@ -781,9 +780,9 @@ namespace Brayns.Shaper.Database
             return FindSet(table, 1, 0, false, !(table.TableAscending ^ false), null);
         }
 
-        public override List<Dictionary<string, object>> FindSet(BaseTable table, int? size = null, int? offset = null)
+        public override List<Dictionary<string, object>> FindSet(BaseTable table, int? pageSize = null, int? offset = null)
         {
-            return FindSet(table, size, offset, false, null, null);
+            return FindSet(table, pageSize, offset, false, null, null);
         }
 
         public override List<Dictionary<string, object>> NextSet(BaseTable table)

@@ -31,13 +31,7 @@ namespace Brayns.Shaper.Classes
                 if (newNo.Length == ma.Value.Length)
                     return re.Replace(value, newNo);
             }
-            throw new Error(Label("Cannot increment {0}"), value);
-        }
-
-        public static string UnitNameFromType(Type t)
-        {
-            string name = t.Name;
-            return name;
+            throw new Error(Label("Cannot increment {0}", value));
         }
 
         public static Opt<UnitTypes> UnitTypeFromType(Type t)

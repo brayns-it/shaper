@@ -21,16 +21,7 @@ namespace Brayns.Shaper.Classes
         {
         }
 
-        public Error(string text, params object[] args) : base(String.Format(text, args))
-        {
-        }
-
         public Error(int code, string text) : base(text)
-        {
-            ErrorCode = code;
-        }
-
-        public Error(int code, string text, params object[] args) : base(String.Format(text, args))
         {
             ErrorCode = code;
         }

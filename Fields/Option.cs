@@ -72,7 +72,7 @@ namespace Brayns.Shaper.Fields
                 if (Value.Captions[n].ToLower() == text.ToLower())
                     return new Opt<T>(n);
 
-            throw new Error(Label("{0} does not represent a valid {1} type"), text, Value.Type!.Name);
+            throw new Error(Label("{0} does not represent a valid {1} type", text, Value.Type!.Name));
         }
 
         internal override string Format(object? value)

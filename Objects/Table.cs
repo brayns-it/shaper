@@ -7,6 +7,7 @@ namespace Brayns.Shaper.Objects
         private List<Dictionary<string, object>> _dataset = new();
         private int _currentRow = -1;
         private List<FieldFilter> _lastFilters = new List<FieldFilter>();
+        private bool _pagination = false;
 
         private Database.Database? _database;
         internal Database.Database? TableDatabase
@@ -37,17 +38,17 @@ namespace Brayns.Shaper.Objects
         
         internal Error ErrorPrimaryKeyModify(BaseField f)
         {
-            return new Classes.Error(Label("Cannot modify primary key '{0}', use rename instead"), f.Caption);
+            return new Classes.Error(Label("Cannot modify primary key '{0}', use rename instead", f.Caption));
         }
 
         internal Error ErrorNoPrimaryKey()
         {
-            return new Classes.Error(Label("Table '{0}' has no primary key"), UnitCaption);
+            return new Classes.Error(Label("Table '{0}' has no primary key", UnitCaption));
         }
 
         internal Error ErrorConcurrency()
         {
-            return new Classes.Error(Label("Another user has modified table '{0}' try again"), UnitCaption);
+            return new Classes.Error(Label("Another user has modified table '{0}' try again", UnitCaption));
         }
 
         internal FieldList GetCurrentSort()
@@ -78,6 +79,13 @@ namespace Brayns.Shaper.Objects
             if (_currentRow >= _dataset!.Count)
             {
                 _currentRow = 0;
+
+                if (_pagination)
+                {
+                    _dataset.Clear();
+                    return false;
+                }
+
                 _dataset = TableDatabase!.NextSet(this);
                 if (_dataset.Count == 0)
                     return false;
@@ -107,9 +115,10 @@ namespace Brayns.Shaper.Objects
             }
         }
 
-        public bool FindSet()
+        public bool FindSet(int? pageSize = null, int? offset = null)
         {
-            _dataset = TableDatabase!.FindSet(this);
+            _pagination = (pageSize.HasValue);
+            _dataset = TableDatabase!.FindSet(this, pageSize, offset);
             _currentRow = -1;
             return (_dataset.Count > 0);
         }
@@ -124,9 +133,9 @@ namespace Brayns.Shaper.Objects
         {
             string flt = string.Join(", ", _lastFilters);
             if (flt.Length == 0)
-                return new Error(Error.E_RECORD_NOT_FOUND, Label("'{0}' not found"), UnitCaption);
+                return new Error(Error.E_RECORD_NOT_FOUND, Label("'{0}' not found", UnitCaption));
             else
-                return new Error(Error.E_RECORD_NOT_FOUND, Label("'{0}' not found: {1}"), UnitCaption, flt);
+                return new Error(Error.E_RECORD_NOT_FOUND, Label("'{0}' not found: {1}", UnitCaption, flt));
         }
 
         private string _tableName = "";
@@ -359,7 +368,7 @@ namespace Brayns.Shaper.Objects
         {
             UnitType = UnitTypes.TABLE;
             if (typeof(T) != GetType())
-                throw new Error(Label("Table type must be '{0}'"), GetType());
+                throw new Error(Label("Table type must be '{0}'", GetType()));
         }
     }
 }

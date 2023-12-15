@@ -51,7 +51,7 @@
             string val = (string)value!;
             if (Length > MAX_LENGTH)
                 if (val.Length > Length)
-                    throw new Error(Label("Value of '{0}' cannot be longer than {1}"), Caption, Length);
+                    throw new Error(Label("Value of '{0}' cannot be longer than {1}", Caption, Length));
 
             return val;
         }

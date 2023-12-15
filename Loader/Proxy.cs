@@ -77,7 +77,7 @@ namespace Brayns.Shaper.Loader
             }
 
             if (mi == null)
-                throw new Error(Error.E_INVALID_ROUTE, Label("Invalid {0} route '{1}'"), action, route);
+                throw new Error(Error.E_INVALID_ROUTE, Label("Invalid {0} route '{1}'", action, route));
 
             AssertMethodSecurity(mi);
 
@@ -96,7 +96,7 @@ namespace Brayns.Shaper.Loader
         public static Proxy CreateFromId(string id)
         {
             if (!CurrentSession.Units.ContainsKey(id))
-                throw new Error(Label("Invalid object ID '{0}'"), id);
+                throw new Error(Label("Invalid object ID '{0}'", id));
 
             return new Proxy(CurrentSession.Units[id]);
         }
@@ -107,7 +107,7 @@ namespace Brayns.Shaper.Loader
 
             fullName = fullName.Trim();
             if (fullName.Length == 0)
-                throw new Error(Label("Invalid object name '{0}'"), fullName);
+                throw new Error(Label("Invalid object name '{0}'", fullName));
 
             if (Loader.UnitTypes.ContainsKey(fullName))
             {
@@ -117,7 +117,7 @@ namespace Brayns.Shaper.Loader
             }
 
             if (o == null)
-                throw new Error(Label("Invalid object name '{0}'"), fullName);
+                throw new Error(Label("Invalid object name '{0}'", fullName));
 
             return new Proxy(o);
         }
@@ -127,7 +127,7 @@ namespace Brayns.Shaper.Loader
             if (t.GetCustomAttributes(typeof(Published), true).Length > 0)
                 return;
 
-            throw new Error(Error.E_UNAUTHORIZED, Label("Unauthorized access to unit '{0}'"), t.Name);
+            throw new Error(Error.E_UNAUTHORIZED, Label("Unauthorized access to unit '{0}'", t.Name));
         }
 
         private static void AssertMethodSecurity(MethodInfo mi)
@@ -147,14 +147,14 @@ namespace Brayns.Shaper.Loader
                     return;
             }
 
-            throw new Error(Error.E_UNAUTHORIZED, Label("Unauthorized access to method '{0}'"), mi.Name);
+            throw new Error(Error.E_UNAUTHORIZED, Label("Unauthorized access to method '{0}'", mi.Name));
         }
 
         private MethodInfo GetMethodByName(string methodName)
         {
             MethodInfo? mi = _typ.GetMethod(methodName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
             if (mi == null)
-                throw new Error(Label("Invalid method name '{0}'"), methodName);
+                throw new Error(Label("Invalid method name '{0}'", methodName));
 
             if (!SkipMethodSecurity)
                 AssertMethodSecurity(mi);
@@ -207,7 +207,7 @@ namespace Brayns.Shaper.Loader
                 else if (Nullable.GetUnderlyingType(p.ParameterType) != null)
                     pars.Add(null);
                 else
-                    throw new Error(Label("Missing parameter '{0}' in method '{1}'"), p.Name!, method.Name);
+                    throw new Error(Label("Missing parameter '{0}' in method '{1}'", p.Name!, method.Name));
             }
             return method.Invoke(_obj, pars.ToArray());
         }

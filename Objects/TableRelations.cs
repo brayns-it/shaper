@@ -38,16 +38,16 @@ namespace Brayns.Shaper.Objects
             {
                 f = FieldHandler.Invoke(t);
                 if (!t.TablePrimaryKey.Contains(f))
-                    throw new Error(Label("Cannot relate to field '{0}' because it's not primary key member"), f.Caption);
+                    throw new Error(Label("Cannot relate to field '{0}' because it's not primary key member", f.Caption));
             }
 
             if (f.Type != FieldFromInstance.Type)
-                throw new Error(Label("Field '{0}' must be of the same type of '{1}'"), f.Caption, FieldFromInstance.Caption);
+                throw new Error(Label("Field '{0}' must be of the same type of '{1}'", f.Caption, FieldFromInstance.Caption));
 
             var ft1 = f as Fields.Text;
             var ft2 = FieldFromInstance as Fields.Text;
             if ((ft1 != null) && (ft2 != null) && (ft1.Length != ft2.Length))
-                throw new Error(Label("Field '{0}' must be of the same size of '{1}'"), f.Caption, FieldFromInstance.Caption);
+                throw new Error(Label("Field '{0}' must be of the same size of '{1}'", f.Caption, FieldFromInstance.Caption));
 
             return (typeof(T), f.SqlName.ToLower());
         }
@@ -105,7 +105,7 @@ namespace Brayns.Shaper.Objects
         {
             if (TableFrom != null)
                 if (TableFrom != typeof(U))
-                    throw new Error(Label("Field '{0}' does not belong to '{1}'"), fieldFrom.Caption, typeof(U));
+                    throw new Error(Label("Field '{0}' does not belong to '{1}'", fieldFrom.Caption, typeof(U)));
         }
 
         protected override void OnApplyCondition(BaseTable t)

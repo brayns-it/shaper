@@ -78,7 +78,7 @@ namespace Brayns.Shaper.Loader
             foreach (var p in perms)
             {
                 if (Functions.UnitTypeFromType(unitType) != p.UnitType) continue;
-                if ((p.UnitName.Length > 0) && (p.UnitName != Functions.UnitNameFromType(unitType))) continue;
+                if ((p.UnitName.Length > 0) && (p.UnitName != unitType.FullName)) continue;
                 if (p.PermissionMode == PermissionMode.Deny)
                 {
                     denied = true;

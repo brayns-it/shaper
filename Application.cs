@@ -51,10 +51,8 @@ namespace Brayns.Shaper
 
         private static void InitializeFromWebRoot(string rootPath)
         {
-            var q = new Opt<Database.DatabaseTypes>(0);
-
             if (!Directory.Exists(rootPath))
-                throw new Error(Label("Root path '{0}' does not exists"), rootPath);
+                throw new Error(Label("Root path '{0}' does not exists", rootPath));
 
             RootPath = rootPath;
             RootPath = RootPath.Replace("\\", "/");

@@ -285,7 +285,7 @@ namespace Brayns.Shaper
                             task.ApiAction = Classes.ApiAction.Delete;
                             break;
                         default:
-                            throw new Error(Label("Invalid API action '{0}'"), ctx.Request.Method);
+                            throw new Error(Label("Invalid API action '{0}'", ctx.Request.Method));
                     }
                 }
                 else
@@ -375,7 +375,7 @@ namespace Brayns.Shaper
                                 break;
 
                             default:
-                                throw new Error(Label("Unhandled type in web loop {0}"), r.GetType());
+                                throw new Error(Label("Unhandled type in web loop {0}", r.GetType()));
                         }
 
                         if (task.IsWebClient)

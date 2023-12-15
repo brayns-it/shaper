@@ -19,6 +19,8 @@
         internal bool OpenAsNew { get; set; } = false;
         internal BasePage? SourcePage { get; set; }
         internal Controls.BaseSubpage? Parent { get; set; }
+        internal int PageSize { get; set; } = 100;
+        internal int Offset { get; set; } = 0;
 
         public List<Controls.Control> Items { get; private set; } = new();
         public PageTypes PageType { get; protected set; }
@@ -111,7 +113,7 @@
                     Rec!.Delete(true);
                     Close();
 
-                    if ((SourcePage != null) && (SourcePage.Rec != null) && (SourcePage.Rec!.UnitName == Rec.UnitName))
+                    if ((SourcePage != null) && (SourcePage.Rec != null) && (SourcePage.Rec!.GetType() == Rec.GetType()))
                         SourcePage.SendDataSet();
                 }
             }).RunModal();
@@ -244,6 +246,42 @@
             Client.SendMessage(result);
         }
 
+        [PublicAccess]
+        internal void Search(string text)
+        {
+            Rec!.Reset(Fields.FilterLevel.Or);
+            Rec!.TableFilterLevel = Fields.FilterLevel.Or;
+
+            if (text.Trim().Length > 0)
+                foreach (var f in DataFields)
+                {
+                    if ((f.Type == Fields.FieldTypes.CODE) || (f.Type == Fields.FieldTypes.TEXT))
+                        f.SetFilter("*" + text + "*");
+                    else
+                        f.SetFilter(text);
+
+                    int n = f.Filters.Count - 1;
+                    try
+                    {
+                        List<object> vals = new();
+                        f.Filters[n].Tokenize(vals);
+                    }
+                    catch
+                    {
+                        f.Filters.RemoveAt(n);
+                    }
+                }
+
+            SendDataSet();
+        }
+
+        [PublicAccess]
+        internal void GetData(int offset)
+        {
+            Offset = offset;
+            SendDataSet();
+        }
+
         internal void SendDataSet()
         {
             DataSet.Clear();
@@ -251,11 +289,16 @@
 
             JArray jset = new();
             JArray jfSet = new();
-            int count = 0;
+
+            var result = new JObject();
+            result["pageSize"] = PageSize;
 
             if (Rec != null)
             {
-                if ((!OpenAsNew) && Rec.FindSet())
+                if ((!OpenAsNew) && MultipleRows)
+                    result["count"] = Rec.Count();
+
+                if ((!OpenAsNew) && Rec.FindSet(PageSize, Offset))
                 {
                     while (Rec.Read())
                     {
@@ -263,7 +306,6 @@
                         DataSet.Add(Rec.GetDataset());
                         jset.Add(GetDataRow(false));
                         jfSet.Add(GetDataRow(true));
-                        count++;
 
                         if (!MultipleRows)
                             break;
@@ -275,7 +317,6 @@
                     DataReading?.Invoke();
                     jset.Add(GetDataRow(false));
                     jfSet.Add(GetDataRow(true));
-                    count++;
                 }
             }
             else
@@ -283,13 +324,10 @@
                 DataReading?.Invoke();
                 jset.Add(GetDataRow(false));
                 jfSet.Add(GetDataRow(true));
-                count++;
             }
 
-            var result = new JObject();
             result["action"] = "dataset";
             result["pageid"] = UnitID.ToString();
-            result["count"] = count;
             result["data"] = jset;
             result["fdata"] = jfSet;
 
@@ -480,6 +518,15 @@
             return false;
         }
 
+        public Controls.Control? Control(string name)
+        {
+            foreach (Controls.Control ctl in AllItems.Values)
+                if (ctl.Name == name)
+                    return ctl;
+
+            return null;
+        }
+
         public T? Control<T>(string name) where T : Controls.Control
         {
             foreach (Controls.Control ctl in AllItems.Values)
@@ -567,7 +614,7 @@
                         Renaming?.Invoke();
                         SendCaption();
 
-                        if ((SourcePage != null) && (SourcePage.Rec != null) && (SourcePage.Rec!.UnitName == Rec.UnitName))
+                        if ((SourcePage != null) && (SourcePage.Rec != null) && (SourcePage.Rec!.GetType() == Rec.GetType()))
                             SourcePage.SendDataSet();
                     }
                     else

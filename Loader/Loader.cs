@@ -135,7 +135,7 @@ namespace Brayns.Shaper.Loader
             if (!fi.Exists)
                 fi = new FileInfo(Application.RootPath + arg2.Name + ".dll");
             if (!fi.Exists)
-                throw new Error(Label("Cannot load assembly '{0}'"), arg2.Name!);
+                throw new Error(Label("Cannot load assembly '{0}'", arg2.Name!));
 
             FileStream fs = new FileStream(fi.FullName, FileMode.Open, FileAccess.Read);
             var asm = arg1.LoadFromStream(fs);
@@ -277,6 +277,7 @@ namespace Brayns.Shaper.Loader
             if (CurrentSession.Database == null) return;
 
             CurrentSession.Database.CompileMode = mode;
+            CurrentSession.Database.CompileResult.Clear();
 
             foreach (Type t in TableTypes)
             {

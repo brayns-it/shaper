@@ -29,16 +29,38 @@ namespace Brayns.Shaper.Controls
             return false;
         }
 
+        protected Control? ItemByName(string name)
+        {
+            foreach (Control ctl in Items)
+                if (ctl.Name == name)
+                    return ctl;
+            return null;
+        }
+
         public void MoveFirst()
         {
             if (Parent == null) return;
+            if (!Parent.Items.Contains(this)) return;
 
-            int n = Parent.Items.IndexOf(this);
-            if (n > 0)
-            {
-                Parent.Items.Remove(this);
-                Parent.Items.Insert(0, this);
-            }
+            Parent.Items.Remove(this);
+            Parent.Items.Insert(0, this);
+        }
+
+        public void MoveAfter(string anchor)
+        {
+            if (Parent == null) return;
+            if (!Parent.Items.Contains(this)) return;
+
+            var ctlAnchor = Parent.ItemByName(anchor);
+            if (ctlAnchor == null) return;
+
+            Parent.Items.Remove(this);
+
+            int n = Parent.Items.IndexOf(ctlAnchor);
+            if (n == (Parent.Items.Count - 1))
+                Parent.Items.Add(this);
+            else
+                Parent.Items.Insert(n, this);
         }
 
         public void Detach()
