@@ -1,0 +1,441 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: \n"
+"POT-Creation-Date: \n"
+"PO-Revision-Date: \n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Shaper\n"
+
+msgctxt "Brayns.Shaper.Application"
+msgid "Root path '{0}' does not exists"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Client"
+msgid "No client connected"
+msgstr ""
+
+msgctxt "Brayns.Shaper.SessionTypes"
+msgid "Console"
+msgstr ""
+
+msgctxt "Brayns.Shaper.SessionTypes"
+msgid "Web"
+msgstr ""
+
+msgctxt "Brayns.Shaper.SessionTypes"
+msgid "System"
+msgstr ""
+
+msgctxt "Brayns.Shaper.SessionTypes"
+msgid "Batch"
+msgstr ""
+
+msgctxt "Brayns.Shaper.SessionTypes"
+msgid "Web Client"
+msgstr ""
+
+msgctxt "Brayns.Shaper.WebDispatcher"
+msgid "Invalid API action '{0}'"
+msgstr ""
+
+msgctxt "Brayns.Shaper.WebDispatcher"
+msgid "Invalid HTTP RPC JSON body"
+msgstr ""
+
+msgctxt "Brayns.Shaper.WebDispatcher"
+msgid "Unhandled type in web loop {0}"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Classes.Functions"
+msgid "{0} days"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Classes.Functions"
+msgid "{0} hours"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Classes.Functions"
+msgid "{0} minutes"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Classes.Functions"
+msgid "{0} seconds"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Classes.Functions"
+msgid "Now"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Classes.Functions"
+msgid "Cannot increment {0}"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Controls.Action"
+msgid "Run type must be derived from BasePage"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Controls.Grid"
+msgid "No data available"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Controls.Notifications"
+msgid "No new notifications"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Database.DatabaseTypes"
+msgid "SQL Server"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Database.Database"
+msgid "Prevent disruptive SQL {0}"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Database.SqlServer"
+msgid "Unknown field type '{0}'"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Fields.FieldTypes"
+msgid "Code"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Fields.FieldTypes"
+msgid "Integer"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Fields.FieldTypes"
+msgid "Option"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Fields.FieldTypes"
+msgid "Text"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Fields.FieldTypes"
+msgid "Big Integer"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Fields.FieldTypes"
+msgid "Decimal"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Fields.FieldTypes"
+msgid "Date"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Fields.FieldTypes"
+msgid "DateTime"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Fields.FieldTypes"
+msgid "Boolean"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Fields.FieldTypes"
+msgid "Time"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Fields.FieldTypes"
+msgid "Blob"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Fields.FieldTypes"
+msgid "Guid"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Fields.BaseField"
+msgid "Field '{0}' does not belongs to table"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Fields.BaseField"
+msgid "Field {0} is empty"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Fields.BaseField"
+msgid "Field {0} must be equal to {1}"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Fields.Boolean"
+msgid "Yes"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Fields.Boolean"
+msgid "No"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Fields.Boolean"
+msgid "{0} does not represent a valid boolean type"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Fields.Option"
+msgid "{0} does not represent a valid {1} type"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Fields.Text"
+msgid "Value of '{0}' cannot be longer than {1}"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Loader.Loader"
+msgid "Cannot load assembly '{0}'"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Loader.Proxy"
+msgid "Invalid {0} route '{1}'"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Loader.Proxy"
+msgid "Invalid object ID '{0}'"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Loader.Proxy"
+msgid "Invalid object name '{0}'"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Loader.Proxy"
+msgid "Unauthorized access to unit '{0}'"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Loader.Proxy"
+msgid "Application is in maintenance, try again later"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Loader.Proxy"
+msgid "Unauthorized access to method '{0}'"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Loader.Proxy"
+msgid "Invalid method name '{0}'"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Loader.Proxy"
+msgid "Unknown method to invoke"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Loader.Proxy"
+msgid "Missing parameter '{0}' in method '{1}'"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Objects.BasePage"
+msgid "Data"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Objects.BasePage"
+msgid "New"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Objects.BasePage"
+msgid "Delete"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Objects.BasePage"
+msgid "Refresh"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Objects.BasePage"
+msgid "Delete {0}?"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Objects.BasePage"
+msgid "Delete selected {0} {1}?"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Objects.BasePage"
+msgid "New {0}"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Objects.BaseTable"
+msgid "Cannot modify primary key '{0}', use rename instead"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Objects.BaseTable"
+msgid "Table '{0}' has no primary key"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Objects.BaseTable"
+msgid "Another user has modified table '{0}' try again"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Objects.BaseTable"
+msgid "'{0}' not found"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Objects.BaseTable"
+msgid "'{0}' not found: {1}"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Objects.Table"
+msgid "Table type must be '{0}'"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Objects.TableRelation"
+msgid "Cannot relate to field '{0}' because it's not primary key member"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Objects.TableRelation"
+msgid "Field '{0}' must be of the same type of '{1}'"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Objects.TableRelation"
+msgid "Field '{0}' must be of the same size of '{1}'"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Objects.TableRelation"
+msgid "Field '{0}' does not belong to '{1}'"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Objects.UnitTypes"
+msgid "Table"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Objects.UnitTypes"
+msgid "Codeunit"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Objects.UnitTypes"
+msgid "Page"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Systems.Admin"
+msgid "Administration"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Systems.Admin"
+msgid "Log"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Systems.Admin"
+msgid "Restart"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Systems.Admin"
+msgid "Database"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Systems.Admin"
+msgid "Compile"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Systems.Admin"
+msgid "Compile (force)"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Systems.Admin"
+msgid "Verify"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Systems.Admin"
+msgid "Language"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Systems.Admin"
+msgid "Create PO templates"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Systems.Admin"
+msgid "Creating POT {0}..."
+msgstr ""
+
+msgctxt "Brayns.Shaper.Systems.Admin"
+msgid "POT creation done."
+msgstr ""
+
+msgctxt "Brayns.Shaper.Systems.Admin"
+msgid "Shaper"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Systems.Admin"
+msgid "No log."
+msgstr ""
+
+msgctxt "Brayns.Shaper.Systems.Admin"
+msgid "Compiling database (with force)..."
+msgstr ""
+
+msgctxt "Brayns.Shaper.Systems.Admin"
+msgid "Compiling done."
+msgstr ""
+
+msgctxt "Brayns.Shaper.Systems.Admin"
+msgid "Verifying database..."
+msgstr ""
+
+msgctxt "Brayns.Shaper.Systems.Admin"
+msgid "Verifying done with disruptions: proceed manually."
+msgstr ""
+
+msgctxt "Brayns.Shaper.Systems.Admin"
+msgid "Verifying done, no database disruptions."
+msgstr ""
+
+msgctxt "Brayns.Shaper.Systems.Admin"
+msgid "Compiling database..."
+msgstr ""
+
+msgctxt "Brayns.Shaper.Systems.Confirm"
+msgid "Confirm"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Systems.Confirm"
+msgid "Yes"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Systems.Confirm"
+msgid "No"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Systems.Setup"
+msgid "Database type"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Systems.Setup"
+msgid "Database connection"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Systems.Setup"
+msgid "Database login"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Systems.Setup"
+msgid "Database password"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Systems.Setup"
+msgid "Database name"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Systems.Setup"
+msgid "Database server"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Systems.Setup"
+msgid "Environment name"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Systems.Setup"
+msgid "Maintenance network"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Systems.Setup"
+msgid "Setup"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Systems.Setup"
+msgid "General"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Systems.Setup"
+msgid "Database"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Systems.Setup"
+msgid "Save"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Systems.Setup"
+msgid "New Shaper"
+msgstr ""
+
