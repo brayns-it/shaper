@@ -153,9 +153,15 @@
             List<Controls.Control> parents = new();
 
             foreach (var c in AllItems.Values.OfType<Controls.Action>())
-                if (c.Run != null)
-                    if (!Loader.Permissions.IsAllowed(c.Run, Loader.PermissionType.Execute, false))
-                        toDel.Add(c);
+            {
+                Type? t = null;
+                if (c.Run != null) t = c.Run;
+                else if (c.PermissionBy != null) t = c.PermissionBy;
+                if (t == null) continue;
+
+                if (!Loader.Permissions.IsAllowed(t, Loader.PermissionType.Execute, false))
+                    toDel.Add(c);
+            }
 
             while (true)
             {
@@ -276,6 +282,19 @@
         }
 
         [PublicAccess]
+        internal void Sort(string sortBy, bool ascending)
+        {
+            Rec!.TableSort.Clear();
+            if (sortBy.Length > 0)
+                foreach (var f in DataFields)
+                    if (f.CodeName == sortBy)
+                        Rec!.TableSort.Add(f);
+
+            Rec!.TableAscending = ascending;
+            GetData(0);
+        }
+
+        [PublicAccess]
         internal void GetData(int offset)
         {
             Offset = offset;
@@ -344,6 +363,7 @@
             result["pageType"] = PageType.ToString();
             result["caption"] = UnitCaption;
             result["action"] = "page";
+            result["locale"] = Session.CultureInfo.Name.ToLower();
 
             if (Parent != null)
                 result["parentId"] = Parent.ID.ToString();
@@ -426,11 +446,12 @@
         }
 
         [PublicAccess]
-        internal void OpenRecord()
+        internal void OpenRecord(int row)
         {
             if (Card == null)
                 return;
 
+            SelectRow(row);
             var pk = Rec!.PrimaryKeyValues();
 
             var c = (BasePage)Activator.CreateInstance(Card!)!;
@@ -479,6 +500,11 @@
             QueryClosing?.Invoke(ref canClose);
             if (canClose)
                 Close();
+        }
+
+        internal void SelectRow(int row)
+        {
+            SelectRows([row]);
         }
 
         [PublicAccess]
@@ -644,6 +670,15 @@
         public Page()
         {
             Rec = (R)Activator.CreateInstance(typeof(R))!;
+        }
+
+        public void SetSelectionFilter(R table)
+        {
+            List<Dictionary<string, object>> selDs = new();
+            foreach (var n in Selection)
+                selDs.Add(DataSet[n]);
+
+            table.SetSelection(selDs);
         }
     }
 

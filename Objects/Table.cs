@@ -8,6 +8,7 @@ namespace Brayns.Shaper.Objects
         private int _currentRow = -1;
         private List<FieldFilter> _lastFilters = new List<FieldFilter>();
         private bool _pagination = false;
+        private bool _selection = false;
 
         private Database.Database? _database;
         internal Database.Database? TableDatabase
@@ -115,10 +116,21 @@ namespace Brayns.Shaper.Objects
             }
         }
 
+        internal void SetSelection(List<Dictionary<string, object>> dataset)
+        {
+            _pagination = true;
+            _selection = true;
+            _dataset = dataset;
+        }
+
         public bool FindSet(int? pageSize = null, int? offset = null)
         {
-            _pagination = (pageSize.HasValue);
-            _dataset = TableDatabase!.FindSet(this, pageSize, offset);
+            if (!_selection)
+            {
+                _pagination = (pageSize.HasValue);
+                _dataset = TableDatabase!.FindSet(this, pageSize, offset);
+            }
+
             _currentRow = -1;
             return (_dataset.Count > 0);
         }
@@ -151,7 +163,10 @@ namespace Brayns.Shaper.Objects
 
         public bool IsEmpty()
         {
-            return TableDatabase!.IsEmpty(this);
+            if (_selection)
+                return (_dataset.Count > 0);
+            else
+                return TableDatabase!.IsEmpty(this);
         }
 
         public void Insert(bool runTrigger = false)
@@ -239,6 +254,7 @@ namespace Brayns.Shaper.Objects
 
         public void Reset()
         {
+            _selection = false;
             TableFilterLevel = FilterLevel.Public;
             TableSort.Clear();
             foreach (BaseField f in UnitFields)
@@ -260,7 +276,10 @@ namespace Brayns.Shaper.Objects
 
         public int Count()
         {
-            return TableDatabase!.Count(this);
+            if (_selection)
+                return _dataset.Count();
+            else
+                return TableDatabase!.Count(this);
         }
 
         public List<object> PrimaryKeyValues()

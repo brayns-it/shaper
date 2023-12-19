@@ -39,6 +39,18 @@ namespace Brayns.Shaper
             }
         }
 
+        internal static bool IsFromMaintenanceNetwork()
+        {
+            if (Config.MaintenanceNetwork.Length == 0) return false;
+            if (Session.Address.Length == 0) return false;
+
+            foreach (var s in Config.MaintenanceNetwork.Split(','))
+                if (Session.Address.StartsWith(s))
+                    return true;
+
+            return false;
+        }
+
         public static bool IsReady()
         {
             return Config.Ready;

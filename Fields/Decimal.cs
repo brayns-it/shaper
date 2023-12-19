@@ -59,9 +59,9 @@ namespace Brayns.Shaper.Fields
             else
             {
                 if (Decimals <= 0)
-                    return val.ToString("0", Session.CultureInfo);
+                    return val.ToString("#,##0", Session.CultureInfo);
                 else
-                    return val.ToString("0." + "".PadRight(Decimals, '0'), Session.CultureInfo);
+                    return val.ToString("#,##0." + "".PadRight(Decimals, '0'), Session.CultureInfo);
             }
         }
 
@@ -76,7 +76,12 @@ namespace Brayns.Shaper.Fields
 
         internal override object? Evaluate(string text)
         {
-            throw new NotImplementedException();
+            text = text.Replace(",", ".");
+
+            NumberFormatInfo nfi = new NumberFormatInfo();
+            nfi.NumberGroupSeparator = "";
+            nfi.NumberDecimalSeparator = ".";
+            return decimal.Parse(text, nfi);
         }
     }
 }

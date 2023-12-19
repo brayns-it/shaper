@@ -50,6 +50,12 @@ namespace Brayns.Shaper.Fields
         {
             AddRange(args);
         }
+
+        public void Set(params BaseField[] args)
+        {
+            Clear();
+            AddRange(args);
+        }
     }
 
     public delegate void ValidatingHandler();
@@ -138,50 +144,51 @@ namespace Brayns.Shaper.Fields
         {
             string expr = Expression!;
 
-            // resolve between
-            Regex re = new Regex("([^.]+)(\\.\\.)([^.]+)");
-            expr = re.Replace(expr, m => m.Groups[0].Value + " " + m.Groups[1].Value + " " + m.Groups[2].Value);
+            var reSep = new Regex("[^|()&]+");
+            var reBet = new Regex("(.*)\\.\\.(.*)");
+            var reOpe = new Regex("^[<>=]+");
+            var reVal = new Regex("^([<>=]+)(.*)");
+            var reTag = new Regex("^{\\d}$");
+
+            // transform ".." in between
+            expr = reSep.Replace(expr, m => reBet.Replace(m.Value, m2 => "(>=" + m2.Groups[1] + "&<=" + m2.Groups[2] + ")"));
+
+            // assert starting operators >= > = < <= <> if not is equal
+            expr = reSep.Replace(expr, m =>
+            {
+                var part = m.Value.Trim();
+                if (!reOpe.IsMatch(part)) part = "=" + part;
+                return part;
+            });
 
             // resolve values
             allValues.AddRange(Values);
 
-            re = new Regex("[^|^&^(^)^\\s^>^<^=]+");
-            expr = re.Replace(expr, m =>
+            expr = reSep.Replace(expr, m =>
             {
-                if (m.Value.StartsWith("{") && m.Value.EndsWith("}"))
-                    return m.Value;
-                else
+                return reVal.Replace(m.Value, m2 =>
                 {
-                    int n = allValues.Count;
-                    allValues.Add(Field.Evaluate(m.Value)!);
-                    return "{" + n.ToString() + "}";
-                }
-            });
+                    var ope = m2.Groups[1].ToString();
+                    var val = m2.Groups[2].ToString().Trim();
 
-            // assert operators for between
-            re = new Regex("({\\d})\\s*\\.\\.\\s*({\\d})");
-            expr = re.Replace(expr, m => ">= " + m.Groups[1] + " AND <= " + m.Groups[2]);
-
-            // assert operators
-            expr = " " + expr + " ";
-            re = new Regex("([^>^<^=])({\\d})");
-            expr = re.Replace(expr, m => m.Groups[1] + "=" + m.Groups[2]);
-
-            // like operator
-            if ((Field.Type == FieldTypes.CODE) || (Field.Type == FieldTypes.TEXT))
-            {
-                for (int n = 0; n < allValues.Count; n++)
-                {
-                    string strVal = allValues[n].ToString()!;
-                    if (strVal.Contains("*"))
+                    if (!reTag.IsMatch(val))
                     {
-                        allValues[n] = strVal.Replace("*", "%");
-                        re = new Regex("([=]\\s*)(\\{" + n.ToString() +"\\})");
-                        expr = re.Replace(expr, m => " LIKE " + m.Groups[2]);
+                        int n = allValues.Count;
+
+                        // resolve LIKE
+                        if (((Field.Type == FieldTypes.CODE) || (Field.Type == FieldTypes.TEXT)) && (val.Contains("*")) && (ope == "="))
+                        {
+                            ope = "LIKE";
+                            val = val.Replace("*", "%");
+                        }
+
+                        allValues.Add(Field.Evaluate(val)!);
+                        val = "{" + n.ToString() + "}";
                     }
-                    n++;
-                }
-            }
+
+                    return "{f} " + ope + " " + val;
+                });
+            });
 
             // resolve logical
             expr = expr.Replace("&", " AND ");

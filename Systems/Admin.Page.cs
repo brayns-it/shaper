@@ -90,7 +90,7 @@ namespace Brayns.Shaper.Systems
         private void Admin_Loading()
         {
             if (CurrentSession.ApplicationName.Length == 0)
-                CurrentSession.ApplicationName = Label("Admin");
+                CurrentSession.ApplicationName = Label("Shaper");
 
             Log.Value = Label("No log.");
         }

@@ -561,13 +561,13 @@ namespace Brayns.Shaper.Database
                 List<object> vals = new List<object>();
                 string expr = ff.Tokenize(vals);
 
-                Regex re = new Regex("([<>=]+){(\\d)}");
+                Regex re = new Regex("({f})(.*?){(\\d)}");
                 expr = re.Replace(expr, m =>
                 {
                     int n = pars.Count;
-                    int d = int.Parse(m.Groups[2].Value);
+                    int d = int.Parse(m.Groups[3].Value);
                     pars.Add(ToSqlValue(ff.Field, vals[d]));
-                    return "[" + ff.Field.SqlName + "] " + m.Groups[1].Value + " @p" + n;
+                    return "[" + ff.Field.SqlName + "]" + m.Groups[2].Value + "@p" + n;
                 });
 
                 sql += expr;

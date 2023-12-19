@@ -52,7 +52,7 @@ namespace Brayns.Shaper.Fields
 
         internal override object? Evaluate(string text)
         {
-            return int.Parse(text);
+            return int.Parse(text.Trim());
         }
 
         internal override string Format(object? value)

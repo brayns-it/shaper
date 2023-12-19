@@ -15,21 +15,30 @@ namespace Brayns.Shaper.Systems
         [PublicAccess]
         public void Initialize()
         {
-            if (!Application.IsReady())
+            if (Application.IsFromMaintenanceNetwork())
             {
-                var setup = new Setup();
-                setup.Run();
-                return;
-            }
+                if (!Application.IsReady())
+                {
+                    var setup = new Setup();
+                    setup.Run();
+                    return;
+                }
 
-            if (Application.InMaintenance)
-            {
-                var admin = new Admin();
-                admin.Run();
-                return;
+                if (Application.InMaintenance)
+                {
+                    var admin = new Admin();
+                    admin.Run();
+                    return;
+                }
             }
 
             ClientInitializing?.Invoke(this);
+        }
+
+        [PublicAccess]
+        public void Destroy()
+        {
+            CurrentSession.Stop(true, false);
         }
     }
 }

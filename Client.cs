@@ -70,5 +70,35 @@ namespace Brayns.Shaper
             jo["action"] = "reload";
             SendMessage(jo);
         }
+
+        public static void Navigate(string url)
+        {
+            var jo = new JObject();
+            jo["action"] = "navigate";
+            jo["url"] = url;
+            SendMessage(jo);
+        }
+
+        public static void Download(byte[] content, string mimeType="application/other", string fileName = "")
+        {
+            var jo = new JObject();
+            jo["action"] = "download";
+            jo["mimeType"] = mimeType;
+            jo["b64content"] = Convert.ToBase64String(content);
+            if (fileName.Length > 0)
+                jo["fileName"] = fileName;
+            SendMessage(jo);
+        }
+
+        public static void Download(string b64Content, string mimeType = "application/other", string fileName = "")
+        {
+            var jo = new JObject();
+            jo["action"] = "download";
+            jo["mimeType"] = mimeType;
+            jo["b64content"] = b64Content;
+            if (fileName.Length > 0)
+                jo["fileName"] = fileName;
+            SendMessage(jo);
+        }
     }
 }

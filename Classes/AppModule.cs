@@ -14,6 +14,8 @@ namespace Brayns.Shaper.Classes
         public abstract Guid Id { get; }
         public abstract Version Version { get; }
 
-        public abstract void Install();
+        public virtual void Install()
+        {
+        }
     }
 }

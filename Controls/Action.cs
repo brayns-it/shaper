@@ -10,6 +10,7 @@ namespace Brayns.Shaper.Controls
         public Icon? Icon { get; set; }
         public event ActionTriggerHandler? Triggering;
         public string Shortcut { get; set; } = "";
+        public Type? PermissionBy { get; set; } = null;
 
         private Type? _run;
         public Type? Run

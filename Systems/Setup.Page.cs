@@ -9,6 +9,7 @@
         private Fields.Text DatabaseName { get; } = new(Label("Database name"));
         private Fields.Text DatabaseServer { get; } = new(Label("Database server"));
         private Fields.Text EnvironmentName { get; } = new(Label("Environment name"));
+        private Fields.Text MaintenanceNetwork { get; } = new(Label("Maintenance network"));
 
         public Setup()
         {
@@ -20,6 +21,8 @@
                 {
                     var dbPar = new Controls.Field(general, EnvironmentName);
                     dbPar.Validating += DbPar_Validating;
+
+                    new Controls.Field(general, MaintenanceNetwork);
                 }
 
                 var database = new Controls.Group(content, Label("Database"));
@@ -57,6 +60,7 @@
             DatabaseName.Value = Application.Config.DatabaseName;
             DatabaseServer.Value = Application.Config.DatabaseServer;
             EnvironmentName.Value = Application.Config.EnvironmentName;
+            MaintenanceNetwork.Value = Application.Config.MaintenanceNetwork;
 
             CurrentSession.ApplicationName = Label("New Shaper");
         }
@@ -80,6 +84,7 @@
             Application.Config.DatabasePassword = DatabasePassword.Value;
             Application.Config.DatabaseName = DatabaseName.Value;
             Application.Config.DatabaseServer = DatabaseServer.Value;
+            Application.Config.MaintenanceNetwork = MaintenanceNetwork.Value;
 
             if (DatabaseType.Value != Database.DatabaseTypes.NONE)
             {

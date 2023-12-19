@@ -46,6 +46,15 @@ namespace Brayns.Shaper.Controls
             Parent.Items.Insert(0, this);
         }
 
+        public void MoveLast()
+        {
+            if (Parent == null) return;
+            if (!Parent.Items.Contains(this)) return;
+
+            Parent.Items.Remove(this);
+            Parent.Items.Add(this);
+        }
+
         public void MoveAfter(string anchor)
         {
             if (Parent == null) return;
