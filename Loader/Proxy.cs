@@ -132,8 +132,14 @@ namespace Brayns.Shaper.Loader
 
         private static void AssertMethodSecurity(MethodInfo mi)
         {
-            if (Application.InMaintenance && (!_typesMaintAllowed.Contains(mi.ReflectedType!)))
-                throw new Error(Error.E_SYSTEM_IN_MAINTENANCE, Label("Application is in maintenance, try again later"));
+            if ((!Application.IsReady) || (!Application.IsLoaded))
+            {
+                if (!_typesMaintAllowed.Contains(mi.ReflectedType!))
+                    throw Application.ErrorInMaintenance();
+
+                if (!Application.IsFromMaintenanceNetwork())
+                    throw Application.ErrorInMaintenance();
+            }
 
             if (mi.GetCustomAttributes(typeof(PublicAccess), true).Length > 0)
                 return;

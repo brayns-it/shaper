@@ -26,6 +26,7 @@ namespace Brayns.Shaper.Objects
         public Opt<UnitTypes> UnitType { get; protected set; }
         public FieldList UnitFields { get; init; }
         public string UnitCaption { get; protected set; } = "";
+        public event GenericHandler? UnitPolling;
 
         public string UnitName
         {
@@ -60,6 +61,11 @@ namespace Brayns.Shaper.Objects
                 if (mi.GetCustomAttributes(typeof(Classes.ExtendedAttribute), true).Length > 0)
                     mi.Invoke(this, null);
             }
+        }
+
+        internal void TriggerPoll()
+        {
+            UnitPolling?.Invoke();
         }
 
         internal void SessionRegister()

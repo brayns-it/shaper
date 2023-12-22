@@ -331,10 +331,10 @@ namespace Brayns.Shaper
                 if (arg.AuthenticationId != null) AuthenticationId = arg.AuthenticationId;
             }
 
-            if (Application.IsReady())
+            if (Application.IsReady)
                 DatabaseConnect();
 
-            if (!Application.InMaintenance)
+            if (Application.IsLoaded)
             {
                 Starting?.Invoke();
                 Commit();

@@ -16,18 +16,27 @@ namespace Brayns.Shaper.Controls
 
     public class Notifications : Control
     {
+        private List<string>? _cache;
         public event NotificationsGettingHandler? Getting;
         public event NotificationTriggeringHandler? Triggering;
+
+        private Notifications(AppCenter center)
+        {
+            Attach(center);
+            Page!.UnitPolling += Page_UnitPolling;
+        }
 
         public static Notifications Create(AppCenter center)
         {
             Notifications? ret = center.Page!.Control<Notifications>();
             if (ret == null)
-            {
-                ret = new Notifications();
-                ret.Attach(center);
-            }
+                ret = new Notifications(center);
             return ret;
+        }
+
+        private void Page_UnitPolling()
+        {
+            GetNotifications();
         }
 
         internal void Trigger(string notificationID)
@@ -36,10 +45,30 @@ namespace Brayns.Shaper.Controls
             GetNotifications();
         }
 
-        internal void GetNotifications()
+        private void GetNotifications()
         {
             List<NotificationItem> items = new();
             Getting?.Invoke(items);
+
+            if (_cache != null)
+            {
+                bool diff = false;
+                if (items.Count == _cache.Count)
+                {
+                    for (int i = 0; i < items.Count; i++)
+                        if (_cache[i] != items[i].ID)
+                            diff = true;
+                }
+                else
+                    diff = true;
+
+                if (!diff)
+                    return;
+
+                _cache.Clear();
+            }
+            else
+                _cache = new List<string>();
 
             var jo = new JObject();
             var notifs = new JArray();
@@ -53,6 +82,8 @@ namespace Brayns.Shaper.Controls
                 jn["icon"] = itm.Icon;
                 jn["age"] = Functions.Format(DateTime.Now.Subtract(itm.DateTime), 1);
                 notifs.Add(jn);
+
+                _cache.Add(itm.ID);
             }
 
             if (items.Count == 0)

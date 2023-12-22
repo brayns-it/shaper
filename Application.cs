@@ -19,10 +19,11 @@ namespace Brayns.Shaper
         internal static Dictionary<Guid, AppModule> Apps { get; } = new();
         internal static Config Config { get; set; } = new Config();
         internal static ILogger? Logger { get; set; }
+        internal static bool IsLoaded { get; private set; } = false;
+        internal static bool IsReady { get { return Config.Ready; } }
         public static string? RootPath { get; internal set; }
         public static event GenericHandler? Initializing;
-        public static bool InMaintenance { get; internal set; } = true;
-        
+                
         private static string? _debugPath;
         public static string? DebugPath
         {
@@ -49,11 +50,6 @@ namespace Brayns.Shaper
                     return true;
 
             return false;
-        }
-
-        public static bool IsReady()
-        {
-            return Config.Ready;
         }
 
         public static string GetEnvironmentName()
@@ -98,7 +94,7 @@ namespace Brayns.Shaper
 
         internal static void Initialize()
         {
-            InMaintenance = true;
+            IsLoaded = false;
 
             if (Config.Ready)
             {
@@ -113,7 +109,12 @@ namespace Brayns.Shaper
                 Commit();
             }
 
-            InMaintenance = false;
+            IsLoaded = true;
+        }
+
+        internal static Exception ErrorInMaintenance()
+        {
+            return new Error(Error.E_SYSTEM_IN_MAINTENANCE, Label("Application is in maintenance, try again later"));
         }
 
         public static void InitializeShaper()

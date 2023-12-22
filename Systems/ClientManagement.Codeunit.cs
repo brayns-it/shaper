@@ -11,28 +11,43 @@ namespace Brayns.Shaper.Systems
     public class ClientManagement : Codeunit
     {
         public static event GenericHandler<ClientManagement>? ClientInitializing;
+        public static event GenericHandler<ClientManagement>? ClientPolling;
 
         [PublicAccess]
         public void Initialize()
         {
             if (Application.IsFromMaintenanceNetwork())
             {
-                if (!Application.IsReady())
+                if (!Application.IsReady)
                 {
                     var setup = new Setup();
                     setup.Run();
                     return;
                 }
 
-                if (Application.InMaintenance)
+                if (!Application.IsLoaded)
                 {
                     var admin = new Admin();
                     admin.Run();
                     return;
                 }
             }
+            else
+            {
+                if ((!Application.IsReady) || (!Application.IsLoaded))
+                    throw Application.ErrorInMaintenance();
+            }
 
             ClientInitializing?.Invoke(this);
+        }
+
+        [PublicAccess]
+        public void Poll()
+        {
+            ClientPolling?.Invoke(this);
+
+            foreach (Unit u in Session.Units.Values)
+                u.TriggerPoll();
         }
 
         [PublicAccess]
