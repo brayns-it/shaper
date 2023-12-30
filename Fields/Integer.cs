@@ -47,7 +47,7 @@ namespace Brayns.Shaper.Fields
 
         internal override object? CheckValue(object? value)
         {
-            return (int)value!;
+            return Convert.ToInt32(value!);
         }
 
         internal override object? Evaluate(string text)

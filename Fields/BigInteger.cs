@@ -53,7 +53,7 @@ namespace Brayns.Shaper.Fields
 
         internal override object? CheckValue(object? value)
         {
-            return (long)value!;
+            return Convert.ToInt64(value!);
         }
 
         internal override string Format(object? value)

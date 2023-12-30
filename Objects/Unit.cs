@@ -20,7 +20,7 @@ namespace Brayns.Shaper.Objects
         public const int PAGE = 4;
     }
 
-    public abstract class Unit
+    public abstract class Unit : IDisposable
     {
         public System.Guid UnitID { get; protected set; }
         public Opt<UnitTypes> UnitType { get; protected set; }
@@ -77,6 +77,10 @@ namespace Brayns.Shaper.Objects
         {
             if (CurrentSession.Units.ContainsKey(UnitID.ToString()))
                 CurrentSession.Units.Remove(UnitID.ToString());
+        }
+
+        public virtual void Dispose()
+        {
         }
     }
 }

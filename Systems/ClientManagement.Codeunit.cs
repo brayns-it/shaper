@@ -14,7 +14,7 @@ namespace Brayns.Shaper.Systems
         public static event GenericHandler<ClientManagement>? ClientPolling;
 
         [PublicAccess]
-        public void Initialize()
+        public string Initialize()
         {
             if (Application.IsFromMaintenanceNetwork())
             {
@@ -22,14 +22,11 @@ namespace Brayns.Shaper.Systems
                 {
                     var setup = new Setup();
                     setup.Run();
-                    return;
                 }
-
-                if (!Application.IsLoaded)
+                else if (!Application.IsLoaded)
                 {
                     var admin = new Admin();
                     admin.Run();
-                    return;
                 }
             }
             else
@@ -39,11 +36,15 @@ namespace Brayns.Shaper.Systems
             }
 
             ClientInitializing?.Invoke(this);
+
+            return Session.Id.ToString();
         }
 
         [PublicAccess]
         public void Poll()
         {
+            CurrentSession.LastPoll = DateTime.Now;
+
             ClientPolling?.Invoke(this);
 
             foreach (Unit u in Session.Units.Values)
@@ -53,7 +54,7 @@ namespace Brayns.Shaper.Systems
         [PublicAccess]
         public void Destroy()
         {
-            CurrentSession.Stop(true, false);
+            CurrentSession.Stop(true);
         }
     }
 }

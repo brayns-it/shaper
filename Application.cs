@@ -9,11 +9,15 @@ using System.Diagnostics;
 
 namespace Brayns.Shaper
 {
+    public delegate void SessionCleaningHandler(List<Guid> sessionsIds);
+
     public static class Application
     {
         private static readonly object _lockLog = new();
         private static readonly object _lockValues = new();
+        private static bool _quitMonitor = false;
 
+        internal static Thread? MonitorThread { get; set; }
         internal static Dictionary<string, object> Values = new();
         internal static Dictionary<ApiAction, Dictionary<string, MethodInfo>> Routes { get; } = new();
         internal static Dictionary<Guid, AppModule> Apps { get; } = new();
@@ -23,7 +27,9 @@ namespace Brayns.Shaper
         internal static bool IsReady { get { return Config.Ready; } }
         public static string? RootPath { get; internal set; }
         public static event GenericHandler? Initializing;
-                
+        public static event GenericHandler? Monitoring;
+        public static event SessionCleaningHandler? SessionCleaning;
+
         private static string? _debugPath;
         public static string? DebugPath
         {
@@ -88,8 +94,67 @@ namespace Brayns.Shaper
             }
             finally
             {
-                Session.Stop(true, true);
+                Session.Stop();
             }
+        }
+
+        private static void MonitorWork()
+        {
+            DateTime lastCleanup = DateTime.Now;
+            bool sessionStarted = false;
+
+            while (!_quitMonitor)
+            {
+                if (IsLoaded && IsReady && (!sessionStarted))
+                    try
+                    {
+                        Session.Start(new SessionArgs()
+                        {
+                            Id = Guid.NewGuid(),
+                            Type = SessionTypes.SYSTEM
+                        });
+                        Session.IsSuperuser = true;
+                        sessionStarted = true;
+                    }
+                    catch (Exception ex)
+                    {
+                        LogException("monitorw", ex);
+                    }
+
+                if ((!IsLoaded) || (!IsReady) && sessionStarted)
+                    try
+                    {
+                        sessionStarted = false;
+                        Session.Stop();
+                    }
+                    catch (Exception ex)
+                    {
+                        LogException("monitorw", ex);
+                    }
+
+                try
+                {
+                    if (sessionStarted)
+                    {
+                        // session cleanup
+                        if (DateTime.Now.Subtract(lastCleanup).TotalSeconds > 60)
+                        {
+                            var ids = Session.CleanupClients();
+                            SessionCleaning?.Invoke(ids);
+                            lastCleanup = DateTime.Now;
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    LogException("monitorw", ex);
+                }
+
+                Thread.Sleep(1000);
+            }
+
+            if (sessionStarted)
+                Session.Stop();
         }
 
         internal static void Initialize()
@@ -127,7 +192,7 @@ namespace Brayns.Shaper
             }
             finally
             {
-                Session.Stop(true, true);
+                Session.Stop();
             }
         }
 
@@ -143,6 +208,17 @@ namespace Brayns.Shaper
             }
         }
 
+        public static void UseShaperMonitor(this WebApplication app)
+        {
+            MonitorThread = new Thread(new ThreadStart(MonitorWork));
+            MonitorThread.Start();
+
+            app.Lifetime.ApplicationStopped.Register(() =>
+            {
+                _quitMonitor = true;
+            });
+        }
+
         public static void MapShaperApi(this WebApplication app)
         {
             if (app.Environment.IsDevelopment())
@@ -154,10 +230,10 @@ namespace Brayns.Shaper
             // client entry point
             app.MapPost("/rpc", WebDispatcher.DispatchRpc);
         }
-                
+
         internal static void SetValue(string key, object value)
         {
-            lock(_lockValues)
+            lock (_lockValues)
             {
                 Values[key] = value;
             }

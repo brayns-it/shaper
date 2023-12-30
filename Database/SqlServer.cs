@@ -635,7 +635,7 @@ namespace Brayns.Shaper.Database
                     if (f.AutoIncrement)
                     {
                         identity = field;
-                        if (((int)field.Value!) == 0)
+                        if (Convert.ToInt64(field.Value!) == 0)
                             continue;
                         else
                             identityInsert = true;

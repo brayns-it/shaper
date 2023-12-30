@@ -20,7 +20,6 @@ namespace Brayns.Shaper.Objects
                 else
                     return Session.Database;
             }
-            set { _database = value; }
         }
 
         internal List<ITableRelation> TableRelations { get; init; } = new();
@@ -72,6 +71,22 @@ namespace Brayns.Shaper.Objects
         internal Dictionary<string, object> GetDataset()
         {
             return _dataset![_currentRow];
+        }
+
+        public void Connect()
+        {
+            _database = Session.DatabaseCreate();
+            _database!.Connect();
+        }
+
+        public override void Dispose()
+        {
+            if (_database != null)
+            {
+                _database!.Commit();
+                _database!.Disconnect();
+                _database = null;
+            }
         }
 
         public bool Read()

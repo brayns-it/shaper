@@ -23,7 +23,6 @@ namespace Brayns.Shaper
         public Guid SessionId { get; set; }
         public Guid? AuthenticationId { get; set; }
         public string? Address { get; set; }
-        public bool SessionOwner { get; set; } = true;
         public bool IsWebClient { get; set; } = false;
         public bool IsApiRequest { get; set; } = false;
 
@@ -130,11 +129,10 @@ namespace Brayns.Shaper
 
             try
             {
-                Session.Stop(SessionOwner, true);
+                Session.Stop();
             }
-            catch (Exception)
+            catch
             {
-                // do nothing
             }
 
             Results.Add(null);
@@ -243,10 +241,11 @@ namespace Brayns.Shaper
                 if (ctx.Request.Headers.ContainsKey("X-Rpc-WebClient") && (ctx.Request.Headers["X-Rpc-WebClient"] == "1"))
                     task.IsWebClient = true;
 
-                if (ctx.Request.Headers.ContainsKey("X-Rpc-SessionId"))
+                if (ctx.Request.Headers.ContainsKey("X-Rpc-SessionId") && (ctx.Request.Headers["X-Rpc-SessionId"].ToString().Length > 0))
                 {
                     task.SessionId = Guid.Parse(ctx.Request.Headers["X-Rpc-SessionId"]!);
-                    task.SessionOwner = false;
+                    if (!Session.SessionData.ContainsKey(task.SessionId))
+                        throw new Error(Error.E_INVALID_SESSION, Label("Invalid session"));
                 }
 
                 if (ctx.Request.Headers.ContainsKey("Authorization") &&

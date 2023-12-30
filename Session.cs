@@ -26,7 +26,7 @@ namespace Brayns.Shaper
         [Label("Web Client")]
         public const int WEBCLIENT = 4;
     }
-    
+
     internal class ThreadData
     {
         internal Database.Database? Database { get; set; }
@@ -46,6 +46,7 @@ namespace Brayns.Shaper
         internal bool IsNew { get; set; }
         internal string ApplicationName { get; set; }
         internal bool IsSuperuser { get; set; }
+        internal DateTime LastPoll { get; set; }
 
         public SessionData()
         {
@@ -58,6 +59,7 @@ namespace Brayns.Shaper
             Units = new Dictionary<string, Unit>();
             ApplicationName = "";
             IsSuperuser = false;
+            LastPoll = DateTime.Now;
         }
 
         public override string ToString()
@@ -75,7 +77,7 @@ namespace Brayns.Shaper
         public string? Address { get; set; }
         internal WebTask? WebTask { get; set; }
     }
-    
+
     public static class Session
     {
         public static event GenericHandler? Starting;
@@ -175,7 +177,13 @@ namespace Brayns.Shaper
                 return Thread.CurrentThread.ManagedThreadId;
             }
         }
-        
+
+        internal static DateTime LastPoll
+        {
+            get { return Instance.LastPoll; }
+            set { Instance.LastPoll = value; }
+        }
+
         internal static Dictionary<string, Unit> Units
         {
             get { return Instance.Units; }
@@ -226,39 +234,35 @@ namespace Brayns.Shaper
             }
         }
 
-        public static void Stop(bool destroy = false, bool ignoreErrors = false)
+        public static void Stop(bool forceDestroy = false)
         {
             try
             {
                 Rollback();
 
                 Stopping?.Invoke();
-                if (destroy)
+                if ((Type != SessionTypes.WEBCLIENT) || forceDestroy)
                     Destroying?.Invoke();
 
                 Commit();
             }
-            catch (Exception)
+            catch
             {
-                if (!ignoreErrors)
-                    throw;
             }
 
             try
             {
                 Database?.Disconnect();
             }
-            catch (Exception)
+            catch
             {
-                if (!ignoreErrors)
-                    throw;
             }
 
             Database = null;
 
             if (Id != Guid.Empty)
             {
-                if (destroy)
+                if ((Type != SessionTypes.WEBCLIENT) || forceDestroy)
                 {
                     if (SessionData.ContainsKey(Id))
                     {
@@ -287,17 +291,42 @@ namespace Brayns.Shaper
             }
         }
 
-        internal static void DatabaseConnect()
+        internal static Database.Database? DatabaseCreate()
         {
             switch (Application.Config.DatabaseType)
             {
                 case DatabaseTypes.SQLSERVER:
-                    Database = new SqlServer();
-                    break;
+                    return new SqlServer();
             }
 
+            return null;
+        }
+
+        internal static void DatabaseConnect()
+        {
+            Database = DatabaseCreate();
             if (Database != null)
                 Database.Connect();
+        }
+
+        internal static List<System.Guid> CleanupClients()
+        {
+            lock (_lockSessions)
+            {
+                List<System.Guid> toDel = new();
+                foreach (var sd in SessionData.Values)
+                {
+                    if ((DateTime.Now.Subtract(sd.LastPoll).TotalSeconds > 300) &&
+                       (!SessionMap.Values.Contains(sd)) &&
+                       (sd.Type == SessionTypes.WEBCLIENT))
+                        toDel.Add(sd.Id);
+                }
+                foreach (var id in toDel)
+                {
+                    SessionData.Remove(id);
+                }
+                return toDel;                
+            }
         }
 
         public static void Start(SessionArgs? arg = null)
@@ -341,6 +370,4 @@ namespace Brayns.Shaper
             }
         }
     }
-
-
 }
