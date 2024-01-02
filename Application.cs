@@ -121,7 +121,7 @@ namespace Brayns.Shaper
                         LogException("monitorw", ex);
                     }
 
-                if ((!IsLoaded) || (!IsReady) && sessionStarted)
+                if (((!IsLoaded) || (!IsReady)) && sessionStarted)
                     try
                     {
                         sessionStarted = false;

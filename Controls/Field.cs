@@ -16,7 +16,7 @@ namespace Brayns.Shaper.Controls
 
     public class Field : Control
     {
-        public string Caption { get; protected set; } = "";
+        public string Caption { get; set; } = "";
         public Fields.BaseField BaseField { get; protected set; }
         public InputType InputType { get; set; }
         public event Fields.ValidatingHandler? Validating;

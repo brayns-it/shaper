@@ -15,4 +15,5 @@ global using Label = Brayns.Shaper.Classes.LabelAttribute;
 global using Newtonsoft.Json.Linq;
 global using Client = Brayns.Shaper.Client;
 global using Confirm = Brayns.Shaper.Systems.Confirm;
+global using Message = Brayns.Shaper.Systems.Message;
 global using Icon = Brayns.Shaper.Controls.Icon;

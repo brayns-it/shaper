@@ -35,7 +35,8 @@ namespace Brayns.Shaper.Systems
                     throw Application.ErrorInMaintenance();
             }
 
-            ClientInitializing?.Invoke(this);
+            if (Application.IsReady && Application.IsLoaded)
+                ClientInitializing?.Invoke(this);
 
             return Session.Id.ToString();
         }

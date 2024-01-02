@@ -175,8 +175,11 @@
 
                 toDel.Clear();
                 foreach (var c in parents)
+                {
+                    if (c.GetType() == typeof(Controls.NavigationPane)) continue;
                     if (c.Items.Count == 0)
                         toDel.Add(c);
+                }
 
                 parents.Clear();
                 if (toDel.Count == 0)
