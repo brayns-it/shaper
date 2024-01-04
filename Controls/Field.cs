@@ -21,6 +21,8 @@ namespace Brayns.Shaper.Controls
         public InputType InputType { get; set; }
         public event Fields.ValidatingHandler? Validating;
         public bool ReadOnly { get; set; } = false;
+        public event ActionTriggerHandler? Triggering;
+        public bool OpenRecord { get; set; } = false;
 
 #pragma warning disable CS8618
         public Field(Group group, string name, Shaper.Fields.BaseField baseField)
@@ -64,13 +66,23 @@ namespace Brayns.Shaper.Controls
             jo["fieldType"] = BaseField.Type.ToString();
             jo["inputType"] = InputType.ToString();
             jo["readOnly"] = ReadOnly;
+
+            if (Triggering?.GetInvocationList().Length > 0)
+                jo["isLink"] = true;
+
             return jo;
+        }
+
+        internal void Trigger(int row)
+        {
+            Page!.SelectRow(row);
+            Triggering?.Invoke();
         }
 
         internal void Validate(object? value, bool parseValue = true)
         {
             if (parseValue)
-                value = BaseField.Evaluate(value!.ToString()!);
+                value = BaseField.DoEvaluate(value!.ToString()!);
 
             BaseField.Validate(value);
             Validating?.Invoke();

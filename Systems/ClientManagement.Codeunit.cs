@@ -16,27 +16,30 @@ namespace Brayns.Shaper.Systems
         [PublicAccess]
         public string Initialize()
         {
-            if (Application.IsFromMaintenanceNetwork())
+            if (Application.IsReady && Application.IsLoaded)
             {
-                if (!Application.IsReady)
-                {
-                    var setup = new Setup();
-                    setup.Run();
-                }
-                else if (!Application.IsLoaded)
-                {
-                    var admin = new Admin();
-                    admin.Run();
-                }
+                ClientInitializing?.Invoke(this);
             }
             else
             {
-                if ((!Application.IsReady) || (!Application.IsLoaded))
+                if (Application.IsFromMaintenanceNetwork())
+                {
+                    if (!Application.IsReady)
+                    {
+                        var setup = new Setup();
+                        setup.Run();
+                    }
+                    else if (!Application.IsLoaded)
+                    {
+                        var admin = new Admin();
+                        admin.Run();
+                    }
+                }
+                else
+                {
                     throw Application.ErrorInMaintenance();
+                }
             }
-
-            if (Application.IsReady && Application.IsLoaded)
-                ClientInitializing?.Invoke(this);
 
             return Session.Id.ToString();
         }

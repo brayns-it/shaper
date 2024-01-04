@@ -45,7 +45,7 @@ namespace Brayns.Shaper.Fields
         {
         }
 
-        internal override object? Evaluate(string text)
+        internal override object? DoEvaluate(string text)
         {
             if (text.Length == 0) return 0;
             return long.Parse(text);

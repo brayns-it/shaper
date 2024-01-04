@@ -281,6 +281,9 @@ namespace Brayns.Shaper.Loader
 
             foreach (Type t in TableTypes)
             {
+                if (t.GetCustomAttribute<VirtualTable>(true) != null) 
+                    continue;
+
                 var tab = (BaseTable)Activator.CreateInstance(t)!;
                 Session.Database!.Compile(tab);
                 Commit();

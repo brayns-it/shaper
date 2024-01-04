@@ -61,7 +61,7 @@
             return (string)value!;
         }
 
-        internal override object? Evaluate(string text)
+        internal override object? DoEvaluate(string text)
         {
             return text;
         }

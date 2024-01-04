@@ -39,7 +39,7 @@ namespace Brayns.Shaper.Fields
         {
         }
 
-        internal override object? Evaluate(string text)
+        internal override object? DoEvaluate(string text)
         {
             throw new NotImplementedException();
         }

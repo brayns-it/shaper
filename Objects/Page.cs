@@ -32,6 +32,7 @@
         public event GenericHandler? Closing;
         public event PageQueryCloseHandler? QueryClosing;
         public event GenericHandler? DataReading;
+        public event GenericHandler? TableSelecting;
         public event GenericHandler? CaptionSetting;
         public bool AllowInsert { get; set; } = true;
         public bool AllowDelete { get; set; } = true;
@@ -317,6 +318,8 @@
 
             if (Rec != null)
             {
+                TableSelecting?.Invoke();
+
                 if ((!OpenAsNew) && MultipleRows)
                     result["count"] = Rec.Count();
 
@@ -369,7 +372,13 @@
             result["locale"] = Session.CultureInfo.Name.ToLower();
 
             if (Parent != null)
+            {
                 result["parentId"] = Parent.ID.ToString();
+                result["parentType"] = Parent.Parent!.GetType().Name;
+
+                if (Parent.Caption.Length > 0)
+                    Control<Controls.Action>("act-data")!.Caption = Parent.Caption;
+            }
 
             if (modal)
                 result["display"] = "modal";
@@ -449,12 +458,11 @@
         }
 
         [PublicAccess]
-        internal void OpenRecord(int row)
+        internal void OpenRecord()
         {
             if (Card == null)
                 return;
 
-            SelectRow(row);
             var pk = Rec!.PrimaryKeyValues();
 
             var c = (BasePage)Activator.CreateInstance(Card!)!;
@@ -517,7 +525,15 @@
             Selection.AddRange(rows);
 
             if (Selection.Count > 0)
+            {
                 Rec!.SetDataset(DataSet[Selection[0]]);
+
+                foreach (var c in AllItems.Values.OfType<Controls.BaseSubpage>())
+                {
+                    c.ApplyFilter();
+                    c.Instance!.SendDataSet();
+                }
+            }
         }
 
         [PublicAccess]
@@ -578,7 +594,7 @@
         {
             Rec!.Init();
 
-            foreach (var f in Rec!.TablePrimaryKey)
+            foreach (var f in Rec!.UnitFields)
             {
                 object? val = f.GetFilterValue();
                 if (val != null)
@@ -673,6 +689,8 @@
         public Page()
         {
             Rec = (R)Activator.CreateInstance(typeof(R))!;
+            if (Loader.Loader.HasAttribute<VirtualTable>(typeof(R)))
+                Rec.Connect(true);
         }
 
         public void SetSelectionFilter(R table)

@@ -15,6 +15,10 @@ msgctxt "Brayns.Shaper.Application"
 msgid "Root path '{0}' does not exists"
 msgstr ""
 
+msgctxt "Brayns.Shaper.Application"
+msgid "Application is in maintenance, try again later"
+msgstr ""
+
 msgctxt "Brayns.Shaper.Client"
 msgid "No client connected"
 msgstr ""
@@ -37,6 +41,10 @@ msgstr ""
 
 msgctxt "Brayns.Shaper.SessionTypes"
 msgid "Web Client"
+msgstr ""
+
+msgctxt "Brayns.Shaper.WebDispatcher"
+msgid "Invalid session"
 msgstr ""
 
 msgctxt "Brayns.Shaper.WebDispatcher"
@@ -93,6 +101,10 @@ msgstr ""
 
 msgctxt "Brayns.Shaper.Database.Database"
 msgid "Prevent disruptive SQL {0}"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Database.SQLite"
+msgid "Unknown field type '{0}'"
 msgstr ""
 
 msgctxt "Brayns.Shaper.Database.SqlServer"
@@ -197,10 +209,6 @@ msgstr ""
 
 msgctxt "Brayns.Shaper.Loader.Proxy"
 msgid "Unauthorized access to unit '{0}'"
-msgstr ""
-
-msgctxt "Brayns.Shaper.Loader.Proxy"
-msgid "Application is in maintenance, try again later"
 msgstr ""
 
 msgctxt "Brayns.Shaper.Loader.Proxy"
@@ -385,6 +393,14 @@ msgstr ""
 
 msgctxt "Brayns.Shaper.Systems.Confirm"
 msgid "No"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Systems.Message"
+msgid "Message"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Systems.Message"
+msgid "OK"
 msgstr ""
 
 msgctxt "Brayns.Shaper.Systems.Setup"

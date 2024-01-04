@@ -182,7 +182,7 @@ namespace Brayns.Shaper.Fields
                             val = val.Replace("*", "%");
                         }
 
-                        allValues.Add(Field.Evaluate(val)!);
+                        allValues.Add(Field.DoEvaluate(val)!);
                         val = "{" + n.ToString() + "}";
                     }
 
@@ -251,7 +251,7 @@ namespace Brayns.Shaper.Fields
 
         internal abstract object? CheckValue(object? value);
         internal abstract string Format(object? value);
-        internal abstract object? Evaluate(string text);
+        internal abstract object? DoEvaluate(string text);
         internal abstract JValue Serialize(object? value);
 
         public void Init()

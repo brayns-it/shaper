@@ -79,6 +79,19 @@ namespace Brayns.Shaper.Objects
             _database!.Connect();
         }
 
+        public void Connect(bool temporary)
+        {
+            if (!temporary)
+            {
+                Connect();
+                return;
+            }
+
+            _database = new Database.SQLite();
+            _database!.Connect("Data Source=:memory:");
+            _database!.Compile(this);
+        }
+
         public override void Dispose()
         {
             if (_database != null)
@@ -267,13 +280,21 @@ namespace Brayns.Shaper.Objects
                 return false;
         }
 
-        public void Reset()
+        public void Reset(bool allLevels = true)
         {
             _selection = false;
-            TableFilterLevel = FilterLevel.Public;
-            TableSort.Clear();
-            foreach (BaseField f in UnitFields)
-                f.Filters.Clear();
+
+            if (allLevels)
+            {
+                TableFilterLevel = FilterLevel.Public;
+                TableSort.Clear();
+                foreach (BaseField f in UnitFields)
+                    f.Filters.Clear();
+            }
+            else
+            {
+                Reset(TableFilterLevel);
+            }
         }
 
         public void Reset(FilterLevel level)

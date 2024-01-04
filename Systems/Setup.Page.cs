@@ -62,7 +62,8 @@
             EnvironmentName.Value = Application.Config.EnvironmentName;
             MaintenanceNetwork.Value = Application.Config.MaintenanceNetwork;
 
-            CurrentSession.ApplicationName = Label("New Shaper");
+            if (CurrentSession.ApplicationName.Length == 0)
+                CurrentSession.ApplicationName = Label("New Shaper");
         }
 
         private void DbPar_Validating()

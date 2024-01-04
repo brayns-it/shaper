@@ -23,7 +23,7 @@ namespace Brayns.Shaper.Fields
                 return val.ToLocalTime().ToString("d", Session.CultureInfo);
         }
 
-        internal override object? Evaluate(string text)
+        internal override object? DoEvaluate(string text)
         {
             text = text.Trim();
             if (text.Length == 0)

@@ -19,6 +19,23 @@ namespace Brayns.Shaper.Controls
 
         internal override JObject Render()
         {
+            if (Page!.Card != null)
+            {
+                Field? first = null;
+                Field? ctlOpen = null;
+                foreach (var c in Items.OfType<Controls.Field>())
+                {
+                    if (first == null)
+                        first = c;
+
+                    if (c.OpenRecord)
+                        ctlOpen = c;
+                }
+                if (ctlOpen == null) ctlOpen = first;
+                if (ctlOpen != null)
+                    ctlOpen.Triggering += () => Page!.OpenRecord();
+            }
+
             var jo = base.Render();
             jo["labelNodata"] = Label("No data available");
             return jo;

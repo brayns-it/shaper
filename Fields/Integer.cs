@@ -50,7 +50,7 @@ namespace Brayns.Shaper.Fields
             return Convert.ToInt32(value!);
         }
 
-        internal override object? Evaluate(string text)
+        internal override object? DoEvaluate(string text)
         {
             return int.Parse(text.Trim());
         }

@@ -32,6 +32,11 @@ namespace Brayns.Shaper.Classes
     {
     }
 
+    [AttributeUsage(AttributeTargets.Class)]
+    public class VirtualTableAttribute : Attribute
+    {
+    }
+
     [Flags]
     public enum ApiAction
     {

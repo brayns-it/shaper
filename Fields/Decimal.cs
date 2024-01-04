@@ -74,7 +74,12 @@ namespace Brayns.Shaper.Fields
             return new JValue(val.ToString());
         }
 
-        internal override object? Evaluate(string text)
+        internal override object? DoEvaluate(string text)
+        {
+            return Evaluate(text);
+        }
+
+        public static decimal Evaluate(string text)
         {
             text = text.Replace(",", ".");
 

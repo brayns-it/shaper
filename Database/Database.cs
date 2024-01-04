@@ -30,6 +30,7 @@ namespace Brayns.Shaper.Database
         internal List<string> CompileResult { get; init; } = new();
 
         public abstract void Connect();
+        public abstract void Connect(string dsn);
         public abstract void Disconnect();
         public abstract void Compile(BaseTable table);
         public abstract List<Dictionary<string, object>> Query(string sql, params object[] args);

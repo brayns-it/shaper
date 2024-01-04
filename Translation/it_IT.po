@@ -15,6 +15,10 @@ msgctxt "Brayns.Shaper.Application"
 msgid "Root path '{0}' does not exists"
 msgstr "Percorso radice '{0}' non esiste"
 
+msgctxt "Brayns.Shaper.Application"
+msgid "Application is in maintenance, try again later"
+msgstr "L'applicazione è in manutenzione, riprovare più tardi"
+
 msgctxt "Brayns.Shaper.Client"
 msgid "No client connected"
 msgstr "Nessun client connesso"
@@ -38,6 +42,10 @@ msgstr "Batch"
 msgctxt "Brayns.Shaper.SessionTypes"
 msgid "Web Client"
 msgstr "Client web"
+
+msgctxt "Brayns.Shaper.WebDispatcher"
+msgid "Invalid session"
+msgstr "Sessione non valida"
 
 msgctxt "Brayns.Shaper.WebDispatcher"
 msgid "Invalid API action '{0}'"
@@ -198,10 +206,6 @@ msgstr "Nome oggetto '{0}' non valido"
 msgctxt "Brayns.Shaper.Loader.Proxy"
 msgid "Unauthorized access to unit '{0}'"
 msgstr "Accesso non autorizzato a unit '{0}'"
-
-msgctxt "Brayns.Shaper.Loader.Proxy"
-msgid "Application is in maintenance, try again later"
-msgstr "L'applicazione è in manutenzione, riprovare più tardi"
 
 msgctxt "Brayns.Shaper.Loader.Proxy"
 msgid "Unauthorized access to method '{0}'"
@@ -388,6 +392,14 @@ msgstr "Sì"
 msgctxt "Brayns.Shaper.Systems.Confirm"
 msgid "No"
 msgstr "No"
+
+msgctxt "Brayns.Shaper.Systems.Message"
+msgid "Message"
+msgstr "Messaggio"
+
+msgctxt "Brayns.Shaper.Systems.Message"
+msgid "OK"
+msgstr "OK"
 
 msgctxt "Brayns.Shaper.Systems.Setup"
 msgid "Database type"

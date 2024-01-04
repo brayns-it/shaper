@@ -54,7 +54,7 @@ namespace Brayns.Shaper.Fields
                 return val.ToString("G", Session.CultureInfo);
         }
 
-        internal override object? Evaluate(string text)
+        internal override object? DoEvaluate(string text)
         {
             throw new NotImplementedException();
         }

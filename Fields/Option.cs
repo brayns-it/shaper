@@ -56,7 +56,7 @@ namespace Brayns.Shaper.Fields
             return val;
         }
 
-        internal override object? Evaluate(string text)
+        internal override object? DoEvaluate(string text)
         {
             text = text.Trim();
 

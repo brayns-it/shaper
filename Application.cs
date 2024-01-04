@@ -48,7 +48,7 @@ namespace Brayns.Shaper
 
         internal static bool IsFromMaintenanceNetwork()
         {
-            if (Config.MaintenanceNetwork.Length == 0) return false;
+            if (Config.MaintenanceNetwork.Length == 0) return true;
             if (Session.Address.Length == 0) return false;
 
             foreach (var s in Config.MaintenanceNetwork.Split(','))
@@ -102,6 +102,7 @@ namespace Brayns.Shaper
         {
             DateTime lastCleanup = DateTime.Now;
             bool sessionStarted = false;
+            bool restart = false;
 
             while (!_quitMonitor)
             {
@@ -121,9 +122,10 @@ namespace Brayns.Shaper
                         LogException("monitorw", ex);
                     }
 
-                if (((!IsLoaded) || (!IsReady)) && sessionStarted)
+                if ((((!IsLoaded) || (!IsReady)) && sessionStarted) || restart)
                     try
                     {
+                        restart = false;
                         sessionStarted = false;
                         Session.Stop();
                     }
@@ -147,10 +149,14 @@ namespace Brayns.Shaper
                 }
                 catch (Exception ex)
                 {
+                    restart = true;
                     LogException("monitorw", ex);
                 }
 
-                Thread.Sleep(1000);
+                if (restart)
+                    Thread.Sleep(5000);
+                else
+                    Thread.Sleep(1000);
             }
 
             if (sessionStarted)

@@ -4,7 +4,7 @@ using Brayns.Shaper.Objects;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using Microsoft.Data.SqlClient;
+using Microsoft.Data.Sqlite;
 using System.Drawing;
 using System.Linq;
 using System.Reflection.Emit;
@@ -14,10 +14,10 @@ using Newtonsoft.Json.Linq;
 
 namespace Brayns.Shaper.Database
 {
-    public class SqlServer : Database
+    public class SQLite : Database
     {
-        SqlConnection? _connection;
-        SqlTransaction? _transaction;
+        SqliteConnection? _connection;
+        SqliteTransaction? _transaction;
 
         public override void Compile(BaseTable table)
         {
@@ -32,15 +32,17 @@ namespace Brayns.Shaper.Database
 
         private List<string> GetPrimaryKey(BaseTable table)
         {
-            var res = Query(@"SELECT c.name FROM sys.objects o, sys.indexes i, sys.index_columns x, sys.columns c 
-                WHERE (o.name = @p0) AND (o.type = @p1) AND (o.object_id = i.object_id) AND (i.is_primary_key = 1) AND
-                (x.object_id = o.object_id) AND (x.index_id = i.index_id) AND (c.object_id = o.object_id) AND
-                (c.column_id = x.column_id) ORDER BY x.key_ordinal",
-                table.TableSqlName, "U");
+            var res = Query(@"SELECT sql FROM sqlite_schema WHERE ([type] = 'index') AND ([name] = $p0) AND ([tbl_name] = $p1)",
+                table.TableSqlName + "$PK", table.TableSqlName);
 
             var pk = new List<string>();
-            foreach (var row in res)
-                pk.Add((string)row["name"]!);
+
+            if (res.Count > 0)
+            {
+                string part = Regex.Match(res[0]["sql"].ToString()!, "\\((.*)\\)").Groups[1].Value;
+                foreach (Match m in Regex.Matches(part, "(\\[(.*?)\\])"))
+                    pk.Add(m.Groups[2].Value);
+            }
 
             return pk;
         }
@@ -111,7 +113,7 @@ namespace Brayns.Shaper.Database
 
         public override int GetConnectionId()
         {
-            return Convert.ToInt32(Query("SELECT @@SPID [spid]")[0]["spid"]!);
+            return Thread.CurrentThread.ManagedThreadId;
         }
 
         private void ProcessPrimaryKey()
@@ -127,9 +129,8 @@ namespace Brayns.Shaper.Database
 
             if (newPk.Length > 0)
             {
-                var sql = "ALTER TABLE [" + CompilingTable!.TableSqlName + "] " +
-                    "ADD CONSTRAINT [" + CompilingTable!.TableSqlName + "$PK] " +
-                    "PRIMARY KEY (" +
+                var sql = "CREATE UNIQUE INDEX [" + CompilingTable!.TableSqlName + "$PK] " +
+                    "ON [" + CompilingTable!.TableSqlName + "] (" +
                     ListFields(CompilingTable!.TablePrimaryKey) +
                     ")";
 
@@ -169,8 +170,8 @@ namespace Brayns.Shaper.Database
 
         private void ProcessTable()
         {
-            if (Query("SELECT TOP 1 NULL FROM sysobjects WHERE (xtype = @p0) AND (name = @p1)",
-                "U", CompilingTable!.TableSqlName).Count > 0)
+            if (Query("SELECT NULL FROM sqlite_schema WHERE ([type] = 'table') AND ([name] = $p0) LIMIT 1",
+                CompilingTable!.TableSqlName).Count > 0)
             {
                 var res = Query(@"SELECT c.is_identity, c.max_length, t.name AS typename, c.precision, c.scale, 
                     c.name, c.is_nullable FROM sys.objects o, sys.columns c, sys.types t 
@@ -323,7 +324,7 @@ namespace Brayns.Shaper.Database
                 var sql = "CREATE TABLE [" + CompilingTable!.TableSqlName + "] (";
                 foreach (BaseField field in CompilingTable!.UnitFields)
                     sql += "[" + field.SqlName + "] " + GetFieldType(field) + ", ";
-                sql += "[timestamp] timestamp)";
+                sql += "[timestamp] int)";
 
                 CompileExec(sql, false);
             }
@@ -341,45 +342,32 @@ namespace Brayns.Shaper.Database
             _transaction = _connection!.BeginTransaction(System.Data.IsolationLevel.ReadCommitted);
         }
 
-        public static string GetConnectionString(string server, string database, string envName)
+        public static string GetConnectionString(string fileName)
         {
-            return "Data Source=" + server + ";Initial Catalog=" + database +
-                ";Application Name=" + envName +
-                ";Trust Server Certificate=true";
+            return "Data Source=" + fileName;
         }
 
         public override void Connect()
         {
-            string dsn = Application.Config.DatabaseConnection;
-            if (!dsn.EndsWith("; ")) dsn += ";";
-
-            if (Application.Config.DatabaseLogin.Length > 0)
-            {
-                dsn += "User ID=" + Application.Config.DatabaseLogin + ";";
-                if (Application.Config.DatabasePassword.Length > 0)
-                    dsn += "Password=" + Application.Config.DatabasePassword;
-            }
-            else
-            {
-                dsn += "Integrated Security=true;";
-            }
-            Connect(dsn);
+            Connect(Application.Config.DatabaseConnection);
         }
 
         public override void Connect(string dsn)
         {
+            SQLitePCL.Batteries.Init();
+
             _connection = new(dsn);
             _connection.Open();
             _transaction = _connection.BeginTransaction(System.Data.IsolationLevel.ReadCommitted);
         }
 
-        private SqlCommand CreateCommand(string sql, params object[] args)
+        private SqliteCommand CreateCommand(string sql, params object[] args)
         {
             var cmd = _connection!.CreateCommand();
             cmd.Transaction = _transaction;
             cmd.CommandText = sql;
             for (int i = 0; i < args.Length; i++)
-                cmd.Parameters.AddWithValue("@p" + i.ToString(), args[i]);
+                cmd.Parameters.AddWithValue("$p" + i.ToString(), args[i]);
 
             return cmd;
         }
@@ -416,19 +404,22 @@ namespace Brayns.Shaper.Database
         private object? FromSqlValue(BaseField f, object value)
         {
             if ((f.Type == FieldTypes.CODE) || (f.Type == FieldTypes.TEXT))
-                return value;
+                return Convert.ToString(value);
 
-            if ((f.Type == FieldTypes.INTEGER) || (f.Type == FieldTypes.BIGINTEGER))
-                return value;
+            if (f.Type == FieldTypes.INTEGER)
+                return Convert.ToInt32(value);
+
+            if (f.Type == FieldTypes.BIGINTEGER)
+                return Convert.ToInt64(value);
 
             if (f.Type == FieldTypes.DECIMAL)
-                return value;
+                return Convert.ToDecimal(value);
 
             if (f.Type == FieldTypes.GUID)
-                return value;
+                return System.Guid.Parse(Convert.ToString(value)!);
 
             if (f.Type == FieldTypes.OPTION)
-                return value;
+                return Convert.ToInt32(value); 
 
             if (f.Type == FieldTypes.BOOLEAN)
                 return Convert.ToInt32(value) == 1;
@@ -532,7 +523,7 @@ namespace Brayns.Shaper.Database
                 if (comma) sql += " AND ";
                 comma = true;
 
-                sql += "([" + f.SqlName + "] = @p" + pars.Count + ")";
+                sql += "([" + f.SqlName + "] = $p" + pars.Count + ")";
 
                 if (useXvalues)
                     pars.Add(ToSqlValue(f, f.XValue));
@@ -542,7 +533,7 @@ namespace Brayns.Shaper.Database
 
             if (withTimestamp)
             {
-                sql += " AND ([timestamp] <= @p" + pars.Count + ")";
+                sql += " AND ([timestamp] <= $p" + pars.Count + ")";
                 pars.Add(table.TableVersion);
             }
 
@@ -554,12 +545,12 @@ namespace Brayns.Shaper.Database
             string sql = "";
             if (ff.Type == FilterType.Equal)
             {
-                sql += "[" + ff.Field.SqlName + "] = @p" + pars.Count;
+                sql += "[" + ff.Field.SqlName + "] = $p" + pars.Count;
                 pars.Add(ToSqlValue(ff.Field, ff.Value));
             }
             else if (ff.Type == FilterType.Range)
             {
-                sql += "[" + ff.Field.SqlName + "] BETWEEN @p" + pars.Count + " AND @p" + (pars.Count + 1);
+                sql += "[" + ff.Field.SqlName + "] BETWEEN $p" + pars.Count + " AND $p" + (pars.Count + 1);
                 pars.Add(ToSqlValue(ff.Field, ff.MinValue));
                 pars.Add(ToSqlValue(ff.Field, ff.MaxValue));
             }
@@ -574,7 +565,7 @@ namespace Brayns.Shaper.Database
                     int n = pars.Count;
                     int d = int.Parse(m.Groups[3].Value);
                     pars.Add(ToSqlValue(ff.Field, vals[d]));
-                    return "[" + ff.Field.SqlName + "]" + m.Groups[2].Value + "@p" + n;
+                    return "[" + ff.Field.SqlName + "]" + m.Groups[2].Value + "$p" + n;
                 });
 
                 sql += expr;
@@ -650,33 +641,28 @@ namespace Brayns.Shaper.Database
                 }
 
                 fields.Add(field);
-                places.Add("@p" + pars.Count);
+                places.Add("$p" + pars.Count);
                 pars.Add(ToSqlValue(field, field.Value));
             }
 
             var sql = "INSERT INTO [" + table.TableSqlName + "] (" +
                 ListFields(fields) +
-                ") VALUES (" +
+                ", [timestamp]) VALUES (" +
                 String.Join(", ", places) +
-                ")";
+                ", 1)";
 
-            if (identityInsert)
-                Execute("SET IDENTITY_INSERT [" + table.TableSqlName + "] ON");
+            if ((identity != null) && (!identityInsert))
+            {
+                sql += "; ";
+                sql += "UPDATE [" + table.TableSqlName + "] SET [" + identity.SqlName + "] = last_insert_rowid() WHERE ";
+                sql += GetWherePrimaryKey(table, pars);
+            }
 
             Execute(sql, pars.ToArray());
-            SetVersion(table);
-
-            if (identityInsert)
-                Execute("SET IDENTITY_INSERT [" + table.TableSqlName + "] OFF");
+            table.TableVersion = 1;
 
             if (identity != null)
-                identity.Value = Query("SELECT @@IDENTITY AS [id]")[0]["id"];
-
-        }
-
-        private void SetVersion(BaseTable table)
-        {
-            table.TableVersion = (byte[])Query("SELECT @@DBTS [dbts]")[0]["dbts"]!;
+                identity.Value = Query("SELECT last_insert_rowid() AS [id]")[0]["id"];
         }
 
         private List<Dictionary<string, object>> FindSet(BaseTable table, int? pageSize, int? offset, bool nextSet, bool? ascending, object[]? pkValues)
@@ -689,8 +675,6 @@ namespace Brayns.Shaper.Database
                 sql += "[" + f.SqlName + "], ";
 
             sql += "[timestamp] FROM [" + table.TableSqlName + "]";
-            if (table.TableLock)
-                sql += " WITH (UPDLOCK)";
 
             var where = new List<string>();
             if (pkValues != null)
@@ -698,7 +682,7 @@ namespace Brayns.Shaper.Database
                 int i = 0;
                 foreach (BaseField f in table.TablePrimaryKey)
                 {
-                    where.Add("([" + f.SqlName + "] = @p" + pars.Count + ")");
+                    where.Add("([" + f.SqlName + "] = $p" + pars.Count + ")");
                     pars.Add(ToSqlValue(f, pkValues[i]));
                     i++;
                 }
@@ -723,7 +707,7 @@ namespace Brayns.Shaper.Database
                             if (j == (l - 1))
                                 op = (ascending ?? false) ? ">" : "<";
 
-                            ws.Add("([" + f.SqlName + "] " + op + " @p" + pars.Count + ")");
+                            ws.Add("([" + f.SqlName + "] " + op + " $p" + pars.Count + ")");
                             pars.Add(ToSqlValue(f, f.Value));
                         }
 
@@ -758,7 +742,7 @@ namespace Brayns.Shaper.Database
                 offset = offset ?? 0;
                 pageSize = pageSize ?? DatasetSize;
 
-                sql += " OFFSET " + offset.ToString() + " ROWS FETCH FIRST " + pageSize.ToString() + " ROWS ONLY";
+                sql += " LIMIT " + pageSize.ToString() + " OFFSET " + offset.ToString();
             }
 
             return Query(sql, pars.ToArray());
@@ -774,7 +758,7 @@ namespace Brayns.Shaper.Database
                 sql += " WHERE " + String.Join(" AND ", where);
 
             var res = Query(sql, pars.ToArray());
-            return (int)res[0]["c"]!;
+            return Convert.ToInt32(res[0]["c"]!);
         }
 
         public override List<Dictionary<string, object>> FindFirst(BaseTable table)
@@ -838,7 +822,7 @@ namespace Brayns.Shaper.Database
             List<object> pars = new();
 
             var sql = "UPDATE [" + table.TableSqlName + "] SET " +
-                "[" + field.SqlName + "] = @p0";
+                "[" + field.SqlName + "] = $p0";
             pars.Add(ToSqlValue(field, field.Value));
 
             List<string> where = GetWhere(table, pars);
@@ -846,7 +830,7 @@ namespace Brayns.Shaper.Database
                 sql += " WHERE " + String.Join(" AND ", where);
 
             Execute(sql, pars.ToArray());
-            SetVersion(table);
+            table.TableVersion = Convert.ToInt32(table.TableVersion) + 1;
         }
 
         public override void Rename(BaseTable table)
@@ -871,7 +855,7 @@ namespace Brayns.Shaper.Database
                 if (comma) sql += ", ";
                 comma = true;
 
-                sql += "[" + f.SqlName + "] = @p" + pars.Count;
+                sql += "[" + f.SqlName + "] = $p" + pars.Count;
                 pars.Add(ToSqlValue(f, f.Value));
             }
 
@@ -882,7 +866,7 @@ namespace Brayns.Shaper.Database
             if (a != 1)
                 throw table.ErrorConcurrency();
 
-            SetVersion(table);
+            //SetVersion(table);
         }
 
         public override void Modify(BaseTable table)
@@ -900,16 +884,13 @@ namespace Brayns.Shaper.Database
                 return;
 
             var sql = "UPDATE [" + table.TableSqlName + "] SET ";
-
-            bool comma = false;
             foreach (BaseField f in fields)
             {
-                if (comma) sql += ", ";
-                comma = true;
-
-                sql += "[" + f.SqlName + "] = @p" + pars.Count;
+                sql += "[" + f.SqlName + "] = $p" + pars.Count;
+                sql += ", ";
                 pars.Add(ToSqlValue(f, f.Value));
             }
+            sql += "[timestamp] = [timestamp] + 1";
 
             sql += " WHERE ";
             sql += GetWherePrimaryKey(table, pars);
@@ -918,7 +899,7 @@ namespace Brayns.Shaper.Database
             if (a != 1)
                 throw table.ErrorConcurrency();
 
-            SetVersion(table);
+            table.TableVersion = Convert.ToInt32(table.TableVersion) + 1;
         }
     }
 }
