@@ -9,7 +9,8 @@ namespace Brayns.Shaper.Objects
         private List<FieldFilter> _lastFilters = new List<FieldFilter>();
         private bool _pagination = false;
         private bool _selection = false;
-
+        private bool _databaseOwner = false;
+        
         private Database.Database? _database;
         internal Database.Database? TableDatabase
         {
@@ -73,32 +74,45 @@ namespace Brayns.Shaper.Objects
             return _dataset![_currentRow];
         }
 
+        internal Database.Database GetMemoryDatabase()
+        {
+            var db = new Database.SQLite();
+            db.Connect("Data Source=:memory:");
+            db.Compile(this);
+            return db;
+        }
+
         public void Connect()
         {
+            _databaseOwner = true;
             _database = Session.DatabaseCreate();
             _database!.Connect();
         }
 
+        public void Connect(Database.Database db)
+        {
+            _database = db;
+        }
+
         public void Connect(bool temporary)
         {
-            if (!temporary)
+            if (temporary)
             {
-                Connect();
-                return;
+                _database = GetMemoryDatabase();
+                _databaseOwner = true;
             }
-
-            _database = new Database.SQLite();
-            _database!.Connect("Data Source=:memory:");
-            _database!.Compile(this);
+            else
+                Connect();
         }
 
         public override void Dispose()
         {
-            if (_database != null)
+            if (_databaseOwner && (_database != null))
             {
                 _database!.Commit();
                 _database!.Disconnect();
                 _database = null;
+                _databaseOwner = false;
             }
         }
 
@@ -419,11 +433,36 @@ namespace Brayns.Shaper.Objects
 
     public abstract class Table<T> : BaseTable 
     {
-        public Table()
+        internal override void UnitInitialize()
         {
+            base.UnitInitialize();
+
             UnitType = UnitTypes.TABLE;
             if (typeof(T) != GetType())
                 throw new Error(Label("Table type must be '{0}'", GetType()));
+        }
+
+        internal override void UnitAfterInitialize()
+        {
+            base.UnitAfterInitialize();
+
+            var atts = GetType().GetCustomAttributes(typeof(VirtualTable), true);
+            if (atts.Length > 0)
+            {
+                VirtualTable vt = (VirtualTable)atts[0];
+                if (vt.DataPerSession)
+                {
+                    string k = "TempData:" + GetType().FullName!;
+                    if (!Session.State.ContainsKey(k))
+                        Session.State[k] = GetMemoryDatabase();
+
+                    Connect((Database.Database)Session.State[k]);
+                }
+                else
+                {
+                    Connect(true);
+                }
+            }
         }
     }
 }

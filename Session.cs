@@ -41,6 +41,7 @@ namespace Brayns.Shaper
         internal Guid? AuthenticationId { get; set; }
         internal string Address { get; set; }
         internal WebTask? WebTask { get; set; }
+        internal Dictionary<string, object> State { get; set; }
         internal Dictionary<string, object> Values { get; set; }
         internal Dictionary<string, Unit> Units { get; set; }
         internal bool IsNew { get; set; }
@@ -56,6 +57,7 @@ namespace Brayns.Shaper
             Address = "";
             Type = SessionTypes.SYSTEM;
             Values = new Dictionary<string, object>();
+            State = new Dictionary<string, object>();
             Units = new Dictionary<string, Unit>();
             ApplicationName = "";
             IsSuperuser = false;
@@ -78,9 +80,11 @@ namespace Brayns.Shaper
         internal WebTask? WebTask { get; set; }
     }
 
+    public delegate void SessionStartingHandler(bool sessionIsNew);
+
     public static class Session
     {
-        public static event GenericHandler? Starting;
+        public static event SessionStartingHandler? Starting;
         public static event GenericHandler? Stopping;
         public static event GenericHandler? Destroying;
 
@@ -123,12 +127,6 @@ namespace Brayns.Shaper
         {
             get { return Instance.IsSuperuser; }
             set { Instance.IsSuperuser = value; }
-        }
-
-        public static bool IsNew
-        {
-            get { return Instance.IsNew; }
-            internal set { Instance.IsNew = value; }
         }
 
         internal static WebTask? WebTask
@@ -182,6 +180,11 @@ namespace Brayns.Shaper
         {
             get { return Instance.LastPoll; }
             set { Instance.LastPoll = value; }
+        }
+
+        internal static Dictionary<string, object> State
+        {
+            get { return Instance.State; }
         }
 
         internal static Dictionary<string, Unit> Units
@@ -365,7 +368,7 @@ namespace Brayns.Shaper
 
             if (Application.IsLoaded)
             {
-                Starting?.Invoke();
+                Starting?.Invoke(Instance.IsNew);
                 Commit();
             }
         }

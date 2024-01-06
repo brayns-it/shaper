@@ -39,7 +39,7 @@
         public bool AllowModify { get; set; } = true;
         public bool AutoIncrementKey { get; set; } = false;
 
-        public BasePage()
+        internal override void UnitInitialize()
         {
             UnitType = UnitTypes.PAGE;
             PageType = PageTypes.Normal;
@@ -238,6 +238,8 @@
 
         internal void SendDataRow()
         {
+            DataReading?.Invoke();
+
             JArray data = new();
             data.Add(GetDataRow(false));
 
@@ -468,7 +470,7 @@
             var c = (BasePage)Activator.CreateInstance(Card!)!;
             c.Rec!.FilterByPrimaryKey(pk);
             c.SourcePage = this;
-            c.Closing += RefreshRow;
+            c.Closing += () => Update();
             c.Run();
         }
 
@@ -481,14 +483,19 @@
             {
                 if (Selection.Count > 0)
                     DataSet[Selection[0]] = Rec!.GetDataset();
-
-                SendDataRow();
             }
         }
 
-        public void Update()
+        public void Update(bool entireDataSet = false)
         {
-            SendDataRow();
+            if (entireDataSet)
+                SendDataSet();
+            else
+            {
+                RefreshRow();
+                SendDataRow();
+            }
+
             Client.Flush();
         }
 
@@ -686,11 +693,15 @@
             set { base.Rec = value; }
         }
 
-        public Page()
+        internal override void UnitInitialize()
         {
+            base.UnitInitialize();
             Rec = (R)Activator.CreateInstance(typeof(R))!;
-            if (Loader.Loader.HasAttribute<VirtualTable>(typeof(R)))
-                Rec.Connect(true);
+        }
+
+        public bool HasSelection()
+        {
+            return Selection.Count > 0;
         }
 
         public void SetSelectionFilter(R table)

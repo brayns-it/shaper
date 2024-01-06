@@ -4,7 +4,7 @@ namespace Brayns.Shaper.Objects
 {
     public abstract class Codeunit : Unit
     {
-        public Codeunit()
+        internal override void UnitInitialize()
         {
             UnitType = UnitTypes.CODEUNIT;
         }

@@ -35,6 +35,7 @@ namespace Brayns.Shaper.Classes
     [AttributeUsage(AttributeTargets.Class)]
     public class VirtualTableAttribute : Attribute
     {
+        public bool DataPerSession { get; init; } = false;
     }
 
     [Flags]
