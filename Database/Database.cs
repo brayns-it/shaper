@@ -12,6 +12,9 @@ namespace Brayns.Shaper.Database
 
         [Label("SQL Server")]
         public const int SQLSERVER = 1;
+
+        [Label("SQLite")]
+        public const int SQLITE = 2;
     }
 
     public enum DatabaseCompileMode

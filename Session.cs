@@ -300,6 +300,8 @@ namespace Brayns.Shaper
             {
                 case DatabaseTypes.SQLSERVER:
                     return new SqlServer();
+                case DatabaseTypes.SQLITE:
+                    return new SQLite();
             }
 
             return null;
@@ -307,7 +309,14 @@ namespace Brayns.Shaper
 
         internal static void DatabaseConnect()
         {
+            if (Database != null)
+            {
+                Database.Disconnect();
+                Database = null;
+            }
+
             Database = DatabaseCreate();
+            
             if (Database != null)
                 Database.Connect();
         }

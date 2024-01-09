@@ -99,8 +99,14 @@ namespace Brayns.Shaper.Objects
         public override bool Equals(object? obj)
         {
             if (obj == null) return false;
-            if (obj.GetType() != typeof(Opt<T>)) return false;
-            return (Value == ((Opt<T>)(obj)).Value);
+            if (obj.GetType() != typeof(Opt<T>))
+            {
+                if (obj.GetType() == typeof(int))
+                    return Value == (int)obj;
+                else
+                    return false;
+            }
+            return Value == ((Opt<T>)(obj)).Value;
         }
 
         public override int GetHashCode()

@@ -19,6 +19,11 @@ namespace Brayns.Shaper.Database
         SqliteConnection? _connection;
         SqliteTransaction? _transaction;
 
+        static SQLite()
+        {
+            SQLitePCL.Batteries.Init();
+        }
+
         public override void Compile(BaseTable table)
         {
             if (table.TablePrimaryKey.Count == 0)
@@ -62,16 +67,19 @@ namespace Brayns.Shaper.Database
             else if (field.Type == FieldTypes.INTEGER)
             {
                 var f = (Fields.Integer)field;
-                res += "int";
-                if (f.AutoIncrement) res += " IDENTITY(1,1)";
-                res += " NOT NULL";
+                
+                if (f.AutoIncrement) 
+                    res += "INTEGER PRIMARY KEY AUTOINCREMENT";
+                else
+                    res += "int NOT NULL";
             }
             else if (field.Type == FieldTypes.BIGINTEGER)
             {
                 var f = (Fields.BigInteger)field;
-                res += "bigint";
-                if (f.AutoIncrement) res += " IDENTITY(1,1)";
-                res += " NOT NULL";
+                if (f.AutoIncrement)
+                    res += "INTEGER PRIMARY KEY AUTOINCREMENT";
+                else
+                    res += "bigint NOT NULL";
             }
             else if (field.Type == FieldTypes.DECIMAL)
             {
@@ -91,11 +99,11 @@ namespace Brayns.Shaper.Database
             }
             else if (field.Type == FieldTypes.GUID)
             {
-                res += "uniqueidentifier NOT NULL";
+                res += "nvarchar(100) NOT NULL";
             }
             else if (field.Type == FieldTypes.BLOB)
             {
-                res += "varbinary(max) NULL";
+                res += "blob NULL";
             }
             else
             {
@@ -173,6 +181,7 @@ namespace Brayns.Shaper.Database
             if (Query("SELECT NULL FROM sqlite_schema WHERE ([type] = 'table') AND ([name] = $p0) LIMIT 1",
                 CompilingTable!.TableSqlName).Count > 0)
             {
+                /* TODO
                 var res = Query(@"SELECT c.is_identity, c.max_length, t.name AS typename, c.precision, c.scale, 
                     c.name, c.is_nullable FROM sys.objects o, sys.columns c, sys.types t 
                     WHERE (o.name = @p0) AND (o.type = @p1) AND (c.object_id = o.object_id) AND 
@@ -318,6 +327,7 @@ namespace Brayns.Shaper.Database
 
                     CompileExec(sql, false);
                 }
+                */
             }
             else
             {
@@ -344,7 +354,7 @@ namespace Brayns.Shaper.Database
 
         public static string GetConnectionString(string fileName)
         {
-            return "Data Source=" + fileName;
+            return "Data Source=" + Application.RootPath + "var/" + fileName;
         }
 
         public override void Connect()
@@ -352,10 +362,20 @@ namespace Brayns.Shaper.Database
             Connect(Application.Config.DatabaseConnection);
         }
 
+        public void Connect(bool temporary)
+        {
+            if (temporary)
+            {
+                _connection = new("Data Source=:memory:");
+                _connection.Open();
+                _transaction = _connection.BeginTransaction(System.Data.IsolationLevel.ReadCommitted);
+            }
+            else
+                Connect();
+        }
+
         public override void Connect(string dsn)
         {
-            SQLitePCL.Batteries.Init();
-
             _connection = new(dsn);
             _connection.Open();
             _transaction = _connection.BeginTransaction(System.Data.IsolationLevel.ReadCommitted);
@@ -426,7 +446,7 @@ namespace Brayns.Shaper.Database
 
             if (f.Type == FieldTypes.DATETIME)
             {
-                var dt = (System.DateTime)value;
+                var dt = System.DateTime.Parse(value.ToString()!);
                 if (dt == new System.DateTime(1753, 1, 1))
                     return System.DateTime.MinValue;
                 else
@@ -435,7 +455,7 @@ namespace Brayns.Shaper.Database
 
             if (f.Type == FieldTypes.DATE)
             {
-                var dt = (System.DateTime)value;
+                var dt = System.DateTime.Parse(value.ToString()!);
                 if (dt == new System.DateTime(1753, 1, 1))
                     return System.DateTime.MinValue;
                 else
@@ -444,7 +464,7 @@ namespace Brayns.Shaper.Database
 
             if (f.Type == FieldTypes.TIME)
             {
-                var dt = (System.DateTime)value;
+                var dt = System.DateTime.Parse(value.ToString()!);
                 if (dt == new System.DateTime(1753, 1, 1))
                     return System.DateTime.MinValue;
                 else
@@ -651,17 +671,10 @@ namespace Brayns.Shaper.Database
                 String.Join(", ", places) +
                 ", 1)";
 
-            if ((identity != null) && (!identityInsert))
-            {
-                sql += "; ";
-                sql += "UPDATE [" + table.TableSqlName + "] SET [" + identity.SqlName + "] = last_insert_rowid() WHERE ";
-                sql += GetWherePrimaryKey(table, pars);
-            }
-
             Execute(sql, pars.ToArray());
             table.TableVersion = 1;
 
-            if (identity != null)
+            if ((identity != null) && (!identityInsert))
                 identity.Value = Query("SELECT last_insert_rowid() AS [id]")[0]["id"];
         }
 

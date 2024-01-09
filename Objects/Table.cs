@@ -9,7 +9,6 @@ namespace Brayns.Shaper.Objects
         private List<FieldFilter> _lastFilters = new List<FieldFilter>();
         private bool _pagination = false;
         private bool _selection = false;
-        private bool _databaseOwner = false;
         
         private Database.Database? _database;
         internal Database.Database? TableDatabase
@@ -77,16 +76,9 @@ namespace Brayns.Shaper.Objects
         internal Database.Database GetMemoryDatabase()
         {
             var db = new Database.SQLite();
-            db.Connect("Data Source=:memory:");
+            db.Connect(true);
             db.Compile(this);
             return db;
-        }
-
-        public void Connect()
-        {
-            _databaseOwner = true;
-            _database = Session.DatabaseCreate();
-            _database!.Connect();
         }
 
         public void Connect(Database.Database db)
@@ -97,23 +89,7 @@ namespace Brayns.Shaper.Objects
         public void Connect(bool temporary)
         {
             if (temporary)
-            {
                 _database = GetMemoryDatabase();
-                _databaseOwner = true;
-            }
-            else
-                Connect();
-        }
-
-        public override void Dispose()
-        {
-            if (_databaseOwner && (_database != null))
-            {
-                _database!.Commit();
-                _database!.Disconnect();
-                _database = null;
-                _databaseOwner = false;
-            }
         }
 
         public bool Read()

@@ -73,6 +73,9 @@
                 case Database.DatabaseTypes.SQLSERVER:
                     DatabaseConnection.Value = Database.SqlServer.GetConnectionString(DatabaseServer.Value, DatabaseName.Value, EnvironmentName.Value);
                     break;
+                case Database.DatabaseTypes.SQLITE:
+                    DatabaseConnection.Value = Database.SQLite.GetConnectionString(DatabaseServer.Value);
+                    break;
             }
         }
 
