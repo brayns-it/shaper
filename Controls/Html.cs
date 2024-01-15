@@ -16,6 +16,12 @@ namespace Brayns.Shaper.Controls
             Name = name;
         }
 
+        public Html(Group group, string name = "")
+        {
+            Attach(group);
+            Name = name;
+        }
+
         internal override JObject Render()
         {
             var jo = base.Render();

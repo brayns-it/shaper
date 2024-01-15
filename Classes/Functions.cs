@@ -47,5 +47,18 @@ namespace Brayns.Shaper.Classes
 
             return UnitTypes.NONE;
         }
+
+        public static string GetFileResourceAsString(string path)
+        {
+            string result = "";
+            FileInfo fi = new FileInfo(Application.RootPath + "var/resources/" + path);
+            if (fi.Exists)
+            {
+                StreamReader sr = new(fi.FullName);
+                result = sr.ReadToEnd();
+                sr.Close();
+            }
+            return result;
+        }
     }
 }

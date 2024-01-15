@@ -103,6 +103,13 @@ namespace Brayns.Shaper.Controls
             }
         }
 
+        public void Redraw()
+        {
+            var result = Render();
+            result["action"] = "redrawControl";
+            Client.SendMessage(result);
+        }
+
         internal virtual JObject Render()
         {
             var result = new JObject();

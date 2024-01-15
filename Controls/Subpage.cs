@@ -37,6 +37,20 @@ namespace Brayns.Shaper.Controls
         }
     }
 
+    public class Subpage<T> : BaseSubpage where T : Page<T>
+    {
+        public Subpage(ContentArea contentArea, string name, string caption) : base(contentArea, typeof(T))
+        {
+            Name = name;
+            Caption = caption;
+        }
+
+        public Subpage(ContentArea contentArea, string caption = "") : base(contentArea, typeof(T))
+        {
+            Caption = caption;
+        }
+    }
+
     public class Subpage<T, R> : BaseSubpage where T: Page<T, R> where R: BaseTable
     {
         public SubpageFilterHandler<R>? Filter { get; set; }

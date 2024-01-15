@@ -153,11 +153,22 @@
             List<Controls.Control> toDel = new();
             List<Controls.Control> parents = new();
 
-            foreach (var c in AllItems.Values.OfType<Controls.Action>())
+            foreach (var c in AllItems.Values)
             {
                 Type? t = null;
-                if (c.Run != null) t = c.Run;
-                else if (c.PermissionBy != null) t = c.PermissionBy;
+
+                if (typeof(Controls.Action).IsAssignableFrom(c.GetType()))
+                {
+                    var act = (Controls.Action)c;
+                    if (act.Run != null) t = act.Run;
+                    else if (act.PermissionBy != null) t = act.PermissionBy;
+                }
+                else if (typeof(Controls.BaseSubpage).IsAssignableFrom(c.GetType()))
+                {
+                    var sub = (Controls.BaseSubpage)c;
+                    t = sub.Part;
+                }
+                
                 if (t == null) continue;
 
                 if (!Loader.Permissions.IsAllowed(t, Loader.PermissionType.Execute, false))
@@ -372,6 +383,7 @@
             result["caption"] = UnitCaption;
             result["action"] = "page";
             result["locale"] = Session.CultureInfo.Name.ToLower();
+            result["display"] = modal ? "modal" : "content";
 
             if (Parent != null)
             {
@@ -381,11 +393,6 @@
                 if (Parent.Caption.Length > 0)
                     Control<Controls.Action>("act-data")!.Caption = Parent.Caption;
             }
-
-            if (modal)
-                result["display"] = "modal";
-            else
-                result["display"] = "content";
 
             var controls = new JArray();
             foreach (var c in Items)
