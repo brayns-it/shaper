@@ -112,7 +112,11 @@ namespace Brayns.Shaper.Controls
                     foreach (var u in CurrentSession.Units.Values)
                         if (u != Page)
                             if (typeof(BasePage).IsAssignableFrom(u.GetType()))
-                                ((BasePage)u).Close();
+                            {
+                                var bp = ((BasePage)u);
+                                if (bp.Parent == null)
+                                    bp.Close();
+                            }
 
                 var p = (BasePage)Activator.CreateInstance(Run)!;
                 p.Run();
