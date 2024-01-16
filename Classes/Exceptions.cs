@@ -18,6 +18,10 @@ namespace Brayns.Shaper.Classes
 
         public int ErrorCode { get; private set; } = 0;
 
+        public Error() : base("")
+        {
+        }
+
         public Error(string text) : base(text)
         {
         }
