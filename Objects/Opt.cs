@@ -2,74 +2,108 @@
 
 namespace Brayns.Shaper.Objects
 {
-    public abstract class Opt
+    public abstract class OptList
+    {
+        public Dictionary<int, string>? _names;
+        public Dictionary<int, string> Names
+        {
+            get
+            {
+                if (_names == null) GetNames();
+                return _names!;
+            }
+        }
+
+        public Dictionary<int, string>? _captions;
+        public Dictionary<int, string> Captions
+        {
+            get
+            {
+                if (_names == null) GetNames();
+                return _captions!;
+            }
+        }
+
+        private void GetNames()
+        {
+            var t = GetType();
+            _names = new();
+            _captions = new();
+
+            foreach (FieldInfo f in t.GetFields(BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy))
+                if (f.FieldType == typeof(int) && f.IsLiteral)
+                {
+                    int value = (int)f.GetValue(null)!;
+                    _names.Add(value, f.Name);
+
+                    Label? l = f.GetCustomAttribute<Label>();
+                    string label = (l != null) ? l.Label : "";
+                    _captions.Add(value, Classes.Language.TranslateText(label, t));
+                }
+        }
+    }
+
+    public abstract class Opt 
     {
         public int Value { get; set; } = 0;
         public Type? Type { get; protected set; }
-        public Dictionary<int, string> Names { get; private set; } = new();
+        protected OptList? Instance { get; set; }
+        
+        public Dictionary<int, string> Names
+        {
+            get { return Instance!.Names; }
+        }
 
-        private bool _translated = false;
-        private Dictionary<int, string> _captions = new();
-        public Dictionary<int, string> Captions 
-        { 
-            get
-            {
-                if (!_translated)
-                {
-                    _translated = true;
-                    foreach (int i in _captions.Keys)
-                        _captions[i] = Classes.Language.TranslateText(_captions[i], Type!);
-                }
-                return _captions;
-            }
-        } 
+        public Dictionary<int, string> Captions
+        {
+            get { return Instance!.Captions; }
+        }
 
         public string Caption
         {
             get
             {
-                if (Captions.ContainsKey(Value))
-                    return Captions[Value];
+                if (Instance!.Captions.ContainsKey(Value))
+                    return Instance!.Captions[Value];
                 else
                     return "";
             }
         }
 
-        protected void GetNames()
+        public string Name
         {
-            Names.Clear();
-            _captions.Clear();
-
-            if (Type != null)
-                foreach (FieldInfo f in Type.GetFields(BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy))
-                    if (f.FieldType == typeof(int) && f.IsLiteral)
-                    {
-                        Names.Add((int)f.GetValue(null)!, f.Name);
-
-                        Label? l = f.GetCustomAttribute<Label>();
-                        if (l != null)
-                            _captions.Add((int)f.GetValue(null)!, l.Label);
-                        else
-                            _captions.Add((int)f.GetValue(null)!, "");
-                    }
+            get
+            {
+                if (Instance!.Names.ContainsKey(Value))
+                    return Instance!.Names[Value];
+                else
+                    return "";
+            }
         }
+
 
         public override string ToString()
         {
-            if (Names.ContainsKey(Value))
-                return Names[Value];
+            if (Instance!.Names.ContainsKey(Value))
+                return Instance!.Names[Value];
             else
                 return Value.ToString();
         }
     }
 
-    public class Opt<T> : Opt
+    public class Opt<T> : Opt where T : OptList
     {
+        public Opt()
+        {
+            Type = typeof(T);
+            Instance = Activator.CreateInstance<T>()!;
+        }
+
         public Opt(int value)
         {
             Type = typeof(T);
             Value = value;
-            GetNames();
+            Instance = Activator.CreateInstance<T>()!;
         }
         
         public static implicit operator int(Opt<T> opt)

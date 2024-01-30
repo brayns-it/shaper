@@ -162,7 +162,12 @@ namespace Brayns.Shaper
 
             res["code"] = 0;
             if (typeof(Error).IsAssignableFrom(ex.GetType()))
-                res["code"] = ((Error)ex).ErrorCode;
+            {
+                var err = (Error)ex;
+                res["code"] = err.ErrorCode;
+                if (err.SourceId.Length > 0)
+                    res["sourceId"] = err.SourceId; 
+            }
 
             var trace = new List<string>();
 

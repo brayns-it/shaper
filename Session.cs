@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace Brayns.Shaper
 {
-    public class SessionTypes
+    public class SessionTypes : OptList
     {
         [Label("Console")]
         public const int CONSOLE = 0;

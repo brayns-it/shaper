@@ -99,6 +99,10 @@ msgctxt "Brayns.Shaper.Database.DatabaseTypes"
 msgid "SQL Server"
 msgstr ""
 
+msgctxt "Brayns.Shaper.Database.DatabaseTypes"
+msgid "SQLite"
+msgstr ""
+
 msgctxt "Brayns.Shaper.Database.Database"
 msgid "Prevent disruptive SQL {0}"
 msgstr ""

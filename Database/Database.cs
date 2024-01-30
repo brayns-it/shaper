@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Brayns.Shaper.Database
 {
-    public class DatabaseTypes 
+    public class DatabaseTypes : OptList
     {
         public const int NONE = 0;
 

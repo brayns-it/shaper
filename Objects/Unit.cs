@@ -6,7 +6,7 @@ namespace Brayns.Shaper.Objects
     public delegate void GenericHandler();
     public delegate void GenericHandler<T>(T sender) where T : Unit;
 
-    public class UnitTypes
+    public class UnitTypes : OptList
     {
         public const int NONE = 0;
 

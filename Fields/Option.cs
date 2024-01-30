@@ -7,7 +7,7 @@ namespace Brayns.Shaper.Fields
         public Type? OptionType { get; internal set; }
     }
 
-    public class Option<T> : Option
+    public class Option<T> : Option where T: OptList
     {
         public new Opt<T> Value
         {

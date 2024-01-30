@@ -3,7 +3,7 @@ using Newtonsoft.Json.Linq;
 
 namespace Brayns.Shaper.Fields
 {
-    public class FieldTypes
+    public class FieldTypes : OptList
     {
         public const int NONE = 0;
 
