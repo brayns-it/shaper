@@ -685,6 +685,20 @@
 
             SendDataRow();
         }
+
+        public bool HasSelection()
+        {
+            return Selection.Count > 0;
+        }
+
+        public void SetSelectionFilter<R>(R table) where R : BaseTable
+        {
+            List<Dictionary<string, object>> selDs = new();
+            foreach (var n in Selection)
+                selDs.Add(DataSet[n]);
+
+            table.SetSelection(selDs);
+        }
     }
 
     public abstract class Page<T> : BasePage where T : BasePage
@@ -706,18 +720,9 @@
             Rec = (R)Activator.CreateInstance(typeof(R))!;
         }
 
-        public bool HasSelection()
-        {
-            return Selection.Count > 0;
-        }
-
         public void SetSelectionFilter(R table)
         {
-            List<Dictionary<string, object>> selDs = new();
-            foreach (var n in Selection)
-                selDs.Add(DataSet[n]);
-
-            table.SetSelection(selDs);
+            SetSelectionFilter<R>(table);
         }
     }
 

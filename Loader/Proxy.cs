@@ -127,6 +127,9 @@ namespace Brayns.Shaper.Loader
             if (t.GetCustomAttributes(typeof(Published), true).Length > 0)
                 return;
 
+            if (Session.IsSuperuser)
+                return;
+
             throw new Error(Error.E_UNAUTHORIZED, Label("Unauthorized access to unit '{0}'", t.Name));
         }
 
@@ -140,6 +143,9 @@ namespace Brayns.Shaper.Loader
                 if (!Application.IsFromMaintenanceNetwork())
                     throw Application.ErrorInMaintenance();
             }
+
+            if (Session.IsSuperuser)
+                return;
 
             if (mi.GetCustomAttributes(typeof(PublicAccess), true).Length > 0)
                 return;

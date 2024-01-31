@@ -145,6 +145,9 @@ namespace Brayns.Shaper
                             SessionCleaning?.Invoke(ids);
                             lastCleanup = DateTime.Now;
                         }
+
+                        // monitoring
+                        Monitoring?.Invoke();
                     }
                 }
                 catch (Exception ex)

@@ -182,7 +182,7 @@ namespace Brayns.Shaper.Objects
         public bool IsEmpty()
         {
             if (_selection)
-                return (_dataset.Count > 0);
+                return (_dataset.Count == 0);
             else
                 return TableDatabase!.IsEmpty(this);
         }
