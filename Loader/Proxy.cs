@@ -54,6 +54,13 @@ namespace Brayns.Shaper.Loader
             }
         }
 
+        public static Proxy CreateFromName(string fullName)
+        {
+            var t = TypeFromName(fullName);
+            AssertUnitSecurity(t);
+            return new Proxy(Activator.CreateInstance(t)!);
+        }
+
         public static Proxy CreateFromRoute(string route, ApiAction action)
         {
             Regex re = new Regex("{(.*?)}");
@@ -101,30 +108,9 @@ namespace Brayns.Shaper.Loader
             return new Proxy(CurrentSession.Units[id]);
         }
 
-        public static Proxy CreateFromName(string fullName)
-        {
-            object? o = null;
-
-            fullName = fullName.Trim();
-            if (fullName.Length == 0)
-                throw new Error(Label("Invalid object name '{0}'", fullName));
-
-            if (Loader.UnitTypes.ContainsKey(fullName))
-            {
-                var t = Loader.UnitTypes[fullName];
-                AssertUnitSecurity(t);
-                o = Activator.CreateInstance(t)!;
-            }
-
-            if (o == null)
-                throw new Error(Label("Invalid object name '{0}'", fullName));
-
-            return new Proxy(o);
-        }
-
         private static void AssertUnitSecurity(Type t)
         {
-            if (t.GetCustomAttributes(typeof(Published), true).Length > 0)
+            if (HasAttribute<Published>(t) || IsType<BasePage>(t))
                 return;
 
             if (Session.IsSuperuser)
@@ -162,27 +148,28 @@ namespace Brayns.Shaper.Loader
             throw new Error(Error.E_UNAUTHORIZED, Label("Unauthorized access to method '{0}'", mi.Name));
         }
 
-        private MethodInfo GetMethodByName(string methodName)
+        public T GetObject<T>()
         {
-            MethodInfo? mi = _typ.GetMethod(methodName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-            if (mi == null)
-                throw new Error(Label("Invalid method name '{0}'", methodName));
-
+            return (T)_obj!;
+        }
+        
+        public object? Invoke(string methodName, object[] pars)
+        {
+            MethodInfo mi = MethodFromName(_typ, methodName);
+            
             if (!SkipMethodSecurity)
                 AssertMethodSecurity(mi);
 
-            return mi;
-        }
-
-        public object? Invoke(string methodName, object[] pars)
-        {
-            MethodInfo mi = GetMethodByName(methodName);
             return mi.Invoke(_obj, pars);
         }
 
         public object? Invoke(string methodName, JObject? parameters)
         {
-            MethodInfo mi = GetMethodByName(methodName);
+            MethodInfo mi = MethodFromName(_typ, methodName);
+
+            if (!SkipMethodSecurity)
+                AssertMethodSecurity(mi);
+
             return Invoke(mi, parameters);
         }
 
@@ -223,5 +210,80 @@ namespace Brayns.Shaper.Loader
             }
             return method.Invoke(_obj, pars.ToArray());
         }
+
+        #region [TOOLS]
+
+        public static bool HasAttribute<T>(string fullName) where T : Attribute
+        {
+            return HasAttribute<T>(TypeFromName(fullName));
+        }
+
+        public static bool HasAttribute<T>(string fullName, string methodName) where T : Attribute
+        {
+            return HasAttribute<T>(MethodFromName(fullName, methodName));
+        }
+
+        public static bool HasAttribute<T>(MethodInfo mi) where T : Attribute
+        {
+            return mi.GetCustomAttributes(typeof(T), true).Length > 0;
+        }
+
+        public static bool HasAttribute<T>(Type typ) where T : Attribute
+        {
+            return typ.GetCustomAttributes(typeof(T), true).Length > 0;
+        }
+
+        public static bool HasAttribute<T>(Assembly asm) where T : Attribute
+        {
+            return asm.GetCustomAttributes(typeof(T), true).Length > 0;
+        }
+
+        public static Type TypeFromName(string fullName)
+        {
+            fullName = fullName.Trim();
+
+            if (fullName.Length > 0)
+                if (Loader.UnitTypes.ContainsKey(fullName))
+                    return Loader.UnitTypes[fullName];
+
+            throw new Error(Label("Invalid object name '{0}'", fullName));
+        }
+
+        public static bool AssertType<T>(string fullName)
+        {
+            return AssertType<T>(TypeFromName(fullName));
+        }
+
+        public static bool AssertType<T>(Type t)
+        {
+            if (!IsType<T>(t))
+                throw new Error(Label("{0} invalid type", t.FullName!));
+            return true;
+        }
+
+        public static bool IsType<T>(Type t)
+        {
+            return typeof(T).IsAssignableFrom(t);
+        }
+
+        public static bool IsType<T>(string fullName)
+        {
+            return typeof(T).IsAssignableFrom(TypeFromName(fullName));
+        }
+        
+        public static MethodInfo MethodFromName(string typeName, string methodName)
+        {
+            return MethodFromName(TypeFromName(typeName), methodName);
+        }
+
+        public static MethodInfo MethodFromName(Type t, string methodName)
+        {
+            MethodInfo? mi = t.GetMethod(methodName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+            if (mi == null)
+                throw new Error(Label("Invalid method name '{0}'", methodName));
+            return mi;
+        }
+
+        #endregion
     }
 }

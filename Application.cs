@@ -81,12 +81,8 @@ namespace Brayns.Shaper
             if (!di.Exists)
                 di.Create();
 
-            di = new DirectoryInfo(RootPath + "var/apps");
-            if (!di.Exists)
-                di.Create();
-
             Loader.Loader.LoadConfig();
-            Loader.Loader.LoadAppsFromRoot();
+            Loader.Loader.LoadAppsFromDomain();
 
             try
             {

@@ -64,10 +64,11 @@ namespace Brayns.Shaper
             CurrentSession.WebTask.Send(msg);
         }
 
-        public static void Reload()
+        public static void Reload(bool goHomepage = false)
         {
             var jo = new JObject();
             jo["action"] = "reload";
+            jo["goHomepage"] = goHomepage;
             SendMessage(jo);
         }
 

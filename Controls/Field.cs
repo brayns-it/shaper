@@ -14,6 +14,16 @@ namespace Brayns.Shaper.Controls
         Html
     }
 
+    public enum InputMode
+    {
+        None,
+        Text,
+        Decimal,
+        Numeric,
+        Telephone,
+        EMail
+    }
+
     public class Field : Control
     {
         public string Caption { get; set; } = "";
@@ -23,6 +33,7 @@ namespace Brayns.Shaper.Controls
         public bool ReadOnly { get; set; } = false;
         public event ActionTriggerHandler? Triggering;
         public bool OpenRecord { get; set; } = false;
+        public InputMode InputMode { get; set; } = InputMode.Text;
 
 #pragma warning disable CS8618
         public Field(Group group, string name, Shaper.Fields.BaseField baseField)

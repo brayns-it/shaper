@@ -38,6 +38,8 @@
         public bool AllowDelete { get; set; } = true;
         public bool AllowModify { get; set; } = true;
         public bool AutoIncrementKey { get; set; } = false;
+        public bool Standalone { get; set; } = false;
+        public bool ShowHeader { get; set; } = true;
 
         internal override void UnitInitialize()
         {
@@ -384,6 +386,7 @@
             result["action"] = "page";
             result["locale"] = Session.CultureInfo.Name.ToLower();
             result["display"] = modal ? "modal" : "content";
+            result["showHeader"] = ShowHeader;
 
             if (Parent != null)
             {

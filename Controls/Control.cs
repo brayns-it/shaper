@@ -9,6 +9,7 @@ namespace Brayns.Shaper.Controls
         public Control? Parent { get; protected set; }
         public List<Control> Items { get; private set; } = new();
         public String Name { get; protected set; }
+        public bool Visible { get; set; } = true;
 
         public Control()
         {
@@ -118,7 +119,8 @@ namespace Brayns.Shaper.Controls
 
             var controls = new JArray();
             foreach (var c in Items)
-                controls.Add(c.Render());
+                if (c.Visible)
+                    controls.Add(c.Render());
             result["controls"] = controls;
 
             return result;

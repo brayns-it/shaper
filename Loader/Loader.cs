@@ -73,7 +73,7 @@ namespace Brayns.Shaper.Loader
                         CodeunitTypes.Add(t);
 
                     // app modules
-                    if (HasAttribute<AppModuleAttribute>(t))
+                    if (typeof(AppModule).IsAssignableFrom(t))
                         ModuleTypes.Add(t);
                 }
             }
@@ -83,64 +83,11 @@ namespace Brayns.Shaper.Loader
         {
             foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
             {
-                if (HasAttribute<AppCollectionAttribute>(asm))
+                if (Proxy.HasAttribute<AppCollectionAttribute>(asm))
                     AppAssemblies.Add(asm);
             }
 
             FinalizeLoadApps();
-        }
-
-        internal static bool HasAttribute<T>(Type typ) where T : Attribute
-        {
-            return typ.GetCustomAttributes(typeof(T), true).Length > 0;
-        }
-
-        internal static bool HasAttribute<T>(Assembly asm) where T : Attribute
-        {
-            return asm.GetCustomAttributes(typeof(T), true).Length > 0;
-        }
-
-        internal static void LoadAppsFromRoot()
-        {
-            if (Context != null)
-                Context.Unload();
-
-            AppAssemblies.Clear();
-            Context = new AssemblyLoadContext("Apps", true);
-
-            var di = new DirectoryInfo(Application.RootPath + "var/apps");
-            foreach (var fi in di.GetFiles("*.dll", SearchOption.AllDirectories))
-            {
-                var fs = new FileStream(fi.FullName, FileMode.Open, FileAccess.Read);
-                var asm = Context.LoadFromStream(fs);
-                fs.Close();
-
-                if (HasAttribute<AppCollectionAttribute>(asm))
-                    AppAssemblies.Add(asm);
-            }
-
-            if (AppAssemblies.Count == 0)
-            {
-                // fallback to domain
-                LoadAppsFromDomain();
-                return;
-            }
-
-            FinalizeLoadApps();
-        }
-
-        private static Assembly? Context_Resolving(AssemblyLoadContext arg1, AssemblyName arg2)
-        {
-            FileInfo fi = new FileInfo(Application.RootPath + "apps/" + arg2.Name + ".dll");
-            if (!fi.Exists)
-                fi = new FileInfo(Application.RootPath + arg2.Name + ".dll");
-            if (!fi.Exists)
-                throw new Error(Label("Cannot load assembly '{0}'", arg2.Name!));
-
-            FileStream fs = new FileStream(fi.FullName, FileMode.Open, FileAccess.Read);
-            var asm = arg1.LoadFromStream(fs);
-            fs.Close();
-            return asm;
         }
 
         internal static void SaveConfig()

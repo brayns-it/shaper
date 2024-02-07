@@ -23,6 +23,11 @@ namespace Brayns.Shaper.Controls
             Caption = caption;
         }
 
+        public ActionGroup(Group group)
+        {
+            Attach(group);
+        }
+
         internal override JObject Render()
         {
             var jo = base.Render();

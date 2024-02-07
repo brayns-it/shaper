@@ -12,13 +12,28 @@ namespace Brayns.Shaper.Systems
     {
         public static event GenericHandler<ClientManagement>? ClientInitializing;
         public static event GenericHandler<ClientManagement>? ClientPolling;
+        public static event GenericHandler<ClientManagement>? RunningLogin;
+        public static event GenericHandler<ClientManagement>? RunningStart;
 
         [PublicAccess]
-        public string Initialize()
+        public string Start(string page)
         {
             if (Application.IsReady && Application.IsLoaded)
             {
                 ClientInitializing?.Invoke(this);
+
+                if (page.Length > 0)
+                {
+                    StartPage(page);
+                }
+                else
+                {
+                    if (CurrentSession.UserId.Length == 0)
+                        RunningLogin?.Invoke(this);
+                    else
+                        RunningStart?.Invoke(this);
+
+                }
             }
             else
             {
@@ -36,9 +51,7 @@ namespace Brayns.Shaper.Systems
                     }
                 }
                 else
-                {
                     throw Application.ErrorInMaintenance();
-                }
             }
 
             return Session.Id.ToString();
@@ -59,6 +72,24 @@ namespace Brayns.Shaper.Systems
         public void Destroy()
         {
             CurrentSession.Stop(true);
+        }
+
+        private void StartPage(string requestedPage)
+        {
+            Loader.Proxy.AssertType<BasePage>(requestedPage);
+
+            if ((!Loader.Proxy.HasAttribute<PublicAccess>(requestedPage)) && (CurrentSession.UserId.Length == 0))
+            {
+                RunningLogin?.Invoke(this);
+            }
+            else
+            {
+                var proxy = Loader.Proxy.CreateFromName(requestedPage);
+                var p = proxy.GetObject<BasePage>();
+                if (!p.Standalone)
+                    RunningStart?.Invoke(this);
+                p.Run();
+            }
         }
     }
 }

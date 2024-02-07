@@ -7,31 +7,41 @@ using System.Threading.Tasks;
 
 namespace Brayns.Shaper.Classes
 {
+    /// <summary>
+    /// Assembly contains units
+    /// </summary>
     [AttributeUsage(AttributeTargets.Assembly)]
     public class AppCollectionAttribute : Attribute
     {
     }
 
-    [AttributeUsage(AttributeTargets.Class)]
-    public class AppModuleAttribute : Attribute
-    {
-    }
-
+    /// <summary>
+    /// Type is callable by name
+    /// </summary>
     [AttributeUsage(AttributeTargets.Class)]
     public class PublishedAttribute : Attribute
     {
     }
 
-    [AttributeUsage(AttributeTargets.Method)]
+    /// <summary>
+    /// Method is callable without authentication
+    /// </summary>
+    [AttributeUsage(AttributeTargets.Method | AttributeTargets.Class)]
     public class PublicAccessAttribute : Attribute
     {
     }
 
+    /// <summary>
+    /// Method is callable by any logged user
+    /// </summary>
     [AttributeUsage(AttributeTargets.Method)]
     public class LoggedAccessAttribute : Attribute
     {
     }
 
+    /// <summary>
+    /// Table is virtual (on memory)
+    /// </summary>
     [AttributeUsage(AttributeTargets.Class)]
     public class VirtualTableAttribute : Attribute
     {
@@ -47,6 +57,9 @@ namespace Brayns.Shaper.Classes
         Delete = 8
     }
 
+    /// <summary>
+    /// Method is callable via REST
+    /// </summary>
     [AttributeUsage(AttributeTargets.Method)]
     public class ApiMethodAttribute : Attribute
     {
@@ -56,6 +69,9 @@ namespace Brayns.Shaper.Classes
         public string ResultName { get; init; } = "";
     }
 
+    /// <summary>
+    /// Label target
+    /// </summary>
     [AttributeUsage(AttributeTargets.All)]
     public class LabelAttribute : Attribute
     {
@@ -67,6 +83,10 @@ namespace Brayns.Shaper.Classes
         }
     }
 
+    /// <summary>
+    /// Method will be called during unit initialization
+    /// (cannot define more than one constructor in partial classes)
+    /// </summary>
     [AttributeUsage(AttributeTargets.Method)]
     public class ExtendedAttribute : Attribute
     {
