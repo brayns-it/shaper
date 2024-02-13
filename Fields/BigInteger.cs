@@ -45,10 +45,15 @@ namespace Brayns.Shaper.Fields
         {
         }
 
-        internal override object? DoEvaluate(string text)
+        public long Evaluate(string text)
         {
             if (text.Length == 0) return 0;
             return long.Parse(text);
+        }
+
+        public override void Evaluate(string text, out object? result)
+        {
+            result = Evaluate(text);
         }
 
         internal override object? CheckValue(object? value)
@@ -56,7 +61,7 @@ namespace Brayns.Shaper.Fields
             return Convert.ToInt64(value!);
         }
 
-        internal override string Format(object? value)
+        public override string Format(object? value)
         {
             var val = (long)value!;
             if (BlankZero && (val == 0))
@@ -65,9 +70,14 @@ namespace Brayns.Shaper.Fields
                 return val.ToString();
         }
 
-        internal override JValue Serialize(object? value)
+        public override JValue Serialize(object? value)
         {
             return new JValue((long)value!);
+        }
+
+        public override void Deserialize(JValue? value, out object? result)
+        {
+            throw new NotImplementedException();
         }
     }
 }

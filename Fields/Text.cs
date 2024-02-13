@@ -56,12 +56,17 @@
             return val;
         }
 
-        internal override string Format(object? value)
+        public override string Format(object? value)
         {
             return (string)value!;
         }
 
-        internal override object? DoEvaluate(string text)
+        public override void Evaluate(string text, out object? result)
+        {
+            result = Evaluate(text);
+        }
+
+        public string Evaluate(string text)
         {
             return text;
         }
@@ -71,7 +76,7 @@
             base.Validate(value);
         }
 
-        internal override JValue Serialize(object? value)
+        public override JValue Serialize(object? value)
         {
             return new JValue((string)value!);
         }
@@ -79,6 +84,11 @@
         public void SetFilter(string expression, params string[] pars)
         {
             SetFilter<string>(expression, pars);
+        }
+
+        public override void Deserialize(JValue? value, out object? result)
+        {
+            throw new NotImplementedException();
         }
     }
 }

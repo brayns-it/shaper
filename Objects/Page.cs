@@ -22,6 +22,10 @@
         internal int PageSize { get; set; } = 100;
         internal int Offset { get; set; } = 0;
 
+        public List<Controls.Control> AllControls
+        {
+            get { return new(AllItems.Values); }
+        }
         public List<Controls.Control> Items { get; private set; } = new();
         public PageTypes PageType { get; protected set; }
         public BaseTable? Rec { get; set; }
@@ -403,12 +407,6 @@
             result["controls"] = controls;
 
             result["schema"] = GetSchema();
-
-            var js = new JObject();
-            foreach (var c in AllItems.Values.OfType<Controls.Action>())
-                if (c.Shortcut.Length > 0)
-                    js[c.Shortcut] = c.ID.ToString();
-            result["shortcuts"] = js;
 
             Client.SendMessage(result);
         }

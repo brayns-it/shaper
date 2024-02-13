@@ -45,7 +45,7 @@ namespace Brayns.Shaper.Fields
             return (System.DateTime)value!;
         }
 
-        internal override string Format(object? value)
+        public override string Format(object? value)
         {
             var val = (System.DateTime)value!;
             if (val == System.DateTime.MinValue)
@@ -54,15 +54,20 @@ namespace Brayns.Shaper.Fields
                 return val.ToString("G", Session.CultureInfo);
         }
 
-        internal override object? DoEvaluate(string text)
+        public override void Evaluate(string text, out object? result)
         {
             throw new NotImplementedException();
         }
 
-        internal override JValue Serialize(object? value)
+        public override JValue Serialize(object? value)
         {
             var val = (System.DateTime)value!;
             return new JValue(val.ToString("o"));
+        }
+
+        public override void Deserialize(JValue? value, out object? result)
+        {
+            throw new NotImplementedException();
         }
 
         public void SetFilter(string expression, params DateTime[] pars)

@@ -93,7 +93,7 @@ namespace Brayns.Shaper.Controls
         internal void Validate(object? value, bool parseValue = true)
         {
             if (parseValue)
-                value = BaseField.DoEvaluate(value!.ToString()!);
+                BaseField.Evaluate(value!.ToString()!, out value);
 
             BaseField.Validate(value);
             Validating?.Invoke();

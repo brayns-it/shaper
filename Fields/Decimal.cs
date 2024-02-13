@@ -51,7 +51,7 @@ namespace Brayns.Shaper.Fields
             return (decimal)value!;
         }
 
-        internal override string Format(object? value)
+        public override string Format(object? value)
         {
             var val = (decimal)value!;
             if (BlankZero && (val == 0))
@@ -65,7 +65,7 @@ namespace Brayns.Shaper.Fields
             }
         }
 
-        internal override JValue Serialize(object? value)
+        public override JValue Serialize(object? value)
         {
             var val = (decimal)value!;
             NumberFormatInfo nfi = new NumberFormatInfo();
@@ -74,12 +74,25 @@ namespace Brayns.Shaper.Fields
             return new JValue(val.ToString());
         }
 
-        internal override object? DoEvaluate(string text)
+        public override void Deserialize(JValue? value, out object? result)
         {
-            return Evaluate(text);
+            result = Deserialize(value);
         }
 
-        public static decimal Evaluate(string text)
+        public decimal Deserialize(JValue? value)
+        {
+            NumberFormatInfo nfi = new NumberFormatInfo();
+            nfi.NumberGroupSeparator = "";
+            nfi.NumberDecimalSeparator = ".";
+            return decimal.Parse(value!.ToString(), nfi);
+        }
+
+        public override void Evaluate(string text, out object? result)
+        {
+            result = Evaluate(text);
+        }
+
+        public decimal Evaluate(string text)
         {
             text = text.Replace(",", ".");
 

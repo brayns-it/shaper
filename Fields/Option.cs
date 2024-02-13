@@ -56,7 +56,12 @@ namespace Brayns.Shaper.Fields
             return val;
         }
 
-        internal override object? DoEvaluate(string text)
+        public override void Evaluate(string text, out object? result)
+        {
+            result = Evaluate(text);
+        }
+
+        public Opt<T> Evaluate(string text)
         {
             text = text.Trim();
 
@@ -75,7 +80,7 @@ namespace Brayns.Shaper.Fields
             throw new Error(Label("{0} does not represent a valid {1} type", text, Value.Type!.Name));
         }
 
-        internal override string Format(object? value)
+        public override string Format(object? value)
         {
             return ((Opt<T>)value!).Caption;
         }
@@ -85,10 +90,15 @@ namespace Brayns.Shaper.Fields
             SetRange<T>(value);
         }
 
-        internal override JValue Serialize(object? value)
+        public override JValue Serialize(object? value)
         {
             var val = (Opt<T>)value!;
             return new JValue(val.Value);
+        }
+
+        public override void Deserialize(JValue? value, out object? result)
+        {
+            throw new NotImplementedException();
         }
     }
 }
