@@ -60,5 +60,46 @@ namespace Brayns.Shaper.Classes
             }
             return result;
         }
+
+        public static string NameForJson(string name)
+        {
+            name = name.Trim();
+            if (name.Length == 0)
+                return "";
+
+            var name2 = "";
+            for (int i = 0; i < name.Length; i++)
+            {
+                char c = name[i];
+                if (((c >= 'A') && (c <= 'Z')) ||
+                    ((c >= 'a') && (c <= 'z')) ||
+                    ((c >= '0') && (c <= '9')) ||
+                    (c == ' '))
+                    name2 += c;
+                else if (c == '.')
+                    name2 += "";   // strip dot
+                else
+                    name2 += "_";
+            }
+
+            bool toUpper = false;
+            var result = "";
+            for (int i = 0; i < name2.Length; i++)
+            {
+                var c = name2.Substring(i, 1);
+                if (c == " ")
+                    toUpper = true;
+                else
+                {
+                    if (toUpper)
+                        result += c.ToUpper();
+                    else
+                        result += c.ToLower();
+                    toUpper = false;
+                }
+            }
+
+            return result;
+        }
     }
 }

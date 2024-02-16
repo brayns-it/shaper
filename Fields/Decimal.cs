@@ -71,7 +71,7 @@ namespace Brayns.Shaper.Fields
             NumberFormatInfo nfi = new NumberFormatInfo();
             nfi.NumberGroupSeparator = "";
             nfi.NumberDecimalSeparator = ".";
-            return new JValue(val.ToString());
+            return new JValue(val.ToString("G29", nfi));
         }
 
         public override void Deserialize(JValue? value, out object? result)

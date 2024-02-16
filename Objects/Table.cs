@@ -405,6 +405,14 @@ namespace Brayns.Shaper.Objects
                     f.Filters.Add(ff.Clone(f));
             }
         }
+
+        public JObject Serialize()
+        {
+            JObject result = new();
+            foreach (BaseField f in UnitFields)
+                result[Functions.NameForJson(f.Name)] = f.Serialize(f.Value);
+            return result;
+        }
     }
 
     public abstract class Table<T> : BaseTable 
