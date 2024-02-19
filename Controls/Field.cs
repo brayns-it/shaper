@@ -24,6 +24,15 @@ namespace Brayns.Shaper.Controls
         EMail
     }
 
+    public enum InputSize
+    {
+        ExtraSmall,
+        Small,
+        Medium,
+        Large,
+        ExtraLarge
+    }
+
     public class Field : Control
     {
         public string Caption { get; set; } = "";
@@ -31,9 +40,11 @@ namespace Brayns.Shaper.Controls
         public InputType InputType { get; set; }
         public event Fields.ValidatingHandler? Validating;
         public bool ReadOnly { get; set; } = false;
+        public bool ShowCaption { get; set; } = true;
         public event ActionTriggerHandler? Triggering;
         public bool OpenRecord { get; set; } = false;
         public InputMode InputMode { get; set; } = InputMode.Text;
+        public InputSize InputSize { get; set; } = InputSize.Small;
 
 #pragma warning disable CS8618
         public Field(Group group, string name, Shaper.Fields.BaseField baseField)
@@ -77,7 +88,14 @@ namespace Brayns.Shaper.Controls
             jo["fieldType"] = BaseField.Type.ToString();
             jo["inputType"] = InputType.ToString();
             jo["readOnly"] = ReadOnly;
+            jo["inputSize"] = InputSize.ToString();
+            jo["showCaption"] = ShowCaption;
 
+            if (Parent != null)
+                if (typeof(Group).IsAssignableFrom(Parent.GetType()))
+                    if (((Group)Parent!).LabelStyle == LabelStyle.Placeholder)
+                        jo["placeholder"] = Caption;
+                        
             if (Triggering?.GetInvocationList().Length > 0)
                 jo["isLink"] = true;
 

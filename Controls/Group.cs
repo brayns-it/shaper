@@ -2,10 +2,11 @@
 
 namespace Brayns.Shaper.Controls
 {
-    public enum LabelOrientation
+    public enum LabelStyle
     {
         Horizontal,
-        Vertical
+        Vertical,
+        Placeholder
     }
 
     public enum FieldPerRow
@@ -17,7 +18,7 @@ namespace Brayns.Shaper.Controls
     public class Group : Control
     {
         public string Caption { get; set; } = "";
-        public LabelOrientation LabelOrientation { get; set; } = LabelOrientation.Horizontal;
+        public LabelStyle LabelStyle { get; set; } = LabelStyle.Horizontal;
         public FieldPerRow FieldPerRow { get; set; } = FieldPerRow.Two;
         public bool Collapsible { get; set; } = true;
         public bool Primary { get; set; } = false;
@@ -39,7 +40,7 @@ namespace Brayns.Shaper.Controls
         {
             var jo = base.Render();
             jo["caption"] = Caption;
-            jo["labelOrientation"] = LabelOrientation.ToString();
+            jo["labelStyle"] = LabelStyle.ToString();
             jo["fieldPerRow"] = FieldPerRow.ToString();
             jo["collapsible"] = Collapsible;
             jo["primary"] = Primary;
