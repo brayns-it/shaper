@@ -22,6 +22,7 @@ namespace Brayns.Shaper.Controls
         public FieldPerRow FieldPerRow { get; set; } = FieldPerRow.Two;
         public bool Collapsible { get; set; } = true;
         public bool Primary { get; set; } = false;
+        public FontSize FontSize { get; set; } = FontSize.Small;
 
         public Group(ContentArea contentArea, string name, string caption)
         {
@@ -44,6 +45,7 @@ namespace Brayns.Shaper.Controls
             jo["fieldPerRow"] = FieldPerRow.ToString();
             jo["collapsible"] = Collapsible;
             jo["primary"] = Primary;
+            jo["fontSize"] = FontSize.ToString();
             return jo;
         }
     }

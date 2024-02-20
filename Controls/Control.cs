@@ -2,6 +2,15 @@
 
 namespace Brayns.Shaper.Controls
 {
+    public enum FontSize
+    {
+        ExtraSmall,
+        Small,
+        Medium,
+        Large,
+        ExtraLarge
+    }
+
     public abstract class Control
     {
         public System.Guid ID { get; private set; }

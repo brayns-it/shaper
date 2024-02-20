@@ -192,9 +192,22 @@ namespace Brayns.Shaper
             get { return Instance.Units; }
         }
 
-        public static Dictionary<string, object> Values
+        public static void SetValue(string key, object value)
         {
-            get { return Instance.Values; }
+            Instance.Values[key] = value;
+        }
+
+        public static object? GetValue(string key)
+        {
+            if (Instance.Values.ContainsKey(key))
+                return Instance.Values[key];
+            else
+                return null;
+        }
+
+        public static T? GetValue<T>(string key)
+        {
+            return (T?)GetValue(key);
         }
 
         private static ThreadData ThreadData

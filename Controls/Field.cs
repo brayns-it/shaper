@@ -24,15 +24,6 @@ namespace Brayns.Shaper.Controls
         EMail
     }
 
-    public enum InputSize
-    {
-        ExtraSmall,
-        Small,
-        Medium,
-        Large,
-        ExtraLarge
-    }
-
     public class Field : Control
     {
         public string Caption { get; set; } = "";
@@ -44,7 +35,7 @@ namespace Brayns.Shaper.Controls
         public event ActionTriggerHandler? Triggering;
         public bool OpenRecord { get; set; } = false;
         public InputMode InputMode { get; set; } = InputMode.Text;
-        public InputSize InputSize { get; set; } = InputSize.Small;
+        public FontSize FontSize { get; set; } = FontSize.Small;
 
 #pragma warning disable CS8618
         public Field(Group group, string name, Shaper.Fields.BaseField baseField)
@@ -88,7 +79,7 @@ namespace Brayns.Shaper.Controls
             jo["fieldType"] = BaseField.Type.ToString();
             jo["inputType"] = InputType.ToString();
             jo["readOnly"] = ReadOnly;
-            jo["inputSize"] = InputSize.ToString();
+            jo["fontSize"] = FontSize.ToString();
             jo["showCaption"] = ShowCaption;
 
             if (Parent != null)
@@ -100,6 +91,14 @@ namespace Brayns.Shaper.Controls
                 jo["isLink"] = true;
 
             return jo;
+        }
+
+        public void Focus()
+        {
+            var jo = new JObject();
+            jo["action"] = "focusControl";
+            jo["controlId"] = ID.ToString();
+            Client.SendMessage(jo);
         }
 
         internal void Trigger(int row)
