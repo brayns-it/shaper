@@ -6,20 +6,20 @@ namespace Brayns.Shaper.Fields
     {
         public new byte[]? Value
         {
-            get { return (byte[]?)_value; }
-            set { _value = CheckValue(value); }
+            get { return (byte[]?)base.Value; }
+            set { base.Value = CheckValue(value); }
         }
 
         public new byte[]? XValue
         {
-            get { return (byte[]?)_xValue!; }
-            set { _xValue = CheckValue(value); }
+            get { return (byte[]?)base.XValue!; }
+            set { base.XValue = CheckValue(value); }
         }
 
         public new byte[]? InitValue
         {
-            get { return (byte[]?)_initValue!; }
-            set { _initValue = CheckValue(value); }
+            get { return (byte[]?)base.InitValue!; }
+            set { base.InitValue = CheckValue(value); }
         }
 
         public Blob(string name, string caption)

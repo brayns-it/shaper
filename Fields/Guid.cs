@@ -6,20 +6,20 @@ namespace Brayns.Shaper.Fields
     {
         public new System.Guid Value
         {
-            get { return (System.Guid)_value!; }
-            set { _value = CheckValue(value); }
+            get { return (System.Guid)base.Value!; }
+            set { base.Value = CheckValue(value); }
         }
 
         public new System.Guid XValue
         {
-            get { return (System.Guid)_xValue!; }
-            set { _xValue = CheckValue(value); }
+            get { return (System.Guid)base.XValue!; }
+            set { base.XValue = CheckValue(value); }
         }
 
         public new System.Guid InitValue
         {
-            get { return (System.Guid)_initValue!; }
-            set { _initValue = CheckValue(value); }
+            get { return (System.Guid)base.InitValue!; }
+            set { base.InitValue = CheckValue(value); }
         }
 
         public Guid(string name, string caption)

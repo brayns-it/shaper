@@ -202,6 +202,9 @@ namespace Brayns.Shaper.Fields
 
     public abstract class BaseField
     {
+        internal bool ValuePerSession { get; set; }
+        internal Unit? Parent { get; set; }
+
         public Opt<FieldTypes> Type { get; init; }
         public string Name { get; init; }
         public string Caption { get; init; }
@@ -212,21 +215,45 @@ namespace Brayns.Shaper.Fields
         public List<FieldFilter> Filters { get; init; }
         public BaseTable? Table { get; internal set; }
 
-        protected object? _value;
+        private object? _value;
         public object? Value
         {
-            get { return _value; }
-            set { _value = CheckValue(value); }
+            get 
+            { 
+                if (ValuePerSession)
+                {
+                    string k = "FieldValue:" + Parent!.GetType().FullName + "_" + CodeName;
+                    if (Session.State.ContainsKey(k))
+                        _value = Session.State[k];
+                    else
+                        _value = InitValue;
+                }
+
+                return _value; 
+            }
+            set
+            {
+                _value = CheckValue(value);
+
+                if (ValuePerSession)
+                {
+                    string k = "FieldValue:" + Parent!.GetType().FullName + "_" + CodeName;
+                    if (_value != null)
+                        Session.State[k] = _value;
+                    else if (Session.State.ContainsKey(k))
+                        Session.State.Remove(k);
+                }
+            }
         }
 
-        protected object? _xValue;
+        private object? _xValue;
         public object? XValue
         {
             get { return _xValue; }
             set { _xValue = CheckValue(value); }
         }
 
-        protected object? _initValue;
+        private object? _initValue;
         public object? InitValue
         {
             get { return _initValue; }
@@ -244,6 +271,7 @@ namespace Brayns.Shaper.Fields
             SqlName = "";
             HasFormat = false;
             Filters = new List<FieldFilter>();
+            ValuePerSession = false;
         }
 
         protected void Create()
@@ -357,6 +385,11 @@ namespace Brayns.Shaper.Fields
                     return ff.Value;
             }
             return null;
+        }
+
+        public void ModifyAll(object? newValue, bool runTrigger = false)
+        {
+            Table!.ModifyAll(this, newValue, runTrigger);
         }
     }
 }

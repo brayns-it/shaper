@@ -54,10 +54,11 @@ namespace Brayns.Shaper.Loader
             }
         }
 
-        public static Proxy CreateFromName(string fullName)
+        public static Proxy CreateFromName(string fullName, bool skipUnitSecurity = false)
         {
             var t = TypeFromName(fullName);
-            AssertUnitSecurity(t);
+            if (!skipUnitSecurity)
+                AssertUnitSecurity(t);
             return new Proxy(Activator.CreateInstance(t)!);
         }
 
@@ -221,6 +222,11 @@ namespace Brayns.Shaper.Loader
         public static bool HasAttribute<T>(string fullName, string methodName) where T : Attribute
         {
             return HasAttribute<T>(MethodFromName(fullName, methodName));
+        }
+
+        public static bool HasAttribute<T>(PropertyInfo pi) where T : Attribute
+        {
+            return pi.GetCustomAttributes(typeof(T), true).Length > 0;
         }
 
         public static bool HasAttribute<T>(MethodInfo mi) where T : Attribute

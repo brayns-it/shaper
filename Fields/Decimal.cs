@@ -7,20 +7,20 @@ namespace Brayns.Shaper.Fields
     {
         public new decimal Value
         {
-            get { return (decimal)_value!; }
-            set { _value = CheckValue(value); }
+            get { return (decimal)base.Value!; }
+            set { base.Value = CheckValue(value); }
         }
 
         public new decimal XValue
         {
-            get { return (decimal)_xValue!; }
-            set { _xValue = CheckValue(value); }
+            get { return (decimal)base.XValue!; }
+            set { base.XValue = CheckValue(value); }
         }
 
         public new decimal InitValue
         {
-            get { return (decimal)_initValue!; }
-            set { _initValue = CheckValue(value); }
+            get { return (decimal)base.InitValue!; }
+            set { base.InitValue = CheckValue(value); }
         }
 
         public bool BlankZero { get; set; }

@@ -115,7 +115,7 @@ namespace Brayns.Shaper.Objects
             return true;
         }
 
-        public void ModifyAll(BaseField field, object? newValue, bool runTrigger = false)
+        internal void ModifyAll(BaseField field, object? newValue, bool runTrigger = false)
         {
             if (runTrigger)
             {

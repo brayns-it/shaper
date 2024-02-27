@@ -1,6 +1,4 @@
-﻿using System.Reflection;
-
-namespace Brayns.Shaper.Objects
+﻿namespace Brayns.Shaper.Objects
 {
     public abstract class Codeunit : Unit
     {

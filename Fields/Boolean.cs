@@ -6,20 +6,20 @@ namespace Brayns.Shaper.Fields
     {
         public new bool Value
         {
-            get { return (bool)_value!; }
-            set { _value = CheckValue(value); }
+            get { return (bool)base.Value!; }
+            set { base.Value = CheckValue(value); }
         }
 
         public new bool XValue
         {
-            get { return (bool)_xValue!; }
-            set { _xValue = CheckValue(value); }
+            get { return (bool)base.XValue!; }
+            set { base.XValue = CheckValue(value); }
         }
 
         public new bool InitValue
         {
-            get { return (bool)_initValue!; }
-            set { _initValue = CheckValue(value); }
+            get { return (bool)base.InitValue!; }
+            set { base.InitValue = CheckValue(value); }
         }
 
         public Boolean(string name, string caption)

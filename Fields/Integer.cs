@@ -6,20 +6,20 @@ namespace Brayns.Shaper.Fields
     {
         public new int Value
         {
-            get { return (int)_value!; }
-            set { _value = CheckValue(value); }
+            get { return (int)base.Value!; }
+            set { base.Value = CheckValue(value); }
         }
 
         public new int XValue
         {
-            get { return (int)_xValue!; }
-            set { _xValue = CheckValue(value); }
+            get { return (int)base.XValue!; }
+            set { base.XValue = CheckValue(value); }
         }
 
         public new int InitValue
         {
-            get { return (int)_initValue!; }
-            set { _initValue = CheckValue(value); }
+            get { return (int)base.InitValue!; }
+            set { base.InitValue = CheckValue(value); }
         }
 
         public bool AutoIncrement { get; set; }
@@ -42,6 +42,10 @@ namespace Brayns.Shaper.Fields
         }
 
         public Integer(string caption) : this("", caption)
+        {
+        }
+
+        public Integer() : this("")
         {
         }
 

@@ -16,6 +16,9 @@ namespace Brayns.Shaper.Objects
         [Label("Codeunit")]
         public const int CODEUNIT = 2;
 
+        [Label("Batch")]
+        public const int BATCH = 3;
+
         [Label("Page")]
         public const int PAGE = 4;
     }
@@ -45,10 +48,26 @@ namespace Brayns.Shaper.Objects
                 {
                     var f = (Fields.BaseField)pi.GetValue(this)!;
                     f.CodeName = pi.Name;
+                    f.Parent = this;
+
                     if (typeof(BaseTable).IsAssignableFrom(GetType()))
                         f.Table = (BaseTable)this;
+
                     if (typeof(BasePage).IsAssignableFrom(GetType()) && (f.Type == FieldTypes.TEXT))
-                        ((Fields.Text)f).Length = Fields.Text.MAX_LENGTH;
+                    {
+                        var tf = (Fields.Text)f;
+                        if (tf.Length == 0) tf.Length = Fields.Text.MAX_LENGTH;
+                    }
+
+                    if (typeof(BasePage).IsAssignableFrom(GetType()) && (f.Type == FieldTypes.CODE))
+                    {
+                        var cf = (Fields.Code)f;
+                        if (cf.Length == 0) cf.Length = Fields.Text.MAX_LENGTH;
+                    }
+
+                    if (Loader.Proxy.HasAttribute<ValuePerSession>(pi))
+                        f.ValuePerSession = true;
+
                     UnitFields.Add(f);
                 }
             }

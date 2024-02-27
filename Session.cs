@@ -42,7 +42,6 @@ namespace Brayns.Shaper
         internal string Address { get; set; }
         internal WebTask? WebTask { get; set; }
         internal Dictionary<string, object> State { get; set; }
-        internal Dictionary<string, object> Values { get; set; }
         internal Dictionary<string, Unit> Units { get; set; }
         internal bool IsNew { get; set; }
         internal string ApplicationName { get; set; }
@@ -56,7 +55,6 @@ namespace Brayns.Shaper
             Id = Guid.Empty;
             Address = "";
             Type = SessionTypes.SYSTEM;
-            Values = new Dictionary<string, object>();
             State = new Dictionary<string, object>();
             Units = new Dictionary<string, Unit>();
             ApplicationName = "";
@@ -190,24 +188,6 @@ namespace Brayns.Shaper
         internal static Dictionary<string, Unit> Units
         {
             get { return Instance.Units; }
-        }
-
-        public static void SetValue(string key, object value)
-        {
-            Instance.Values[key] = value;
-        }
-
-        public static object? GetValue(string key)
-        {
-            if (Instance.Values.ContainsKey(key))
-                return Instance.Values[key];
-            else
-                return null;
-        }
-
-        public static T? GetValue<T>(string key)
-        {
-            return (T?)GetValue(key);
         }
 
         private static ThreadData ThreadData

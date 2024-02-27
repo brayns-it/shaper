@@ -40,12 +40,28 @@ namespace Brayns.Shaper.Classes
     }
 
     /// <summary>
+    /// Method is part of a batch codeunit
+    /// </summary>
+    [AttributeUsage(AttributeTargets.Method)]
+    public class BatchMethodAttribute : Attribute
+    {
+    }
+
+    /// <summary>
     /// Table is virtual (on memory)
     /// </summary>
     [AttributeUsage(AttributeTargets.Class)]
     public class VirtualTableAttribute : Attribute
     {
         public bool DataPerSession { get; init; } = false;
+    }
+
+    /// <summary>
+    /// Field value is stored in session state
+    /// </summary>
+    [AttributeUsage(AttributeTargets.Property)]
+    public class ValuePerSessionAttribute : Attribute
+    {
     }
 
     [Flags]

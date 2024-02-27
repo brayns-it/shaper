@@ -11,6 +11,10 @@
         {
         }
 
+        public Code() : this("", "", 0)
+        {
+        }
+
         internal override object? CheckValue(object? value)
         {
             string val = (string)value!;

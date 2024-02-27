@@ -11,20 +11,20 @@ namespace Brayns.Shaper.Fields
     {
         public new Opt<T> Value
         {
-            get { return (Opt<T>)_value!; }
-            set { _value = CheckValue(value); }
+            get { return (Opt<T>)base.Value!; }
+            set { base.Value = CheckValue(value); }
         }
 
         public new Opt<T> XValue
         {
-            get { return (Opt<T>)_xValue!; }
-            set { _xValue = CheckValue(value); }
+            get { return (Opt<T>)base.XValue!; }
+            set { base.XValue = CheckValue(value); }
         }
 
         public new Opt<T> InitValue
         {
-            get { return (Opt<T>)_initValue!; }
-            set { _initValue = CheckValue(value); }
+            get { return (Opt<T>)base.InitValue!; }
+            set { base.InitValue = CheckValue(value); }
         }
 
         public Option(string name, string caption)

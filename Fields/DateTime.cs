@@ -6,20 +6,20 @@ namespace Brayns.Shaper.Fields
     {
         public new System.DateTime Value
         {
-            get { return (System.DateTime)_value!; }
-            set { _value = CheckValue(value); }
+            get { return (System.DateTime)base.Value!; }
+            set { base.Value = CheckValue(value); }
         }
 
         public new System.DateTime XValue
         {
-            get { return (System.DateTime)_xValue!; }
-            set { _xValue = CheckValue(value); }
+            get { return (System.DateTime)base.XValue!; }
+            set { base.XValue = CheckValue(value); }
         }
 
         public new System.DateTime InitValue
         {
-            get { return (System.DateTime)_initValue!; }
-            set { _initValue = CheckValue(value); }
+            get { return (System.DateTime)base.InitValue!; }
+            set { base.InitValue = CheckValue(value); }
         }
 
         public DateTime(string name, string caption)
@@ -37,6 +37,10 @@ namespace Brayns.Shaper.Fields
         }
 
         public DateTime(string caption) : this("", caption)
+        {
+        }
+
+        public DateTime() : this("")
         {
         }
 

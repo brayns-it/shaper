@@ -8,20 +8,20 @@
 
         public new string Value
         {
-            get { return (string)_value!; }
-            set { _value = CheckValue(value); }
+            get { return (string)base.Value!; }
+            set { base.Value = CheckValue(value); }
         }
 
         public new string XValue
         {
-            get { return (string)_xValue!; }
-            set { _xValue = CheckValue(value); }
+            get { return (string)base.XValue!; }
+            set { base.XValue = CheckValue(value); }
         }
 
         public new string InitValue
         {
-            get { return (string)_initValue!; }
-            set { _initValue = CheckValue(value); }
+            get { return (string)base.InitValue!; }
+            set { base.InitValue = CheckValue(value); }
         }
 
         public Text(string name, string caption, int length)
