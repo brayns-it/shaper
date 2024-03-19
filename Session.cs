@@ -6,6 +6,7 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Brayns.Shaper
 {
@@ -47,6 +48,7 @@ namespace Brayns.Shaper
         internal string ApplicationName { get; set; }
         internal bool IsSuperuser { get; set; }
         internal DateTime LastPoll { get; set; }
+        internal bool StopRequested { get; set; }
 
         public SessionData()
         {
@@ -59,6 +61,7 @@ namespace Brayns.Shaper
             Units = new Dictionary<string, Unit>();
             ApplicationName = "";
             IsSuperuser = false;
+            StopRequested = false;
             LastPoll = DateTime.Now;
         }
 
@@ -206,7 +209,7 @@ namespace Brayns.Shaper
             }
         }
 
-        private static SessionData Instance
+        internal static SessionData Instance
         {
             get
             {
@@ -332,6 +335,12 @@ namespace Brayns.Shaper
                 }
                 return toDel;                
             }
+        }
+
+        public static void ThrowIfStopRequested()
+        {
+            if (Instance.StopRequested)
+                throw new Error(Label("Session interrupted"));
         }
 
         public static void Start(SessionArgs? arg = null)

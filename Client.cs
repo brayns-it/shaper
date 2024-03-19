@@ -53,6 +53,15 @@ namespace Brayns.Shaper
             Send(msg);
         }
 
+        public static bool IsAllowed()
+        {
+            if (CurrentSession.WebTask == null)
+                return false;
+            if (CurrentSession.Type != SessionTypes.WEBCLIENT)
+                return false;
+            return true;
+        }
+
         private static void Send(ClientMessage msg)
         {
             if (CurrentSession.WebTask == null)

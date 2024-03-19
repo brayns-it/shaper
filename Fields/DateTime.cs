@@ -60,7 +60,27 @@ namespace Brayns.Shaper.Fields
 
         public override void Evaluate(string text, out object? result)
         {
-            throw new NotImplementedException();
+            result = Evaluate(text);
+        }
+
+        public static System.DateTime Evaluate(string text)
+        {
+            text = text.Trim();
+            if (text.Length == 0)
+                return System.DateTime.MinValue; 
+
+            string[] parts = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            
+            System.DateTime date = Date.Evaluate(parts[0]);
+            System.DateTime time = System.DateTime.MinValue;
+            if (parts.Length > 1)
+            {
+                time = Time.Evaluate(parts[1]);
+                date.AddHours(time.Hour);
+                date.AddMinutes(time.Minute);
+                date.AddSeconds(time.Second);
+            }
+            return date;
         }
 
         public override JValue Serialize(object? value)

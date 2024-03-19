@@ -14,6 +14,10 @@ namespace Brayns.Shaper.Fields
         {
         }
 
+        public Time() : this("", "")
+        {
+        }
+
         public override string Format(object? value)
         {
             var val = (System.DateTime)value!;
@@ -28,7 +32,7 @@ namespace Brayns.Shaper.Fields
             result = Evaluate(text);
         }
 
-        public System.DateTime Evaluate(string text)
+        public static System.DateTime Evaluate(string text)
         {
             text = text.Trim();
             if (text.Length == 0)

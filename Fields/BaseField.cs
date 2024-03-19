@@ -56,6 +56,14 @@ namespace Brayns.Shaper.Fields
             Clear();
             AddRange(args);
         }
+
+        public BaseField? ByCodeName(string codeName)
+        {
+            foreach (var f in this)
+                if (f.CodeName.Equals(codeName))
+                    return f;
+            return null;
+        }
     }
 
     public delegate void ValidatingHandler();

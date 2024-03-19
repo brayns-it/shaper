@@ -25,6 +25,8 @@ namespace Brayns.Shaper
         public string? Address { get; set; }
         public bool IsWebClient { get; set; } = false;
         public bool IsApiRequest { get; set; } = false;
+        public bool IsCancelation { get; set; } = false;
+        internal bool Aborted { get; set; } = false;
 
         public WebTask()
         {
@@ -40,6 +42,9 @@ namespace Brayns.Shaper
 
         public void Send(ClientMessage msg)
         {
+            if (Aborted)
+                throw new Error(Label("Request aborted"));
+
             lock (lockResults)
             {
                 Results.Add(msg);
@@ -70,7 +75,7 @@ namespace Brayns.Shaper
                     Address = Address,
                     CultureInfo = CultureInfo,
                     Type = IsWebClient ? SessionTypes.WEBCLIENT : SessionTypes.WEB,
-                    WebTask = this
+                    WebTask = IsCancelation ? null : this
                 };
 
                 Session.Start(sa);
@@ -246,6 +251,9 @@ namespace Brayns.Shaper
                 if (ctx.Request.Headers.ContainsKey("X-Rpc-WebClient") && (ctx.Request.Headers["X-Rpc-WebClient"] == "1"))
                     task.IsWebClient = true;
 
+                if (ctx.Request.Headers.ContainsKey("X-Rpc-Cancelation") && (ctx.Request.Headers["X-Rpc-Cancelation"] == "1"))
+                    task.IsCancelation = true;
+
                 if (ctx.Request.Headers.ContainsKey("X-Rpc-SessionId") && (ctx.Request.Headers["X-Rpc-SessionId"].ToString().Length > 0))
                 {
                     task.SessionId = Guid.Parse(ctx.Request.Headers["X-Rpc-SessionId"]!);
@@ -370,7 +378,7 @@ namespace Brayns.Shaper
                                 break;
 
                             case Exception ex:
-                                if (!bodyWrited) ctx.Response.StatusCode = ErrorToStatusCode(ex);
+                                if (!ctx.Response.HasStarted) ctx.Response.StatusCode = ErrorToStatusCode(ex);
                                 resText = ExceptionToJson(ex);
                                 break;
 
@@ -395,9 +403,15 @@ namespace Brayns.Shaper
                         }
                         if (doFlush) await ctx.Response.Body.FlushAsync();
                     }
+
+                    if (ctx.RequestAborted.IsCancellationRequested)
+                    {
+                        task.Aborted = true;
+                        return;
+                    }
                 }
             }
-            catch
+            catch (Exception ex)
             {
                 // do nothing
             }

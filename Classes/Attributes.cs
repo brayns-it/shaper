@@ -40,6 +40,14 @@ namespace Brayns.Shaper.Classes
     }
 
     /// <summary>
+    /// Is a batch codeunit
+    /// </summary>
+    [AttributeUsage(AttributeTargets.Class)]
+    public class BatchableAttribute : Attribute
+    {
+    }
+
+    /// <summary>
     /// Method is part of a batch codeunit
     /// </summary>
     [AttributeUsage(AttributeTargets.Method)]

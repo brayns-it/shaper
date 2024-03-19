@@ -92,7 +92,7 @@ namespace Brayns.Shaper.Fields
             result = Evaluate(text);
         }
 
-        public decimal Evaluate(string text)
+        public static decimal Evaluate(string text)
         {
             text = text.Replace(",", ".");
 
