@@ -6,6 +6,7 @@
     public class RunningTask
     {
         private SessionData? SessionInstance { get; set; }
+        private SessionData? ParentInstance { get; set; }
 
         public event BatchEvent? Starting;
         public event BatchEvent? Finishing;
@@ -18,7 +19,16 @@
         public object[] Parameters { get; set; } = new object[0];
         public ThreadStart? Method { get; set; }
         public Thread? Thread { get; private set; }
-        public bool StopRequested { get; private set; } = false;
+
+        public bool IsAlive
+        {
+            get
+            {
+                if (Thread != null)
+                    return Thread.IsAlive;
+                return false;
+            }
+        }
 
         public void Start()
         {
@@ -30,13 +40,13 @@
         {
             if (SessionInstance != null)
                 SessionInstance.StopRequested = true;
-            StopRequested = true;
         }
 
         public static Thread ThreadStart(ThreadStart method)
         {
             var rt = new RunningTask();
             rt.Method = method;
+            rt.ParentInstance = CurrentSession.Instance;
             rt.Start();
             return rt.Thread!;
         }
@@ -48,7 +58,8 @@
                 CurrentSession.Start(new SessionArgs()
                 {
                     Id = Guid.NewGuid(),
-                    Type = SessionTypes.BATCH
+                    Type = SessionTypes.BATCH,
+                    Parent = ParentInstance
                 });
                 CurrentSession.IsSuperuser = true;
 

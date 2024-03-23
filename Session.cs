@@ -49,6 +49,7 @@ namespace Brayns.Shaper
         internal bool IsSuperuser { get; set; }
         internal DateTime LastPoll { get; set; }
         internal bool StopRequested { get; set; }
+        internal SessionData? Parent { get; set; }
 
         public SessionData()
         {
@@ -79,6 +80,7 @@ namespace Brayns.Shaper
         public Guid? AuthenticationId { get; set; }
         public string? Address { get; set; }
         internal WebTask? WebTask { get; set; }
+        internal SessionData? Parent { get; set; } 
     }
 
     public delegate void SessionStartingHandler(bool sessionIsNew);
@@ -258,6 +260,7 @@ namespace Brayns.Shaper
             }
 
             Database = null;
+            Instance.StopRequested = true;
 
             if (Id != Guid.Empty)
             {
@@ -337,9 +340,20 @@ namespace Brayns.Shaper
             }
         }
 
+        public static bool StopRequested
+        {
+            get
+            {
+                if ((Instance.Parent != null) && Instance.Parent.StopRequested)
+                    return true;
+
+                return Instance.StopRequested;
+            }
+        }
+
         public static void ThrowIfStopRequested()
         {
-            if (Instance.StopRequested)
+            if (StopRequested)
                 throw new Error(Label("Session interrupted"));
         }
 
@@ -372,6 +386,7 @@ namespace Brayns.Shaper
                 if (arg.CultureInfo != null) CultureInfo = arg.CultureInfo;
                 if (arg.WebTask != null) Instance.WebTask = arg.WebTask;
                 if (arg.AuthenticationId != null) AuthenticationId = arg.AuthenticationId;
+                if (arg.Parent != null) Instance.Parent = arg.Parent;
             }
 
             if (Application.IsReady)
