@@ -260,7 +260,6 @@ namespace Brayns.Shaper
             }
 
             Database = null;
-            Instance.StopRequested = true;
 
             if (Id != Guid.Empty)
             {

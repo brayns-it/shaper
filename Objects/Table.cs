@@ -30,6 +30,7 @@ namespace Brayns.Shaper.Objects
         public bool TableLock { get; set; } = false;
         public FieldList TableSort { get; init; } = new();
         public FieldList TablePrimaryKey { get; init; } = new();
+        public IndexList TableIndexes { get; init; } = new();
         public string TableSqlName { get; internal set; } = "";
         public event GenericHandler? Inserting;
         public event GenericHandler? Deleting;

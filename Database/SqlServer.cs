@@ -28,6 +28,22 @@ namespace Brayns.Shaper.Database
 
             ProcessTable();
             ProcessPrimaryKey();
+            ProcessIndexes();
+        }
+
+        private List<string> GetIndex(BaseTable table, string key)
+        {
+            var res = Query(@"SELECT c.name FROM sys.objects o, sys.indexes i, sys.index_columns x, sys.columns c 
+                WHERE (o.name = @p0) AND (o.type = @p1) AND (o.object_id = i.object_id) AND (i.name = @p2) AND
+                (x.object_id = o.object_id) AND (x.index_id = i.index_id) AND (c.object_id = o.object_id) AND
+                (c.column_id = x.column_id) ORDER BY x.key_ordinal",
+                table.TableSqlName, "U", key);
+
+            var idx = new List<string>();
+            foreach (var row in res)
+                idx.Add((string)row["name"]!);
+
+            return idx;
         }
 
         private List<string> GetPrimaryKey(BaseTable table)
@@ -114,6 +130,31 @@ namespace Brayns.Shaper.Database
             return Convert.ToInt32(Query("SELECT @@SPID [spid]")[0]["spid"]!);
         }
 
+        private void ProcessIndexes()
+        {
+            foreach (string k in CompilingTable!.TableIndexes.Keys)
+            {
+                var curIdx = String.Join(", ", GetIndex(CompilingTable!, k));
+                var newIdx = String.Join(", ", CompilingTable!.TableIndexes[k].Select(f => f.SqlName));
+
+                if (curIdx == newIdx)
+                    return;
+
+                if (curIdx.Length > 0)
+                    DropIndex(k);
+
+                if (newIdx.Length > 0)
+                {
+                    var sql = "CREATE INDEX [" + k + "] ON " +
+                        "[" + CompilingTable!.TableSqlName + "] (" +
+                        ListFields(CompilingTable!.TableIndexes[k]) +
+                        ")";
+
+                    CompileExec(sql, false);
+                }
+            }
+        }
+
         private void ProcessPrimaryKey()
         {
             var curPk = String.Join(", ", GetPrimaryKey(CompilingTable!));
@@ -149,6 +190,22 @@ namespace Brayns.Shaper.Database
                 res += prefix + "[" + f.SqlName + "]";
             }
             return res;
+        }
+
+        private void DropIndex(string key)
+        {
+            var res = Query(@"SELECT i.[name] FROM sys.objects o, sys.indexes i
+                WHERE (o.name = @p0) AND (o.type = @p1) AND (o.object_id = i.object_id) AND
+                (i.name = @p2)",
+                CompilingTable!.TableSqlName, "U", key);
+
+            if (res.Count == 0)
+                return;
+
+            var sql = "ALTER TABLE [" + CompilingTable!.TableSqlName + "] " +
+                "DROP INDEX [" + res[0]["name"] + "]";
+
+            CompileExec(sql, false);
         }
 
         private void DropPrimaryKey()

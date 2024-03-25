@@ -44,6 +44,15 @@ namespace Brayns.Shaper.Fields
         public const int GUID = 12;
     }
 
+    public class IndexList : Dictionary<string, FieldList>
+    {
+        public void Add(string key, params BaseField[] args)
+        {
+            this[key] = new();
+            this[key].Add(args);
+        }
+    }
+
     public class FieldList : List<Fields.BaseField>
     {
         public void Add(params BaseField[] args)

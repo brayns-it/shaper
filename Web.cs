@@ -278,6 +278,13 @@ namespace Brayns.Shaper
                 if (apiRequest)
                 {
                     // api
+                    if (body == null)
+                    {
+                        body = new();
+                        foreach (string k in ctx.Request.Query.Keys)
+                            body.Add(k, ctx.Request.Query[k].First());
+                    }
+
                     task.Route = ctx.Request.RouteValues["path"]!.ToString();
                     task.Parameters = body;
                     task.IsApiRequest = true;

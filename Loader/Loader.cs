@@ -154,22 +154,22 @@ namespace Brayns.Shaper.Loader
                     {
                         if (r.Action.HasFlag(Classes.ApiAction.Create))
                         {
-                            if (!Application.Routes.ContainsKey(r.Action)) Application.Routes[r.Action] = new();
+                            if (!Application.Routes.ContainsKey(Classes.ApiAction.Create)) Application.Routes[Classes.ApiAction.Create] = new();
                             Application.Routes[Classes.ApiAction.Create][r.Route] = m;
                         }
                         if (r.Action.HasFlag(Classes.ApiAction.Update))
                         {
-                            if (!Application.Routes.ContainsKey(r.Action)) Application.Routes[r.Action] = new();
+                            if (!Application.Routes.ContainsKey(Classes.ApiAction.Update)) Application.Routes[Classes.ApiAction.Update] = new();
                             Application.Routes[Classes.ApiAction.Update][r.Route] = m;
                         }
                         if (r.Action.HasFlag(Classes.ApiAction.Delete))
                         {
-                            if (!Application.Routes.ContainsKey(r.Action)) Application.Routes[r.Action] = new();
+                            if (!Application.Routes.ContainsKey(Classes.ApiAction.Delete)) Application.Routes[Classes.ApiAction.Delete] = new();
                             Application.Routes[Classes.ApiAction.Delete][r.Route] = m;
                         }
                         if (r.Action.HasFlag(Classes.ApiAction.Read))
                         {
-                            if (!Application.Routes.ContainsKey(r.Action)) Application.Routes[r.Action] = new();
+                            if (!Application.Routes.ContainsKey(Classes.ApiAction.Read)) Application.Routes[Classes.ApiAction.Read] = new();
                             Application.Routes[Classes.ApiAction.Read][r.Route] = m;
                         }
                     }
