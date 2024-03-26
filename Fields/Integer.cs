@@ -54,23 +54,32 @@ namespace Brayns.Shaper.Fields
             return Convert.ToInt32(value!);
         }
 
-        public override void Evaluate(string text, out object? result)
+        public override void Evaluate(string text)
         {
-            result = Evaluate(text);
+            Value = EvaluateText(text);
         }
 
-        public int Evaluate(string text)
+        internal override void Evaluate(string text, out object? result)
+        {
+            result = EvaluateText(text);
+        }
+
+        public static int EvaluateText(string text)
         {
             return int.Parse(text.Trim());
         }
 
-        public override string Format(object? value)
+        public static string FormatValue(int val, bool blankZero = false)
         {
-            var val = (int)value!;
-            if (BlankZero && (val == 0))
+            if (blankZero && (val == 0))
                 return "";
             else
                 return val.ToString();
+        }
+
+        public override string Format()
+        {
+            return FormatValue(Value);
         }
 
         public void SetRange(int value)
@@ -83,12 +92,17 @@ namespace Brayns.Shaper.Fields
             SetRange<int>(minValue, maxValue);
         }
 
-        public override JValue Serialize(object? value)
+        public override JValue Serialize()
         {
-            return new JValue((int)value!);
+            return SerializeValue(Value);
         }
 
-        public override void Deserialize(JValue? value, out object? result)
+        public static JValue SerializeValue(int value)
+        {
+            return new JValue(value);
+        }
+
+        public override void Deserialize(JValue? value)
         {
             throw new NotImplementedException();
         }

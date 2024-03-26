@@ -282,7 +282,7 @@ namespace Brayns.Shaper
                     {
                         body = new();
                         foreach (string k in ctx.Request.Query.Keys)
-                            body.Add(k, ctx.Request.Query[k].First());
+                            body.Add(k, JValue.Parse(ctx.Request.Query[k].First()!));
                     }
 
                     task.Route = ctx.Request.RouteValues["path"]!.ToString();

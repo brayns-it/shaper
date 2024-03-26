@@ -411,7 +411,7 @@ namespace Brayns.Shaper.Objects
         {
             JObject result = new();
             foreach (BaseField f in UnitFields)
-                result[Functions.NameForJson(f.Name)] = f.Serialize(f.Value);
+                result[Functions.NameForJson(f.Name)] = f.Serialize();
             return result;
         }
     }

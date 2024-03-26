@@ -56,17 +56,27 @@
             return val;
         }
 
-        public override string Format(object? value)
+        public static string FormatValue(string value)
         {
-            return (string)value!;
+            return value;
         }
 
-        public override void Evaluate(string text, out object? result)
+        public override string Format()
         {
-            result = Evaluate(text);
+            return FormatValue(Value);
         }
 
-        public string Evaluate(string text)
+        public override void Evaluate(string text)
+        {
+            Value = EvaluateText(text);
+        }
+
+        internal override void Evaluate(string text, out object? result)
+        {
+            result = EvaluateText(text);
+        }
+
+        public static string EvaluateText(string text)
         {
             return text;
         }
@@ -76,9 +86,14 @@
             base.Validate(value);
         }
 
-        public override JValue Serialize(object? value)
+        public override JValue Serialize()
         {
-            return new JValue((string)value!);
+            return SerializeValue(Value);
+        }
+
+        public static JValue SerializeValue(string value)
+        {
+            return new JValue(value);
         }
 
         public void SetFilter(string expression, params string[] pars)
@@ -86,7 +101,7 @@
             SetFilter<string>(expression, pars);
         }
 
-        public override void Deserialize(JValue? value, out object? result)
+        public override void Deserialize(JValue? value)
         {
             throw new NotImplementedException();
         }

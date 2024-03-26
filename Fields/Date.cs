@@ -18,21 +18,30 @@ namespace Brayns.Shaper.Fields
         {
         }
 
-        public override string Format(object? value)
+        public override string Format()
         {
-            var val = (System.DateTime)value!;
+            return FormatValue(Value);
+        }
+
+        public new static string FormatValue(System.DateTime val)
+        {
             if (val == System.DateTime.MinValue)
                 return "";
             else
                 return val.ToLocalTime().ToString("d", Session.CultureInfo);
         }
 
-        public override void Evaluate(string text, out object? result)
+        internal override void Evaluate(string text, out object? result)
         {
-            result = Evaluate(text);
+            result = EvaluateText(text);
         }
 
-        public static System.DateTime Evaluate(string text)
+        public override void Evaluate(string text)
+        {
+            Value = EvaluateText(text);
+        }
+
+        public new static System.DateTime EvaluateText(string text)
         {
             text = text.Trim();
             if (text.Length == 0)
@@ -49,13 +58,17 @@ namespace Brayns.Shaper.Fields
             return System.DateTime.Parse(text, Session.CultureInfo);
         }
 
-        public override JValue Serialize(object? value)
+        public override JValue Serialize()
         {
-            var val = (System.DateTime)value!;
+            return SerializeValue(Value);
+        }
+
+        public static JValue SerializeValue(System.DateTime val)
+        {
             return new JValue(val.ToString("yyyy-MM-dd"));
         }
 
-        public override void Deserialize(JValue? value, out object? result)
+        public override void Deserialize(JValue? value)
         {
             throw new NotImplementedException();
         }

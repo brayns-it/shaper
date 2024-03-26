@@ -39,7 +39,12 @@ namespace Brayns.Shaper.Fields
         {
         }
 
-        public override void Evaluate(string text, out object? result)
+        internal override void Evaluate(string text, out object? result)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void Evaluate(string text)
         {
             throw new NotImplementedException();
         }
@@ -49,20 +54,25 @@ namespace Brayns.Shaper.Fields
             return (byte[]?)value;
         }
 
-        public override string Format(object? value)
+        public override string Format()
         {
-            if ((value == null) || (((byte[])value).Length == 0))
+            return FormatValue(Value);
+        }
+
+        public static string FormatValue(byte[]? value)
+        {
+            if ((value == null) || (value.Length == 0))
                 return "";
             else
                 return "*";
         }
 
-        public override JValue Serialize(object? value)
+        public override JValue Serialize()
         {
             throw new NotImplementedException();
         }
 
-        public override void Deserialize(JValue? value, out object? result)
+        public override void Deserialize(JValue? value)
         {
             throw new NotImplementedException();
         }

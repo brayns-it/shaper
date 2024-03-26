@@ -298,10 +298,11 @@ namespace Brayns.Shaper.Fields
 
         internal abstract object? CheckValue(object? value);
 
-        public abstract string Format(object? value);
-        public abstract void Evaluate(string text, out object? result);
-        public abstract JValue Serialize(object? value);
-        public abstract void Deserialize(JValue? value, out object? result);
+        public abstract string Format();
+        public abstract void Evaluate(string text);
+        internal abstract void Evaluate(string text, out object? result);
+        public abstract JValue Serialize();
+        public abstract void Deserialize(JValue? value);
 
         public void Init()
         {

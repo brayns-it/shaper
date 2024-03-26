@@ -40,12 +40,17 @@ namespace Brayns.Shaper.Fields
         {
         }
 
-        public override void Evaluate(string text, out object? result)
+        public override void Evaluate(string text)
         {
-            result = Evaluate(text);
+            Value = EvaluateText(text);
         }
 
-        public bool Evaluate(string text)
+        internal override void Evaluate(string text, out object? result)
+        {
+            result = EvaluateText(text);
+        }
+
+        public static bool EvaluateText(string text)
         {
             text = text.Trim();
             if (text.Length == 0) return false;
@@ -62,13 +67,17 @@ namespace Brayns.Shaper.Fields
             return (bool)value!;
         }
 
-        public override string Format(object? value)
+        public static string FormatValue(bool val)
         {
-            var val = (bool)value!;
             if (val)
                 return Label("Yes");
             else
                 return Label("No");
+        }
+
+        public override string Format()
+        {
+            return FormatValue(Value);
         }
 
         public void SetRange(bool value)
@@ -76,12 +85,17 @@ namespace Brayns.Shaper.Fields
             SetRange<bool>(value);
         }
 
-        public override JValue Serialize(object? value)
+        public static JValue SerializeValue(bool value)
         {
-            return new JValue((bool)value!);
+            return new JValue(value);
         }
 
-        public override void Deserialize(JValue? value, out object? result)
+        public override JValue Serialize()
+        {
+            return SerializeValue(Value);
+        }
+
+        public override void Deserialize(JValue? value)
         {
             throw new NotImplementedException();
         }

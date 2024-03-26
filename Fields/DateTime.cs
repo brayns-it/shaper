@@ -49,21 +49,30 @@ namespace Brayns.Shaper.Fields
             return (System.DateTime)value!;
         }
 
-        public override string Format(object? value)
+        public static string FormatValue(System.DateTime val)
         {
-            var val = (System.DateTime)value!;
             if (val == System.DateTime.MinValue)
                 return "";
             else
                 return val.ToString("G", Session.CultureInfo);
         }
 
-        public override void Evaluate(string text, out object? result)
+        public override string Format()
         {
-            result = Evaluate(text);
+            return FormatValue(Value);
         }
 
-        public static System.DateTime Evaluate(string text)
+        internal override void Evaluate(string text, out object? result)
+        {
+            result = EvaluateText(text);
+        }
+
+        public override void Evaluate(string text)
+        {
+            Value = EvaluateText(text);
+        }
+
+        public static System.DateTime EvaluateText(string text)
         {
             text = text.Trim();
             if (text.Length == 0)
@@ -71,11 +80,11 @@ namespace Brayns.Shaper.Fields
 
             string[] parts = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             
-            System.DateTime date = Date.Evaluate(parts[0]);
+            System.DateTime date = Date.EvaluateText(parts[0]);
             System.DateTime time = System.DateTime.MinValue;
             if (parts.Length > 1)
             {
-                time = Time.Evaluate(parts[1]);
+                time = Time.EvaluateText(parts[1]);
                 date.AddHours(time.Hour);
                 date.AddMinutes(time.Minute);
                 date.AddSeconds(time.Second);
@@ -83,13 +92,18 @@ namespace Brayns.Shaper.Fields
             return date;
         }
 
-        public override JValue Serialize(object? value)
+        public override JValue Serialize()
+        {
+            return SerializeValue(Value);
+        }
+
+        public static JValue SerializeValue(object? value)
         {
             var val = (System.DateTime)value!;
             return new JValue(val.ToString("o"));
         }
 
-        public override void Deserialize(JValue? value, out object? result)
+        public override void Deserialize(JValue? value)
         {
             throw new NotImplementedException();
         }

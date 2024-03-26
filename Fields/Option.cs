@@ -56,33 +56,45 @@ namespace Brayns.Shaper.Fields
             return val;
         }
 
-        public override void Evaluate(string text, out object? result)
+        public override void Evaluate(string text)
         {
-            result = Evaluate(text);
+            Value = EvaluateText(text);
         }
 
-        public Opt<T> Evaluate(string text)
+        internal override void Evaluate(string text, out object? result)
+        {
+            result = EvaluateText(text);
+        }
+
+        public static Opt<T> EvaluateText(string text)
         {
             text = text.Trim();
 
             int i;
             if (int.TryParse(text, out i))
                 return new Opt<T>(i);
+
+            var l = (OptList)Activator.CreateInstance(typeof(T))!;
             
-            foreach (int n in Value.Names.Keys)
-                if (Value.Names[n].ToLower() == text.ToLower())
+            foreach (int n in l.Names.Keys)
+                if (l.Names[n].ToLower() == text.ToLower())
                     return new Opt<T>(n);
 
-            foreach (int n in Value.Captions.Keys)
-                if (Value.Captions[n].ToLower() == text.ToLower())
+            foreach (int n in l.Captions.Keys)
+                if (l.Captions[n].ToLower() == text.ToLower())
                     return new Opt<T>(n);
-
-            throw new Error(Label("{0} does not represent a valid {1} type", text, Value.Type!.Name));
+            
+            throw new Error(Label("{0} does not represent a valid {1} type", text, typeof(T).Name));
         }
 
-        public override string Format(object? value)
+        public override string Format()
         {
-            return ((Opt<T>)value!).Caption;
+            return FormatValue(Value);
+        }
+
+        public static string FormatValue(Opt<T> value)
+        {
+            return value.Caption;
         }
 
         public void SetRange(T value)
@@ -90,13 +102,17 @@ namespace Brayns.Shaper.Fields
             SetRange<T>(value);
         }
 
-        public override JValue Serialize(object? value)
+        public override JValue Serialize()
         {
-            var val = (Opt<T>)value!;
+            return SerializeValue(Value);
+        }
+
+        public static JValue SerializeValue(Opt<T> val)
+        {
             return new JValue(val.Value);
         }
 
-        public override void Deserialize(JValue? value, out object? result)
+        public override void Deserialize(JValue? value)
         {
             throw new NotImplementedException();
         }

@@ -51,35 +51,48 @@ namespace Brayns.Shaper.Fields
             return (decimal)value!;
         }
 
-        public override string Format(object? value)
+        public void SetFilter(string expression, params decimal[] pars)
         {
-            var val = (decimal)value!;
-            if (BlankZero && (val == 0))
+            SetFilter<decimal>(expression, pars);
+        }
+
+        public static string FormatValue(decimal val, int decimals = 2, bool blankZero = false)
+        {
+            if (blankZero && (val == 0))
                 return "";
             else
             {
-                if (Decimals <= 0)
+                if (decimals <= 0)
                     return val.ToString("#,##0", Session.CultureInfo);
                 else
-                    return val.ToString("#,##0." + "".PadRight(Decimals, '0'), Session.CultureInfo);
+                    return val.ToString("#,##0." + "".PadRight(decimals, '0'), Session.CultureInfo);
             }
         }
 
-        public override JValue Serialize(object? value)
+        public override string Format()
         {
-            var val = (decimal)value!;
+            return FormatValue(Value, Decimals, BlankZero);
+        }
+
+        public static JValue SerializeValue(decimal val)
+        {
             NumberFormatInfo nfi = new NumberFormatInfo();
             nfi.NumberGroupSeparator = "";
             nfi.NumberDecimalSeparator = ".";
             return new JValue(val.ToString("G29", nfi));
         }
 
-        public override void Deserialize(JValue? value, out object? result)
+        public override JValue Serialize()
         {
-            result = Deserialize(value);
+            return SerializeValue(Value);
         }
 
-        public decimal Deserialize(JValue? value)
+        public override void Deserialize(JValue? value)
+        {
+            Value = DeserializeText(value);
+        }
+
+        public static decimal DeserializeText(JValue? value)
         {
             NumberFormatInfo nfi = new NumberFormatInfo();
             nfi.NumberGroupSeparator = "";
@@ -87,12 +100,17 @@ namespace Brayns.Shaper.Fields
             return decimal.Parse(value!.ToString(), nfi);
         }
 
-        public override void Evaluate(string text, out object? result)
+        public override void Evaluate(string text)
         {
-            result = Evaluate(text);
+            Value = EvaluateText(text);
         }
 
-        public static decimal Evaluate(string text)
+        internal override void Evaluate(string text, out object? result)
+        {
+            result = EvaluateText(text);
+        }
+
+        public static decimal EvaluateText(string text)
         {
             text = text.Replace(",", ".");
 

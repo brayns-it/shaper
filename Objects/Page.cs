@@ -243,12 +243,12 @@
                 if (format)
                 {
                     if (field.HasFormat)
-                        line.Add(field.Format(field.Value));
+                        line.Add(field.Format());
                     else
                         line.Add("");
                 }
                 else
-                    line.Add(field.Serialize(field.Value));
+                    line.Add(field.Serialize());
             }
             return line;
         }
@@ -450,7 +450,7 @@
                 else if (SourcePage != null)
                 {
                     var pk = Rec.TablePrimaryKey[Rec.TablePrimaryKey.Count - 1];
-                    UnitCaption = pk.Format(pk.Value);
+                    UnitCaption = pk.Format();
                 }
             }
 

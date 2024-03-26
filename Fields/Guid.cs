@@ -44,10 +44,14 @@ namespace Brayns.Shaper.Fields
             return (System.Guid)value!;
         }
 
-        public override string Format(object? value)
+        public static string FormatValue(System.Guid val)
         {
-            var val = (System.Guid)value!;
             return val.ToString();
+        }
+
+        public override string Format()
+        {
+            return FormatValue(Value);
         }
 
         public void Validate(System.Guid value)
@@ -55,18 +59,27 @@ namespace Brayns.Shaper.Fields
             base.Validate(value);
         }
 
-        public override void Evaluate(string text, out object? result)
+        public override void Evaluate(string text)
         {
             throw new NotImplementedException();
         }
 
-        public override JValue Serialize(object? value)
+        internal override void Evaluate(string text, out object? result)
         {
-            var val = (System.Guid)value!;
+            throw new NotImplementedException();
+        }
+
+        public override JValue Serialize()
+        {
+            return SerializeValue(Value);
+        }
+
+        public static JValue SerializeValue(System.Guid val)
+        {
             return new JValue(val.ToString());
         }
 
-        public override void Deserialize(JValue? value, out object? result)
+        public override void Deserialize(JValue? value)
         {
             throw new NotImplementedException();
         }
