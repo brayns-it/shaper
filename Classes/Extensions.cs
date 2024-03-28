@@ -9,5 +9,15 @@
             else
                 return value.Substring(0, maxLength);
         }
+
+        public static bool IsNumeric(this string value)
+        {
+            string num = value.Trim();
+            foreach (char c in num)
+                if ((c < '0') || (c > '9'))
+                    return false;
+
+            return true;
+        }
     }
 }

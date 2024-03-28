@@ -148,7 +148,7 @@ namespace Brayns.Shaper
     public class WebDispatcher
     {
         private static readonly string _boundary;
-        
+
         static WebDispatcher()
         {
             // 8k buffer
@@ -171,7 +171,7 @@ namespace Brayns.Shaper
                 var err = (Error)ex;
                 res["code"] = err.ErrorCode;
                 if (err.SourceId.Length > 0)
-                    res["sourceId"] = err.SourceId; 
+                    res["sourceId"] = err.SourceId;
             }
 
             var trace = new List<string>();
@@ -236,9 +236,23 @@ namespace Brayns.Shaper
             return 500;
         }
 
+        private static void ParamsFromQuery(JObject body, IQueryCollection query)
+        {
+            foreach (string k in query.Keys)
+            {
+                if (body.ContainsKey(k))
+                    continue;
+
+                string val = query[k].First()!;
+                val = "\"" + val.Replace("\"", "\\\"") + "\"";
+                body.Add(k, JValue.Parse(val));
+            }
+        }
+
         private static async Task Dispatch(HttpContext ctx, bool apiRequest)
         {
             WebTask? task = null;
+            bool errorReturns200 = false;
 
             try
             {
@@ -247,6 +261,9 @@ namespace Brayns.Shaper
 
                 if (ctx.Request.Headers.ContainsKey("Accept-Language"))
                     task.CultureInfo = TryGetCulture(ctx.Request.Headers["Accept-Language"]!);
+
+                if (ctx.Request.Headers.ContainsKey("X-Error-Returns200") && (ctx.Request.Headers["X-Error-Returns200"] == "1"))
+                    errorReturns200 = true;
 
                 if (ctx.Request.Headers.ContainsKey("X-Rpc-WebClient") && (ctx.Request.Headers["X-Rpc-WebClient"] == "1"))
                     task.IsWebClient = true;
@@ -267,7 +284,7 @@ namespace Brayns.Shaper
                 else if (ctx.Request.Cookies.ContainsKey("X-Authorization"))
                     task.AuthenticationId = Guid.Parse(ctx.Request.Cookies["X-Authorization"]!);
 
-                JObject? body = null;
+                JObject body = new JObject();
                 if (ctx.Request.ContentLength > 0)
                 {
                     StreamReader sr = new(ctx.Request.Body);
@@ -278,12 +295,7 @@ namespace Brayns.Shaper
                 if (apiRequest)
                 {
                     // api
-                    if (body == null)
-                    {
-                        body = new();
-                        foreach (string k in ctx.Request.Query.Keys)
-                            body.Add(k, JValue.Parse(ctx.Request.Query[k].First()!));
-                    }
+                    ParamsFromQuery(body, ctx.Request.Query);
 
                     task.Route = ctx.Request.RouteValues["path"]!.ToString();
                     task.Parameters = body;
@@ -333,7 +345,8 @@ namespace Brayns.Shaper
             catch (Exception ex)
             {
                 // pre task exception
-                ctx.Response.StatusCode = ErrorToStatusCode(ex);
+                if (!errorReturns200)
+                    ctx.Response.StatusCode = ErrorToStatusCode(ex);
                 ctx.Response.ContentType = "application/json";
                 await ctx.Response.WriteAsync(ExceptionToJson(ex));
             }
@@ -366,7 +379,7 @@ namespace Brayns.Shaper
                                 {
                                     CookieOptions opt = new();
                                     opt.Expires = msg.Expires;
-                                    ctx.Response.Cookies.Append("X-Authorization", msg.Value, opt);
+                                    ctx.Response.Cookies.Append("X-Authorization", msg.Value!, opt);
                                 }
                                 continue;
 
@@ -385,7 +398,7 @@ namespace Brayns.Shaper
                                 break;
 
                             case Exception ex:
-                                if (!ctx.Response.HasStarted) ctx.Response.StatusCode = ErrorToStatusCode(ex);
+                                if ((!ctx.Response.HasStarted) && (!errorReturns200)) ctx.Response.StatusCode = ErrorToStatusCode(ex);
                                 resText = ExceptionToJson(ex);
                                 break;
 
