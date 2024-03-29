@@ -156,22 +156,22 @@ namespace Brayns.Shaper.Loader
                         if (r.Action.HasFlag(Classes.ApiAction.Create))
                         {
                             if (!Application.Routes.ContainsKey(Classes.ApiAction.Create)) Application.Routes[Classes.ApiAction.Create] = new();
-                            Application.Routes[Classes.ApiAction.Create][r.Route] = m;
+                            Application.Routes[Classes.ApiAction.Create][r.Route.ToLower()] = m;
                         }
                         if (r.Action.HasFlag(Classes.ApiAction.Update))
                         {
                             if (!Application.Routes.ContainsKey(Classes.ApiAction.Update)) Application.Routes[Classes.ApiAction.Update] = new();
-                            Application.Routes[Classes.ApiAction.Update][r.Route] = m;
+                            Application.Routes[Classes.ApiAction.Update][r.Route.ToLower()] = m;
                         }
                         if (r.Action.HasFlag(Classes.ApiAction.Delete))
                         {
                             if (!Application.Routes.ContainsKey(Classes.ApiAction.Delete)) Application.Routes[Classes.ApiAction.Delete] = new();
-                            Application.Routes[Classes.ApiAction.Delete][r.Route] = m;
+                            Application.Routes[Classes.ApiAction.Delete][r.Route.ToLower()] = m;
                         }
                         if (r.Action.HasFlag(Classes.ApiAction.Read))
                         {
                             if (!Application.Routes.ContainsKey(Classes.ApiAction.Read)) Application.Routes[Classes.ApiAction.Read] = new();
-                            Application.Routes[Classes.ApiAction.Read][r.Route] = m;
+                            Application.Routes[Classes.ApiAction.Read][r.Route.ToLower()] = m;
                         }
                     }
 
@@ -180,7 +180,7 @@ namespace Brayns.Shaper.Loader
                     {
                         string k = w.Route;
                         if (w.RouteName != null) k = w.RouteName + "_" + k;
-                        Application.RawRoutes[k] = m;
+                        Application.RawRoutes[k.ToLower()] = m;
                     }
                 }
             }

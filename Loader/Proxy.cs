@@ -74,7 +74,7 @@ namespace Brayns.Shaper.Loader
             MethodInfo? mi = null;
 
             string k = route;
-            if (routeName.Length > 0) k = routeName + "_" + route;
+            if (routeName.Length > 0) k = (routeName + "_" + route).ToLower();
             if (Application.RawRoutes.ContainsKey(k))
                 mi = Application.RawRoutes[k];
 
@@ -97,7 +97,7 @@ namespace Brayns.Shaper.Loader
             {
                 foreach (string pattern in Application.Routes[action].Keys)
                 {
-                    Regex pat = new Regex("^" + re.Replace(pattern, "(.*?)") + "$");
+                    Regex pat = new Regex("^" + re.Replace(pattern, "(.*?)") + "$", RegexOptions.IgnoreCase);
                     routeMatch = pat.Match(route);
                     if (routeMatch.Success)
                     {
