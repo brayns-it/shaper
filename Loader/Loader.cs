@@ -144,6 +144,7 @@ namespace Brayns.Shaper.Loader
         internal static void CollectApiEndpoints()
         {
             Application.Routes.Clear();
+            Application.RawRoutes.Clear();
 
             foreach (Type t in CodeunitTypes)
             {
@@ -172,6 +173,14 @@ namespace Brayns.Shaper.Loader
                             if (!Application.Routes.ContainsKey(Classes.ApiAction.Read)) Application.Routes[Classes.ApiAction.Read] = new();
                             Application.Routes[Classes.ApiAction.Read][r.Route] = m;
                         }
+                    }
+
+                    var w = m.GetCustomAttribute<RawRequest>(true);
+                    if ((w != null) && (w.Route != null) && (w.Route.Length > 0))
+                    {
+                        string k = w.Route;
+                        if (w.RouteName != null) k = w.RouteName + "_" + k;
+                        Application.RawRoutes[k] = m;
                     }
                 }
             }

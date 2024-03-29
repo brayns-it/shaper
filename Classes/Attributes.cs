@@ -94,6 +94,16 @@ namespace Brayns.Shaper.Classes
     }
 
     /// <summary>
+    /// Raw HTTP Method callable
+    /// </summary>
+    [AttributeUsage(AttributeTargets.Method)]
+    public class RawRequestMethodAttribute : Attribute
+    {
+        public string RouteName { get; init; } = "";
+        public string Route { get; init; } = "";
+    }
+
+    /// <summary>
     /// Label target
     /// </summary>
     [AttributeUsage(AttributeTargets.All)]

@@ -20,9 +20,9 @@ namespace Brayns.Shaper
         internal static Thread? MonitorThread { get; set; }
         internal static Dictionary<string, object> Values = new();
         internal static Dictionary<ApiAction, Dictionary<string, MethodInfo>> Routes { get; } = new();
+        internal static Dictionary<string, MethodInfo> RawRoutes { get; } = new();
         internal static Dictionary<Guid, AppModule> Apps { get; } = new();
         internal static Config Config { get; set; } = new Config();
-        internal static ILogger? Logger { get; set; }
         internal static bool IsLoaded { get; private set; } = false;
         internal static bool IsReady { get { return Config.Ready; } }
         public static string? RootPath { get; internal set; }
@@ -228,16 +228,24 @@ namespace Brayns.Shaper
             });
         }
 
+        public static void MapShaperRawRequest(this WebApplication app, string name, string prefix)
+        {
+            if ((prefix.Length > 1) && prefix.StartsWith("/")) prefix = prefix.Substring(1);
+            if ((prefix.Length > 1) && prefix.EndsWith("/")) prefix = prefix.Substring(0, prefix.Length - 1);
+            if (prefix == "/") prefix = "";
+
+            app.MapMethods("/" + prefix + "/{**path}", new string[] { "GET", "POST", "PUT", "DELETE" },
+                async ctx => await WebDispatcher.Dispatch(ctx, HttpContextType.RawRequest)).WithName(name);
+        }
+
         public static void MapShaperApi(this WebApplication app)
         {
-            if (app.Environment.IsDevelopment())
-                Logger = app.Logger;
-
             // rest entry point
-            app.MapMethods("/api/{**path}", new string[] { "GET", "POST", "PUT", "DELETE" }, WebDispatcher.DispatchApi);
+            app.MapMethods("/api/{**path}", new string[] { "GET", "POST", "PUT", "DELETE" }, async ctx => await WebDispatcher.Dispatch(ctx, HttpContextType.Api));
+            app.MapMethods("/rpc/{**path}", new string[] { "GET", "POST", "PUT", "DELETE" }, async ctx => await WebDispatcher.Dispatch(ctx, HttpContextType.Api));
 
             // client entry point
-            app.MapPost("/rpc", WebDispatcher.DispatchRpc);
+            app.MapPost("/rpc", async ctx => await WebDispatcher.Dispatch(ctx, HttpContextType.Rpc));
         }
 
         internal static void SetValue(string key, object value)
@@ -259,6 +267,11 @@ namespace Brayns.Shaper
 
         public static void LogException(string context, Exception ex)
         {
+            LogException(context, "", ex);
+        }
+
+        public static void LogException(string context, string message, Exception ex)
+        {
             string trace = "";
 
             var st = new StackTrace(ex, true);
@@ -269,11 +282,14 @@ namespace Brayns.Shaper
                 if (fn != null)
                 {
                     FileInfo fi = new FileInfo(fn);
-                    trace += (" in '" + fi.Name + "' line " + frame.GetFileLineNumber() + " method '" + frame.GetMethod()!.Name + "'");
+                    trace += " in '" + fi.Name + "' line " + frame.GetFileLineNumber() + " method '" + frame.GetMethod()!.Name + "'";
                 }
             }
 
-            Log(context, "E", ex.Message + trace);
+            if (message.Length > 0) message += " ";
+            message += ex.Message + trace;
+
+            Log(context, "E", message);
         }
 
         /// <summary>
@@ -330,18 +346,6 @@ namespace Brayns.Shaper
                 {
                     // do nothing
                 }
-            }
-
-            if (Logger != null)
-            {
-                if (severity == "E")
-                    Logger.LogError(message);
-                else if (severity == "D")
-                    Logger.LogDebug(message);
-                else if (severity == "I")
-                    Logger.LogInformation(message);
-                else if (severity == "W")
-                    Logger.LogWarning(message);
             }
         }
     }

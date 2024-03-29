@@ -2,55 +2,55 @@
 
 namespace Brayns.Shaper
 {
-    public enum ClientMessageType
+    internal class ClientMessageBoundary
     {
-        Message,
-        SetAuthentication,
-        ClearAuthentication,
-        Boundary
     }
 
-    public class ClientMessage
+    internal class ClientMessageAuthentication
     {
-        public ClientMessageType Type { get; set; }
-        public string? Value { get; set; }
         public DateTimeOffset? Expires { get; set; }
+        public bool Clear { get; set; }
+        public string Token { get; set; } = "";
+    }
 
-        public ClientMessage(ClientMessageType type, string? value = null)
-        {
-            Type = type;
-            Value = value;
-        }
+    internal class ClientMessage
+    {
+        public string Value { get; set; } = "";
     }
 
     public static class Client
     {
         public static void ClearAuthenticationToken()
         {
-            var msg = new ClientMessage(ClientMessageType.ClearAuthentication);
-            Send(msg);
+            Send(new ClientMessageAuthentication() { Clear = true });
         }
 
         public static void SetAuthenticationToken(Guid token, DateTimeOffset? expires = null)
         {
-            var msg = new ClientMessage(ClientMessageType.SetAuthentication, token.ToString());
-            msg.Expires = expires;
-            Send(msg);
+            Send(new ClientMessageAuthentication()
+            {
+                Token = token.ToString(),
+                Expires = expires
+            });
         }
 
         public static void Flush()
         {
-            var msg = new ClientMessage(ClientMessageType.Boundary);
-            Send(msg);
+            Send(new ClientMessageBoundary());
         }
 
         public static void SendMessage(object o)
         {
+            if (CurrentSession.Type != SessionTypes.WEBCLIENT)
+                throw new Error("Current session does not support client messaging");
+
             var jo = JObject.FromObject(o);
             jo["type"] = "send";
 
-            var msg = new ClientMessage(ClientMessageType.Message, jo.ToString(Newtonsoft.Json.Formatting.Indented));
-            Send(msg);
+            Send(new ClientMessage()
+            {
+                Value = jo.ToString(Newtonsoft.Json.Formatting.Indented)
+            });
         }
 
         public static bool IsAllowed()
@@ -62,13 +62,10 @@ namespace Brayns.Shaper
             return true;
         }
 
-        private static void Send(ClientMessage msg)
+        private static void Send(object msg)
         {
             if (CurrentSession.WebTask == null)
                 throw new Error(Label("No client connected"));
-
-            if ((CurrentSession.Type != SessionTypes.WEBCLIENT) && (msg.Type == ClientMessageType.Message))
-                throw new Error("Current session does not support client messaging");
 
             CurrentSession.WebTask.Send(msg);
         }

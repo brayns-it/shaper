@@ -3,7 +3,6 @@
     public class Progress : Page<Progress>
     {
         private Dictionary<string, Controls.Html> Lines { get; } = new();
-        private bool _cancelRequest = false;
 
         public Progress()
         {

@@ -4,28 +4,58 @@ using System.Diagnostics;
 using System.Text;
 using Brayns.Shaper.Loader;
 using System.Globalization;
+using Microsoft.AspNetCore.Routing;
 
 namespace Brayns.Shaper
 {
+    internal enum HttpContextType
+    {
+        Api,
+        Rpc,
+        RawRequest
+    }
+
+    public class RawSession
+    {
+        public byte[]? Request { get; set; }
+        public string? RequestType { get; set; }
+        public Dictionary<string, string> RequestHeaders { get; set; } = new();
+        public string RequestMethod { get; set; } = "";
+        public string RequestPathWithQuery { get; set; } = "";
+
+        public byte[]? Response { get; set; }
+        public string ResponseType { get; set; } = "text/plain";
+        public int ResponseCode { get; set; } = 200;
+        public Dictionary<string, string> ResponseHeaders { get; set; } = new();
+    }
+
     internal class WebTask
     {
         private object lockResults = new object();
         private List<object?> Results { get; set; } = new();
-        public Thread? CurrentThread { get; private set; }
-        public SemaphoreSlim? Semaphore { get; private set; }
-        public string? TypeName { get; set; }
-        public string? ObjectId { get; set; }
-        public string? MethodName { get; set; }
-        public string? Route { get; set; }
-        public ApiAction? ApiAction { get; set; }
-        public JObject? Parameters { get; set; }
-        public CultureInfo? CultureInfo { get; set; }
-        public Guid SessionId { get; set; }
-        public Guid? AuthenticationId { get; set; }
-        public string? Address { get; set; }
-        public bool IsWebClient { get; set; } = false;
-        public bool IsApiRequest { get; set; } = false;
-        public bool IsCancelation { get; set; } = false;
+        private Thread? CurrentThread { get; set; }
+        private SemaphoreSlim? Semaphore { get; set; }
+
+        internal string? TypeName { get; set; }
+        internal string? ObjectId { get; set; }
+        internal string? MethodName { get; set; }
+        internal string? Route { get; set; }
+        internal ApiAction? ApiAction { get; set; }
+        internal JObject Parameters { get; set; } = new();
+
+        internal RawSession RawSession { get; set; } = new();
+        internal string? RouteName { get; set; }
+
+        internal CultureInfo? CultureInfo { get; set; }
+        internal Guid SessionId { get; set; }
+        internal Guid? AuthenticationId { get; set; }
+        internal string? Address { get; set; }
+
+        internal bool IsWebClient { get; set; } = false;
+        internal bool IsApiRequest { get; set; } = false;
+        internal bool IsRawRequest { get; set; } = false;
+        internal bool IsCancelation { get; set; } = false;
+
         internal bool Aborted { get; set; } = false;
 
         public WebTask()
@@ -40,7 +70,7 @@ namespace Brayns.Shaper
             CurrentThread.Start();
         }
 
-        public void Send(ClientMessage msg)
+        public void Send(object msg)
         {
             if (Aborted)
                 throw new Error(Label("Request aborted"));
@@ -86,6 +116,11 @@ namespace Brayns.Shaper
                 {
                     proxy = Proxy.CreateFromRoute(Route!, ApiAction!.Value);
                     res = proxy.Invoke(Parameters);
+                }
+                else if (IsRawRequest)
+                {
+                    proxy = Proxy.CreateFromRawRoute(RouteName!, Route!);
+                    res = proxy.Invoke(RawSession);
                 }
                 else
                 {
@@ -208,20 +243,18 @@ namespace Brayns.Shaper
                 }
                 return res;
             }
-            catch (Exception)
+            catch
             {
                 return null;
             }
         }
 
-        internal static async Task DispatchApi(HttpContext ctx)
+        private static void LogException(Exception ex, HttpContext ctx, HttpContextType type)
         {
-            await Dispatch(ctx, true);
-        }
+            if (type == HttpContextType.Rpc) return;
 
-        internal static async Task DispatchRpc(HttpContext ctx)
-        {
-            await Dispatch(ctx, false);
+            string message = ctx.Request.Method + " " + ctx.Request.Path + " " + ctx.Connection.RemoteIpAddress!.ToString();
+            Application.LogException("webdspch", message, ex);
         }
 
         private static int ErrorToStatusCode(Exception ex)
@@ -249,7 +282,7 @@ namespace Brayns.Shaper
             }
         }
 
-        private static async Task Dispatch(HttpContext ctx, bool apiRequest)
+        internal static async Task Dispatch(HttpContext ctx, HttpContextType type)
         {
             WebTask? task = null;
             bool errorReturns200 = false;
@@ -265,12 +298,6 @@ namespace Brayns.Shaper
                 if (ctx.Request.Headers.ContainsKey("X-Error-Returns200") && (ctx.Request.Headers["X-Error-Returns200"] == "1"))
                     errorReturns200 = true;
 
-                if (ctx.Request.Headers.ContainsKey("X-Rpc-WebClient") && (ctx.Request.Headers["X-Rpc-WebClient"] == "1"))
-                    task.IsWebClient = true;
-
-                if (ctx.Request.Headers.ContainsKey("X-Rpc-Cancelation") && (ctx.Request.Headers["X-Rpc-Cancelation"] == "1"))
-                    task.IsCancelation = true;
-
                 if (ctx.Request.Headers.ContainsKey("X-Rpc-SessionId") && (ctx.Request.Headers["X-Rpc-SessionId"].ToString().Length > 0))
                 {
                     task.SessionId = Guid.Parse(ctx.Request.Headers["X-Rpc-SessionId"]!);
@@ -281,63 +308,94 @@ namespace Brayns.Shaper
                 if (ctx.Request.Headers.ContainsKey("Authorization") &&
                     ctx.Request.Headers["Authorization"].ToString().StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
                     task.AuthenticationId = Guid.Parse(ctx.Request.Headers["Authorization"].ToString().Substring(7));
+
                 else if (ctx.Request.Cookies.ContainsKey("X-Authorization"))
                     task.AuthenticationId = Guid.Parse(ctx.Request.Cookies["X-Authorization"]!);
 
-                JObject body = new JObject();
                 if (ctx.Request.ContentLength > 0)
                 {
-                    StreamReader sr = new(ctx.Request.Body);
-                    body = JObject.Parse(await sr.ReadToEndAsync());
-                    sr.Close();
-                }
-
-                if (apiRequest)
-                {
-                    // api
-                    ParamsFromQuery(body, ctx.Request.Query);
-
-                    task.Route = ctx.Request.RouteValues["path"]!.ToString();
-                    task.Parameters = body;
-                    task.IsApiRequest = true;
-
-                    switch (ctx.Request.Method)
+                    if (type == HttpContextType.RawRequest)
                     {
-                        case "POST":
-                            task.ApiAction = Classes.ApiAction.Create;
-                            break;
-                        case "PUT":
-                            task.ApiAction = Classes.ApiAction.Update;
-                            break;
-                        case "GET":
-                            task.ApiAction = Classes.ApiAction.Read;
-                            break;
-                        case "DELETE":
-                            task.ApiAction = Classes.ApiAction.Delete;
-                            break;
-                        default:
-                            throw new Error(Label("Invalid API action '{0}'", ctx.Request.Method));
+                        MemoryStream ms = new();
+                        await ctx.Request.Body.CopyToAsync(ms);
+                        task.RawSession.Request = ms.ToArray();
+                        ms.Close();
+                    }
+                    else
+                    {
+                        StreamReader sr = new(ctx.Request.Body);
+                        task.Parameters = JObject.Parse(await sr.ReadToEndAsync());
+                        sr.Close();
                     }
                 }
-                else
+
+                switch (type)
                 {
-                    // rpc
-                    try
-                    {
-                        if (body!["type"]!.ToString() == "request")
+                    case HttpContextType.Api:
+                        ParamsFromQuery(task.Parameters, ctx.Request.Query);
+
+                        task.Route = ctx.Request.RouteValues["path"]!.ToString();
+                        task.IsApiRequest = true;
+
+                        switch (ctx.Request.Method)
                         {
-                            if (body!.ContainsKey("objectid"))
-                                task.ObjectId = body!["objectid"]!.ToString();
-                            else
-                                task.TypeName = body!["classname"]!.ToString();
-                            task.MethodName = body!["method"]!.ToString();
-                            task.Parameters = (JObject)body!["arguments"]!;
+                            case "POST":
+                                task.ApiAction = Classes.ApiAction.Create;
+                                break;
+                            case "PUT":
+                                task.ApiAction = Classes.ApiAction.Update;
+                                break;
+                            case "GET":
+                                task.ApiAction = Classes.ApiAction.Read;
+                                break;
+                            case "DELETE":
+                                task.ApiAction = Classes.ApiAction.Delete;
+                                break;
+                            default:
+                                throw new Error(Label("Invalid API action '{0}'", ctx.Request.Method));
                         }
-                    }
-                    catch
-                    {
-                        throw new Error(Label("Invalid HTTP RPC JSON body"));
-                    }
+                        break;
+
+                    case HttpContextType.Rpc:
+                        if (ctx.Request.Headers.ContainsKey("X-Rpc-WebClient") && (ctx.Request.Headers["X-Rpc-WebClient"] == "1"))
+                            task.IsWebClient = true;
+
+                        if (ctx.Request.Headers.ContainsKey("X-Rpc-Cancelation") && (ctx.Request.Headers["X-Rpc-Cancelation"] == "1"))
+                            task.IsCancelation = true;
+
+                        try
+                        {
+                            if (task.Parameters["type"]!.ToString() == "request")
+                            {
+                                if (task.Parameters.ContainsKey("objectid"))
+                                    task.ObjectId = task.Parameters["objectid"]!.ToString();
+                                else
+                                    task.TypeName = task.Parameters["classname"]!.ToString();
+                                task.MethodName = task.Parameters["method"]!.ToString();
+                                task.Parameters = (JObject)task.Parameters["arguments"]!;
+                            }
+                        }
+                        catch
+                        {
+                            throw new Error(Label("Invalid HTTP RPC JSON body"));
+                        }
+                        break;
+
+                    case HttpContextType.RawRequest:
+                        foreach (string hk in ctx.Request.Headers.Keys)
+                            task.RawSession.RequestHeaders.Add(hk, ctx.Request.Headers[hk].First()!);
+
+                        task.IsRawRequest = true;
+                        task.RawSession.RequestType = ctx.Request.ContentType;
+                        task.RawSession.RequestMethod = ctx.Request.Method;
+                        task.RawSession.RequestPathWithQuery = ctx.Request.Path + ((ctx.Request.QueryString.HasValue) ? ctx.Request.QueryString : "");
+
+                        task.Route = ctx.Request.RouteValues["path"]!.ToString();
+
+                        RouteNameMetadata? md = ctx.GetEndpoint()!.Metadata.GetMetadata<RouteNameMetadata>();
+                        if (md != null) task.RouteName = md.RouteName;
+
+                        break;
                 }
 
                 task.Execute();
@@ -349,6 +407,8 @@ namespace Brayns.Shaper
                     ctx.Response.StatusCode = ErrorToStatusCode(ex);
                 ctx.Response.ContentType = "application/json";
                 await ctx.Response.WriteAsync(ExceptionToJson(ex));
+
+                LogException(ex, ctx, type);
             }
 
             if (task == null)
@@ -356,7 +416,6 @@ namespace Brayns.Shaper
 
             try
             {
-                bool bodyWrited = false;
                 ctx.Response.StatusCode = 200;
                 ctx.Response.ContentType = "application/json";
 
@@ -369,37 +428,51 @@ namespace Brayns.Shaper
 
                         switch (r)
                         {
+                            case null when task.IsRawRequest:
+                                if (!ctx.Response.HasStarted)
+                                {
+                                    ctx.Response.StatusCode = task.RawSession.ResponseCode;
+                                    ctx.Response.ContentType = task.RawSession.ResponseType;
+                                    foreach (string hk in task.RawSession.ResponseHeaders.Keys)
+                                        ctx.Response.Headers.Append(hk, task.RawSession.ResponseHeaders[hk]);
+                                }
+                                if (task.RawSession.Response != null)
+                                    await ctx.Response.Body.WriteAsync(task.RawSession.Response, 0, task.RawSession.Response.Length);
+
+                                return;
+
                             case null:
-                                if (task.IsWebClient && bodyWrited)
+                                if (task.IsWebClient && ctx.Response.HasStarted)
                                     await ctx.Response.WriteAsync("]");
                                 return;
 
-                            case ClientMessage msg when msg.Type == ClientMessageType.SetAuthentication:
-                                if (!bodyWrited)
+                            case ClientMessageAuthentication auth:
+                                if (!ctx.Response.HasStarted)
                                 {
-                                    CookieOptions opt = new();
-                                    opt.Expires = msg.Expires;
-                                    ctx.Response.Cookies.Append("X-Authorization", msg.Value!, opt);
+                                    if (auth.Clear)
+                                        ctx.Response.Cookies.Delete("X-Authorization");
+                                    else
+                                    {
+                                        CookieOptions opt = new();
+                                        opt.Expires = auth.Expires;
+                                        ctx.Response.Cookies.Append("X-Authorization", auth.Token, opt);
+                                    }
                                 }
                                 continue;
 
-                            case ClientMessage msg when msg.Type == ClientMessageType.ClearAuthentication:
-                                if (!bodyWrited)
-                                    ctx.Response.Cookies.Delete("X-Authorization");
-                                continue;
-
-                            case ClientMessage msg when msg.Type == ClientMessageType.Boundary:
+                            case ClientMessageBoundary:
                                 resText = _boundary;
                                 doFlush = true;
                                 break;
 
-                            case ClientMessage msg when msg.Type == ClientMessageType.Message:
+                            case ClientMessage msg:
                                 resText = msg.Value;
                                 break;
 
                             case Exception ex:
                                 if ((!ctx.Response.HasStarted) && (!errorReturns200)) ctx.Response.StatusCode = ErrorToStatusCode(ex);
                                 resText = ExceptionToJson(ex);
+                                LogException(ex, ctx, type);
                                 break;
 
                             case string str:
@@ -411,17 +484,16 @@ namespace Brayns.Shaper
                         }
 
                         if (task.IsWebClient)
-                            if (bodyWrited)
+                            if (ctx.Response.HasStarted)
                                 await ctx.Response.WriteAsync(",");
                             else
                                 await ctx.Response.WriteAsync("[");
 
                         if (resText != null)
-                        {
                             await ctx.Response.WriteAsync(resText);
-                            bodyWrited = true;
-                        }
-                        if (doFlush) await ctx.Response.Body.FlushAsync();
+
+                        if (doFlush) 
+                            await ctx.Response.Body.FlushAsync();
                     }
 
                     if (ctx.RequestAborted.IsCancellationRequested)
@@ -433,7 +505,7 @@ namespace Brayns.Shaper
             }
             catch (Exception ex)
             {
-                // do nothing
+                LogException(ex, ctx, type);
             }
         }
     }

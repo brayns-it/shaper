@@ -38,6 +38,13 @@ namespace Brayns.Shaper.Loader
             _typ = obj.GetType();
         }
 
+        private Proxy(MethodInfo met)
+        {
+            _obj = Activator.CreateInstance(met.DeclaringType!)!;
+            _typ = _obj.GetType();
+            _met = met;
+        }
+
         private Proxy(MethodInfo met, Dictionary<string, string> par)
         {
             _obj = Activator.CreateInstance(met.DeclaringType!)!;
@@ -60,6 +67,23 @@ namespace Brayns.Shaper.Loader
             if (!skipUnitSecurity)
                 AssertUnitSecurity(t);
             return new Proxy(Activator.CreateInstance(t)!);
+        }
+
+        public static Proxy CreateFromRawRoute(string routeName, string route)
+        {
+            MethodInfo? mi = null;
+
+            string k = route;
+            if (routeName.Length > 0) k = routeName + "_" + route;
+            if (Application.RawRoutes.ContainsKey(k))
+                mi = Application.RawRoutes[k];
+
+            if (mi == null)
+                throw new Error(Error.E_INVALID_ROUTE, Label("Invalid raw route '{0}' '{1}'", routeName, route));
+
+            AssertMethodSecurity(mi);
+
+            return new Proxy(mi);
         }
 
         public static Proxy CreateFromRoute(string route, ApiAction action)
@@ -172,6 +196,14 @@ namespace Brayns.Shaper.Loader
                 AssertMethodSecurity(mi);
 
             return Invoke(mi, parameters);
+        }
+
+        public object? Invoke(RawSession rawSession)
+        {
+            if (_met == null)
+                throw new Error(Label("Unknown method to invoke"));
+
+            return _met.Invoke(_obj, new object[] { rawSession });
         }
 
         public object? Invoke(JObject? parameters)
