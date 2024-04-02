@@ -249,12 +249,32 @@ namespace Brayns.Shaper
             }
         }
 
-        private static void LogException(Exception ex, HttpContext ctx, HttpContextType type)
+        private static void LogException(Exception ex, HttpContext ctx, HttpContextType type, WebTask? task)
         {
             if (type == HttpContextType.Rpc) return;
 
-            string message = ctx.Request.Method + " " + ctx.Request.Path + " " + ctx.Connection.RemoteIpAddress!.ToString();
-            Application.LogException("webdspch", message, ex);
+            try
+            {
+                string message = ctx.Request.Method + " " + ctx.Request.Path + " " + ctx.Connection.RemoteIpAddress!.ToString() + " " + ctx.Connection.Id;
+                Application.LogException("webdspch", message, ex);
+
+                if ((task != null) && (ctx.Request.ContentLength > 0))
+                {
+                    FileStream fs = new FileStream(Application.RootPath + "var/log/request_" + DateTime.Now.ToString("yyyyMMdd") + "_" + ctx.Connection.Id + ".txt", FileMode.CreateNew, FileAccess.Write, FileShare.Read);
+                    if (type == HttpContextType.RawRequest)
+                        fs.Write(task.RawSession.Request!, 0, task.RawSession.Request!.Length);
+                    else
+                    {
+                        byte[] buf = Encoding.UTF8.GetBytes(task.Parameters.ToString());
+                        fs.Write(buf, 0, buf.Length);
+                    }
+                    fs.Close();
+                }
+            }
+            catch
+            {
+                // do nothing
+            }
         }
 
         private static int ErrorToStatusCode(Exception ex)
@@ -329,12 +349,19 @@ namespace Brayns.Shaper
                     }
                 }
 
+                string normalizedPath = "";
+                if (type != HttpContextType.Rpc)
+                {
+                    string[] segs = ctx.Request.RouteValues["path"]!.ToString()!.Split('/', StringSplitOptions.RemoveEmptyEntries);
+                    normalizedPath = string.Join('/', segs);
+                }
+
                 switch (type)
                 {
                     case HttpContextType.Api:
                         ParamsFromQuery(task.Parameters, ctx.Request.Query);
 
-                        task.Route = ctx.Request.RouteValues["path"]!.ToString();
+                        task.Route = normalizedPath;
                         task.IsApiRequest = true;
 
                         switch (ctx.Request.Method)
@@ -390,7 +417,7 @@ namespace Brayns.Shaper
                         task.RawSession.RequestMethod = ctx.Request.Method;
                         task.RawSession.RequestPathWithQuery = ctx.Request.Path + ((ctx.Request.QueryString.HasValue) ? ctx.Request.QueryString : "");
 
-                        task.Route = ctx.Request.RouteValues["path"]!.ToString();
+                        task.Route = normalizedPath;
 
                         RouteNameMetadata? md = ctx.GetEndpoint()!.Metadata.GetMetadata<RouteNameMetadata>();
                         if (md != null) task.RouteName = md.RouteName;
@@ -403,12 +430,15 @@ namespace Brayns.Shaper
             catch (Exception ex)
             {
                 // pre task exception
-                if (!errorReturns200)
-                    ctx.Response.StatusCode = ErrorToStatusCode(ex);
-                ctx.Response.ContentType = "application/json";
+                if (!ctx.Response.HasStarted)
+                {
+                    if (!errorReturns200)
+                        ctx.Response.StatusCode = ErrorToStatusCode(ex);
+                    ctx.Response.ContentType = "application/json";
+                }
                 await ctx.Response.WriteAsync(ExceptionToJson(ex));
 
-                LogException(ex, ctx, type);
+                LogException(ex, ctx, type, task);
             }
 
             if (task == null)
@@ -416,8 +446,11 @@ namespace Brayns.Shaper
 
             try
             {
-                ctx.Response.StatusCode = 200;
-                ctx.Response.ContentType = "application/json";
+                if (!ctx.Response.HasStarted)
+                {
+                    ctx.Response.StatusCode = 200;
+                    ctx.Response.ContentType = "application/json";
+                }
 
                 while (true)
                 {
@@ -472,7 +505,7 @@ namespace Brayns.Shaper
                             case Exception ex:
                                 if ((!ctx.Response.HasStarted) && (!errorReturns200)) ctx.Response.StatusCode = ErrorToStatusCode(ex);
                                 resText = ExceptionToJson(ex);
-                                LogException(ex, ctx, type);
+                                LogException(ex, ctx, type, task);
                                 break;
 
                             case string str:
@@ -492,7 +525,7 @@ namespace Brayns.Shaper
                         if (resText != null)
                             await ctx.Response.WriteAsync(resText);
 
-                        if (doFlush) 
+                        if (doFlush)
                             await ctx.Response.Body.FlushAsync();
                     }
 
@@ -505,7 +538,7 @@ namespace Brayns.Shaper
             }
             catch (Exception ex)
             {
-                LogException(ex, ctx, type);
+                LogException(ex, ctx, type, task);
             }
         }
     }
