@@ -60,17 +60,26 @@ namespace Brayns.Shaper.Fields
 
         public override JValue Serialize()
         {
-            return SerializeValue(Value);
+            return SerializeJson(Value);
         }
 
-        public static JValue SerializeValue(System.DateTime val)
+        public static JValue SerializeJson(System.DateTime val)
         {
             return new JValue(val.ToString("yyyy-MM-dd"));
         }
 
         public override void Deserialize(JValue? value)
         {
-            throw new NotImplementedException();
+            Value = DeserializeJson(value);
+        }
+
+        public static System.DateTime DeserializeJson(JValue? value)
+        {
+            string val = value!.ToString();
+            if (val.Length == 0)
+                return System.DateTime.MinValue;
+            else
+                return System.DateTime.ParseExact(value!.ToString(), "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
         }
     }
 }

@@ -31,6 +31,30 @@ namespace Brayns.Shaper.Database
             ProcessIndexes();
         }
 
+        private Dictionary<string, List<string>> GetIndexColums(BaseTable table)
+        {
+            var res = Query(@"SELECT c.name colName, i.name idxName FROM sys.objects o, sys.indexes i, sys.index_columns x, sys.columns c 
+                WHERE (o.name = @p0) AND (o.type = @p1) AND (o.object_id = i.object_id) AND (i.is_primary_key = 0) AND
+                (x.object_id = o.object_id) AND (x.index_id = i.index_id) AND (c.object_id = o.object_id) AND
+                (c.column_id = x.column_id) ORDER BY x.key_ordinal",
+                table.TableSqlName, "U");
+
+            var result = new Dictionary<string, List<string>>();
+            foreach (var row in res)
+            {
+                var colName = (string)row["colName"]!;
+                var idxName = (string)row["idxName"]!;
+
+                if (!result.ContainsKey(colName))
+                    result[colName] = new();
+
+                if (!result[colName].Contains(idxName))
+                    result[colName].Add(idxName);
+            }
+
+            return result;
+        }
+
         private List<string> GetIndex(BaseTable table, string key)
         {
             var res = Query(@"SELECT c.name FROM sys.objects o, sys.indexes i, sys.index_columns x, sys.columns c 
@@ -111,6 +135,10 @@ namespace Brayns.Shaper.Database
             {
                 res += "varbinary(max) NULL";
             }
+            else if (field.Type == FieldTypes.TIMESTAMP)
+            {
+                res += "timestamp NOT NULL";
+            }
             else
             {
                 throw new Error(Label("Unknown field type '{0}'", field.Type));
@@ -138,7 +166,7 @@ namespace Brayns.Shaper.Database
                 var newIdx = String.Join(", ", CompilingTable!.TableIndexes[k].Select(f => f.SqlName));
 
                 if (curIdx == newIdx)
-                    return;
+                    continue;
 
                 if (curIdx.Length > 0)
                     DropIndex(k);
@@ -202,9 +230,7 @@ namespace Brayns.Shaper.Database
             if (res.Count == 0)
                 return;
 
-            var sql = "ALTER TABLE [" + CompilingTable!.TableSqlName + "] " +
-                "DROP INDEX [" + res[0]["name"] + "]";
-
+            var sql = "DROP INDEX [" + res[0]["name"] + "] ON [" + CompilingTable!.TableSqlName + "]";
             CompileExec(sql, false);
         }
 
@@ -254,7 +280,10 @@ namespace Brayns.Shaper.Database
                             var curDef = (string)row["typename"]!;
 
                             if ((string)row["typename"]! == "nvarchar")
-                                curDef += "(" + (Convert.ToInt32(row["max_length"]) / 2).ToString() + ")";
+                                if (Convert.ToInt32(row["max_length"]) == -1)
+                                    curDef += "(max)";
+                                else
+                                    curDef += "(" + (Convert.ToInt32(row["max_length"]) / 2).ToString() + ")";
 
                             else if ((string)row["typename"]! == "decimal")
                                 curDef += "(" + Convert.ToInt32(row["precision"]).ToString() + "," + Convert.ToInt32(row["scale"]).ToString() + ")";
@@ -298,9 +327,6 @@ namespace Brayns.Shaper.Database
 
                 foreach (var row in res)
                 {
-                    if ((string)row["name"]! == "timestamp")
-                        continue;
-
                     bool ok = false;
 
                     foreach (var field in CompilingTable!.UnitFields)
@@ -316,15 +342,27 @@ namespace Brayns.Shaper.Database
                         toDelete.Add((string)row["name"]!);
                 }
 
-                foreach (string fn in toDelete)
+                if (toDelete.Count > 0)
                 {
-                    if (curPk.Contains(fn))
-                        DropPrimaryKey();
+                    var indexes = GetIndexColums(CompilingTable!);
 
-                    var sql = "ALTER TABLE [" + CompilingTable.TableSqlName + "] " +
-                        "DROP COLUMN [" + fn + "]";
+                    foreach (string fn in toDelete)
+                    {
+                        if (curPk.Contains(fn))
+                            DropPrimaryKey();
 
-                    CompileExec(sql, true);
+                        if (indexes.ContainsKey(fn))
+                            foreach (var idx in indexes[fn])
+                            {
+                                var sql2 = "DROP INDEX [" + idx + "] ON [" + CompilingTable.TableSqlName + "]";
+                                CompileExec(sql2, false);
+                            }
+
+                        var sql = "ALTER TABLE [" + CompilingTable.TableSqlName + "] " +
+                            "DROP COLUMN [" + fn + "]";
+
+                        CompileExec(sql, true);
+                    }
                 }
 
                 foreach (BaseField field in toAdd)
@@ -378,9 +416,15 @@ namespace Brayns.Shaper.Database
             else
             {
                 var sql = "CREATE TABLE [" + CompilingTable!.TableSqlName + "] (";
+
+                bool comma = false;
                 foreach (BaseField field in CompilingTable!.UnitFields)
-                    sql += "[" + field.SqlName + "] " + GetFieldType(field) + ", ";
-                sql += "[timestamp] timestamp)";
+                {
+                    if (comma) sql += ", ";
+                    comma = true;
+                    sql += "[" + field.SqlName + "] " + GetFieldType(field);
+                }
+                sql += ")";
 
                 CompileExec(sql, false);
             }
@@ -472,6 +516,9 @@ namespace Brayns.Shaper.Database
 
         private object? FromSqlValue(BaseField f, object value)
         {
+            if (f.Type == FieldTypes.TIMESTAMP)
+                return TimestampToLong((byte[])value!);
+
             if ((f.Type == FieldTypes.CODE) || (f.Type == FieldTypes.TEXT))
                 return value;
 
@@ -525,6 +572,9 @@ namespace Brayns.Shaper.Database
 
         private object ToSqlValue(BaseField f, object? value)
         {
+            if (f.Type == FieldTypes.TIMESTAMP)
+                return LongToTimestamp((long)value!);
+
             if ((f.Type == FieldTypes.CODE) || (f.Type == FieldTypes.TEXT))
                 return value!;
 
@@ -600,7 +650,7 @@ namespace Brayns.Shaper.Database
             if (withTimestamp)
             {
                 sql += " AND ([timestamp] <= @p" + pars.Count + ")";
-                pars.Add(table.TableVersion);
+                pars.Add(ToSqlValue(table.TableVersion, table.TableVersion.Value));
             }
 
             return sql;
@@ -693,6 +743,9 @@ namespace Brayns.Shaper.Database
 
             foreach (BaseField field in table.UnitFields)
             {
+                if (field.Type == FieldTypes.TIMESTAMP)
+                    continue;
+
                 if ((field.Type == FieldTypes.INTEGER) || (field.Type == FieldTypes.BIGINTEGER))
                 {
                     var f = (Fields.IInteger)field;
@@ -733,7 +786,7 @@ namespace Brayns.Shaper.Database
 
         private void SetVersion(BaseTable table)
         {
-            table.TableVersion = (byte[])Query("SELECT @@DBTS [dbts]")[0]["dbts"]!;
+            table.TableVersion.Value = (long)Query("SELECT CAST(@@DBTS AS bigint) [dbts]")[0]["dbts"]!;
         }
 
         private List<Dictionary<string, object>> FindSet(BaseTable table, int? pageSize, int? offset, bool nextSet, bool? ascending, object[]? pkValues)
@@ -741,11 +794,7 @@ namespace Brayns.Shaper.Database
             List<object> pars = new();
             ascending = ascending ?? table.TableAscending;
 
-            var sql = "SELECT ";
-            foreach (BaseField f in table.UnitFields)
-                sql += "[" + f.SqlName + "], ";
-
-            sql += "[timestamp] FROM [" + table.TableSqlName + "]";
+            var sql = "SELECT " + ListFields(table.UnitFields) + " FROM [" + table.TableSqlName + "]";
             if (table.TableLock)
                 sql += " WITH (UPDLOCK)";
 
@@ -863,8 +912,34 @@ namespace Brayns.Shaper.Database
         {
             foreach (BaseField f in table.UnitFields)
                 f.Value = FromSqlValue(f, row[f.SqlName]);
+        }
 
-            table.TableVersion = row["timestamp"]!;
+        private byte[] LongToTimestamp(long val)
+        {
+            byte[] res = new byte[8];
+            res[7] = Convert.ToByte(val & 0xFF);
+            res[6] = Convert.ToByte((val >> 8) & 0xFF);
+            res[5] = Convert.ToByte((val >> 16) & 0xFF);
+            res[4] = Convert.ToByte((val >> 24) & 0xFF);
+            res[3] = Convert.ToByte((val >> 32) & 0xFF);
+            res[2] = Convert.ToByte((val >> 40) & 0xFF);
+            res[1] = Convert.ToByte((val >> 48) & 0xFF);
+            res[0] = Convert.ToByte((val >> 56) & 0xFF);
+            return res;
+        }
+
+        private long TimestampToLong(byte[] buf)
+        {
+            long res = buf[7] +
+                       (buf[6] << 8) +
+                       (buf[5] << 16) +
+                       (buf[4] << 24) +
+                       (buf[3] << 32) +
+                       (buf[2] << 40) +
+                       (buf[1] << 48) +
+                       (buf[0] << 56);
+
+            return res;
         }
 
         public override void Delete(BaseTable table)
@@ -949,6 +1024,8 @@ namespace Brayns.Shaper.Database
             List<BaseField> fields = new();
             foreach (BaseField f in table.UnitFields)
             {
+                if (f.Type == FieldTypes.TIMESTAMP)
+                    continue;
                 if (Functions.AreEquals(f.Value, f.XValue))
                     continue;
                 fields.Add(f);

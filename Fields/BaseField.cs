@@ -42,6 +42,9 @@ namespace Brayns.Shaper.Fields
 
         [Label("Guid")]
         public const int GUID = 12;
+
+        [Label("Timestamp")]
+        public const int TIMESTAMP = 13;
     }
 
     public class IndexList : Dictionary<string, FieldList>

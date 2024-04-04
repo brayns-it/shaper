@@ -74,7 +74,7 @@ namespace Brayns.Shaper.Fields
             return FormatValue(Value, Decimals, BlankZero);
         }
 
-        public static JValue SerializeValue(decimal val)
+        public static JValue SerializeJson(decimal val)
         {
             NumberFormatInfo nfi = new NumberFormatInfo();
             nfi.NumberGroupSeparator = "";
@@ -84,15 +84,15 @@ namespace Brayns.Shaper.Fields
 
         public override JValue Serialize()
         {
-            return SerializeValue(Value);
+            return SerializeJson(Value);
         }
 
         public override void Deserialize(JValue? value)
         {
-            Value = DeserializeText(value);
+            Value = DeserializeJson(value);
         }
 
-        public static decimal DeserializeText(JValue? value)
+        public static decimal DeserializeJson(JValue? value)
         {
             NumberFormatInfo nfi = new NumberFormatInfo();
             nfi.NumberGroupSeparator = "";

@@ -71,17 +71,22 @@ namespace Brayns.Shaper.Fields
 
         public override JValue Serialize()
         {
-            return SerializeValue(Value);
+            return SerializeJson(Value);
         }
 
-        public static JValue SerializeValue(System.Guid val)
+        public static JValue SerializeJson(System.Guid val)
         {
             return new JValue(val.ToString());
         }
 
         public override void Deserialize(JValue? value)
         {
-            throw new NotImplementedException();
+            Value = DeserializeJson(value);
+        }
+
+        public static System.Guid DeserializeJson(JValue? value)
+        {
+            return System.Guid.Parse(value!.ToString());
         }
 
         public void SetRange(Guid value)

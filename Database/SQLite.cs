@@ -333,7 +333,8 @@ namespace Brayns.Shaper.Database
             {
                 var sql = "CREATE TABLE [" + CompilingTable!.TableSqlName + "] (";
                 foreach (BaseField field in CompilingTable!.UnitFields)
-                    sql += "[" + field.SqlName + "] " + GetFieldType(field) + ", ";
+                    if (field.Name != "timestamp")
+                        sql += "[" + field.SqlName + "] " + GetFieldType(field) + ", ";
                 sql += "[timestamp] int)";
 
                 CompileExec(sql, false);
@@ -554,7 +555,7 @@ namespace Brayns.Shaper.Database
             if (withTimestamp)
             {
                 sql += " AND ([timestamp] <= $p" + pars.Count + ")";
-                pars.Add(table.TableVersion);
+                pars.Add(table.TableVersion.Value);
             }
 
             return sql;
@@ -647,6 +648,9 @@ namespace Brayns.Shaper.Database
 
             foreach (BaseField field in table.UnitFields)
             {
+                if (field.Name == "timestamp")
+                    continue;
+
                 if ((field.Type == FieldTypes.INTEGER) || (field.Type == FieldTypes.BIGINTEGER))
                 {
                     var f = (Fields.IInteger)field;
@@ -672,7 +676,7 @@ namespace Brayns.Shaper.Database
                 ", 1)";
 
             Execute(sql, pars.ToArray());
-            table.TableVersion = 1;
+            table.TableVersion.Value = 1;
 
             if ((identity != null) && (!identityInsert))
                 identity.Value = Query("SELECT last_insert_rowid() AS [id]")[0]["id"];
@@ -683,11 +687,7 @@ namespace Brayns.Shaper.Database
             List<object> pars = new();
             ascending = ascending ?? table.TableAscending;
 
-            var sql = "SELECT ";
-            foreach (BaseField f in table.UnitFields)
-                sql += "[" + f.SqlName + "], ";
-
-            sql += "[timestamp] FROM [" + table.TableSqlName + "]";
+            var sql = "SELECT " + ListFields(table.UnitFields) + " FROM [" + table.TableSqlName + "]";
 
             var where = new List<string>();
             if (pkValues != null)
@@ -803,8 +803,6 @@ namespace Brayns.Shaper.Database
         {
             foreach (BaseField f in table.UnitFields)
                 f.Value = FromSqlValue(f, row[f.SqlName]);
-
-            table.TableVersion = row["timestamp"]!;
         }
 
         public override void Delete(BaseTable table)
@@ -835,7 +833,7 @@ namespace Brayns.Shaper.Database
             List<object> pars = new();
 
             var sql = "UPDATE [" + table.TableSqlName + "] SET " +
-                "[" + field.SqlName + "] = $p0";
+                "[" + field.SqlName + "] = $p0, [timestamp] = [timestamp] + 1";
             pars.Add(ToSqlValue(field, field.Value));
 
             List<string> where = GetWhere(table, pars);
@@ -843,7 +841,7 @@ namespace Brayns.Shaper.Database
                 sql += " WHERE " + String.Join(" AND ", where);
 
             Execute(sql, pars.ToArray());
-            table.TableVersion = Convert.ToInt32(table.TableVersion) + 1;
+            table.TableVersion.Value++;
         }
 
         public override void Rename(BaseTable table)
@@ -889,6 +887,8 @@ namespace Brayns.Shaper.Database
             List<BaseField> fields = new();
             foreach (BaseField f in table.UnitFields)
             {
+                if (f.Name == "timestamp")
+                    continue;
                 if (Functions.AreEquals(f.Value, f.XValue))
                     continue;
                 fields.Add(f);
@@ -912,7 +912,7 @@ namespace Brayns.Shaper.Database
             if (a != 1)
                 throw table.ErrorConcurrency();
 
-            table.TableVersion = Convert.ToInt32(table.TableVersion) + 1;
+            table.TableVersion.Value++;
         }
     }
 }

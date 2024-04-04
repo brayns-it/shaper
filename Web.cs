@@ -22,6 +22,7 @@ namespace Brayns.Shaper
         public Dictionary<string, string> RequestHeaders { get; set; } = new();
         public string RequestMethod { get; set; } = "";
         public string RequestPathWithQuery { get; set; } = "";
+        public string RequestURI { get; set; } = "";
 
         public byte[]? Response { get; set; }
         public string ResponseType { get; set; } = "text/plain";
@@ -416,6 +417,7 @@ namespace Brayns.Shaper
                         task.RawSession.RequestType = ctx.Request.ContentType;
                         task.RawSession.RequestMethod = ctx.Request.Method;
                         task.RawSession.RequestPathWithQuery = ctx.Request.Path + ((ctx.Request.QueryString.HasValue) ? ctx.Request.QueryString : "");
+                        task.RawSession.RequestURI = ctx.Request.Scheme + "://" + ctx.Request.Host + ctx.Request.Path;
 
                         task.Route = normalizedPath;
 
@@ -439,13 +441,14 @@ namespace Brayns.Shaper
                 await ctx.Response.WriteAsync(ExceptionToJson(ex));
 
                 LogException(ex, ctx, type, task);
-            }
-
-            if (task == null)
                 return;
+            }
 
             try
             {
+                if (task == null)
+                    throw new Error("No task created");
+
                 if (!ctx.Response.HasStarted)
                 {
                     ctx.Response.StatusCode = 200;

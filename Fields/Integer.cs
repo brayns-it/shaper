@@ -94,17 +94,23 @@ namespace Brayns.Shaper.Fields
 
         public override JValue Serialize()
         {
-            return SerializeValue(Value);
+            return SerializeJson(Value);
         }
 
-        public static JValue SerializeValue(int value)
+        public static JValue SerializeJson(int value)
         {
             return new JValue(value);
         }
 
         public override void Deserialize(JValue? value)
         {
-            throw new NotImplementedException();
+            Value = DeserializeJson(value);
         }
+
+        public static int DeserializeJson(JValue? value)
+        {
+            return value!.ToObject<int>();
+        }
+
     }
 }

@@ -9,7 +9,7 @@ namespace Brayns.Shaper.Objects
         private List<FieldFilter> _lastFilters = new List<FieldFilter>();
         private bool _pagination = false;
         private bool _selection = false;
-        
+
         private Database.Database? _database;
         internal Database.Database? TableDatabase
         {
@@ -24,8 +24,8 @@ namespace Brayns.Shaper.Objects
 
         internal List<ITableRelation> TableRelations { get; init; } = new();
 
+        public Fields.Timestamp TableVersion { get; } = new();
         public FilterLevel TableFilterLevel { get; set; }
-        public object TableVersion { get; internal set; } = DBNull.Value;
         public bool TableAscending { get; set; } = true;
         public bool TableLock { get; set; } = false;
         public FieldList TableSort { get; init; } = new();
@@ -36,7 +36,7 @@ namespace Brayns.Shaper.Objects
         public event GenericHandler? Deleting;
         public event GenericHandler? Modifying;
         public event GenericHandler? Renaming;
-        
+
         internal Error ErrorPrimaryKeyModify(BaseField f)
         {
             return new Classes.Error(Label("Cannot modify primary key '{0}', use rename instead", f.Caption));
@@ -313,7 +313,7 @@ namespace Brayns.Shaper.Objects
         {
             List<object> result = new();
             foreach (var f in TablePrimaryKey)
-                    result.Add(f.Value!);
+                result.Add(f.Value!);
             return result;
         }
 
@@ -383,7 +383,6 @@ namespace Brayns.Shaper.Objects
 
         public void Init()
         {
-            TableVersion = DBNull.Value;
             foreach (BaseField f in UnitFields)
                 f.Init();
         }
@@ -393,6 +392,14 @@ namespace Brayns.Shaper.Objects
             foreach (var f in UnitFields)
                 if (f.Name == name)
                     return f;
+            return null;
+        }
+
+        public T? FieldByName<T>(string name) where T : BaseField
+        {
+            foreach (var f in UnitFields)
+                if (f.Name == name)
+                    return (T)f;
             return null;
         }
 
@@ -411,12 +418,12 @@ namespace Brayns.Shaper.Objects
         {
             JObject result = new();
             foreach (BaseField f in UnitFields)
-                result[Functions.NameForJson(f.Name)] = f.Serialize();
+                result[Functions.NameForProperty(f.Name)] = f.Serialize();
             return result;
         }
     }
 
-    public abstract class Table<T> : BaseTable 
+    public abstract class Table<T> : BaseTable
     {
         internal override void UnitInitialize()
         {

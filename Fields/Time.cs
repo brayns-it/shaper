@@ -60,10 +60,10 @@ namespace Brayns.Shaper.Fields
 
         public override JValue Serialize()
         {
-            return SerializeValue(Value);
+            return SerializeJson(Value);
         }
 
-        public static JValue SerializeValue(System.DateTime val)
+        public static JValue SerializeJson(System.DateTime val)
         {
             return new JValue(val.ToString("HH:mm:ss.fff"));
         }

@@ -174,7 +174,7 @@
                     var sub = (Controls.BaseSubpage)c;
                     t = sub.Part;
                 }
-                
+
                 if (t == null) continue;
 
                 if (!Loader.Permissions.IsAllowed(t, Loader.PermissionType.Execute, false))
@@ -443,7 +443,7 @@
         {
             if ((Rec != null) && (!MultipleRows))
             {
-                if (Rec.TableVersion == DBNull.Value)
+                if (Rec.TableVersion.Value == 0)
                 {
                     UnitCaption = Label("New {0}", Rec.UnitCaption);
                 }
@@ -655,7 +655,7 @@
                 bool isKey = Rec.TablePrimaryKey.Contains(field);
                 bool lastKey = (Rec.TablePrimaryKey.IndexOf(field) == (Rec.TablePrimaryKey.Count - 1));
 
-                if (Rec.TableVersion == DBNull.Value)
+                if (Rec.TableVersion.Value == 0)
                 {
                     if ((isKey && lastKey) || (!isKey))
                     {

@@ -88,10 +88,10 @@
 
         public override JValue Serialize()
         {
-            return SerializeValue(Value);
+            return SerializeJson(Value);
         }
 
-        public static JValue SerializeValue(string value)
+        public static JValue SerializeJson(string value)
         {
             return new JValue(value);
         }
@@ -103,7 +103,12 @@
 
         public override void Deserialize(JValue? value)
         {
-            throw new NotImplementedException();
+            Value = DeserializeJson(value);
+        }
+
+        public static string DeserializeJson(JValue? value)
+        {
+            return value!.ToString();
         }
     }
 }

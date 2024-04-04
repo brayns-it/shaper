@@ -61,7 +61,7 @@ namespace Brayns.Shaper.Classes
             return result;
         }
 
-        public static string NameForJson(string name)
+        public static string NameForProperty(string name, bool firstLower = true)
         {
             name = name.Trim();
             if (name.Length == 0)
@@ -82,7 +82,7 @@ namespace Brayns.Shaper.Classes
                     name2 += "_";
             }
 
-            bool toUpper = false;
+            bool toUpper = !firstLower;
             var result = "";
             for (int i = 0; i < name2.Length; i++)
             {

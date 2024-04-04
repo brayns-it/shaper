@@ -85,19 +85,24 @@ namespace Brayns.Shaper.Fields
             SetRange<bool>(value);
         }
 
-        public static JValue SerializeValue(bool value)
+        public static JValue SerializeJson(bool value)
         {
             return new JValue(value);
         }
 
         public override JValue Serialize()
         {
-            return SerializeValue(Value);
+            return SerializeJson(Value);
         }
 
         public override void Deserialize(JValue? value)
         {
-            throw new NotImplementedException();
+            Value = DeserializeJson(value);
+        }
+
+        public static bool DeserializeJson(JValue? value)
+        {
+            return value!.ToObject<bool>();
         }
     }
 }
