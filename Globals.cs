@@ -27,3 +27,5 @@ global using Progress = Brayns.Shaper.Systems.Progress;
 global using Icon = Brayns.Shaper.Controls.Icon;
 global using FilterLevel = Brayns.Shaper.Fields.FilterLevel;
 global using Brayns.Shaper.Extensions;
+global using DbRow = Brayns.Shaper.Database.DbRow;
+global using DbTable = Brayns.Shaper.Database.DbTable;

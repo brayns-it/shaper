@@ -21,6 +21,9 @@ namespace Brayns.Shaper.Objects
 
         [Label("Page")]
         public const int PAGE = 4;
+
+        [Label("Query")]
+        public const int QUERY = 5;
     }
 
     public abstract class Unit 

@@ -24,6 +24,21 @@ namespace Brayns.Shaper.Database
         CheckOnly
     }
 
+    public class DbRow : Dictionary<string, object>
+    {
+        public T Value<T>(string columnName)
+        {
+            object o = this[columnName];
+            if (o == DBNull.Value) return default(T)!;
+            return (T)Convert.ChangeType(o, typeof(T));
+        }
+    }
+
+    public class DbTable : List<DbRow>
+    {
+
+    }
+
     public abstract class Database
     {
         protected BaseTable? CompilingTable { get; set; }
@@ -55,6 +70,8 @@ namespace Brayns.Shaper.Database
         public abstract List<Dictionary<string, object>> NextSet(BaseTable table);
         public abstract List<Dictionary<string, object>> Get(BaseTable table, object[] pkValues);
         public abstract void LoadRow(BaseTable table, Dictionary<string, object> row);
+        public abstract object ExecuteReader(string sql, params object[] args);
+        public abstract DbRow? ReadRow(object reader);
 
         protected int CompileExec(string sql, bool disruptive, params object[] args)
         {

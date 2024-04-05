@@ -18,6 +18,7 @@ namespace Brayns.Shaper.Database
     {
         SqliteConnection? _connection;
         SqliteTransaction? _transaction;
+        SqliteDataReader? _reader;
 
         static SQLite()
         {
@@ -56,7 +57,11 @@ namespace Brayns.Shaper.Database
         {
             string res = "";
 
-            if ((field.Type == FieldTypes.CODE) || (field.Type == FieldTypes.TEXT))
+            if (field.Type == FieldTypes.TIMESTAMP)
+            {
+                res += "int NOT NULL";
+            }
+            else if ((field.Type == FieldTypes.CODE) || (field.Type == FieldTypes.TEXT))
             {
                 var f = (Fields.Text)field;
                 if (f.Length == Fields.Text.MAX_LENGTH)
@@ -332,10 +337,15 @@ namespace Brayns.Shaper.Database
             else
             {
                 var sql = "CREATE TABLE [" + CompilingTable!.TableSqlName + "] (";
+
+                bool comma = false;
                 foreach (BaseField field in CompilingTable!.UnitFields)
-                    if (field.Name != "timestamp")
-                        sql += "[" + field.SqlName + "] " + GetFieldType(field) + ", ";
-                sql += "[timestamp] int)";
+                {
+                    if (comma) sql += ", ";
+                    comma = true;
+                    sql += "[" + field.SqlName + "] " + GetFieldType(field);
+                }
+                sql += ")";
 
                 CompileExec(sql, false);
             }
@@ -393,22 +403,25 @@ namespace Brayns.Shaper.Database
             return cmd;
         }
 
+        public override object ExecuteReader(string sql, params object[] args)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override DbRow? ReadRow(object reader)
+        {
+            throw new NotImplementedException();
+        }
+
         public override List<Dictionary<string, object>> Query(string sql, params object[] args)
         {
-            var cmd = CreateCommand(sql, args);
-
             var res = new List<Dictionary<string, object>>();
+            Dictionary<string, object>? row;
 
+            var cmd = CreateCommand(sql, args);
             var rdr = cmd.ExecuteReader();
-            while (rdr.Read())
-            {
-                var row = new Dictionary<string, object>();
-                for (var i = 0; i < rdr.FieldCount; i++)
-                    row[rdr.GetName(i)] = rdr[i];
-
+            while ((row = ReadRow(rdr)) != null)
                 res.Add(row);
-            }
-            rdr.Close();
 
             return res;
         }
@@ -424,6 +437,9 @@ namespace Brayns.Shaper.Database
 
         private object? FromSqlValue(BaseField f, object value)
         {
+            if (f.Type == FieldTypes.TIMESTAMP)
+                return Convert.ToInt64(value!);
+
             if ((f.Type == FieldTypes.CODE) || (f.Type == FieldTypes.TEXT))
                 return Convert.ToString(value);
 
@@ -480,6 +496,9 @@ namespace Brayns.Shaper.Database
 
         private object ToSqlValue(BaseField f, object? value)
         {
+            if (f.Type == FieldTypes.TIMESTAMP)
+                return Convert.ToInt64(value!);
+
             if ((f.Type == FieldTypes.CODE) || (f.Type == FieldTypes.TEXT))
                 return value!;
 
@@ -555,7 +574,7 @@ namespace Brayns.Shaper.Database
             if (withTimestamp)
             {
                 sql += " AND ([timestamp] <= $p" + pars.Count + ")";
-                pars.Add(table.TableVersion.Value);
+                pars.Add(ToSqlValue(table.TableVersion, table.TableVersion.Value));
             }
 
             return sql;
@@ -646,11 +665,10 @@ namespace Brayns.Shaper.Database
             bool identityInsert = false;
             List<BaseField> fields = new();
 
+            table.TableVersion.Value = 1;
+
             foreach (BaseField field in table.UnitFields)
             {
-                if (field.Name == "timestamp")
-                    continue;
-
                 if ((field.Type == FieldTypes.INTEGER) || (field.Type == FieldTypes.BIGINTEGER))
                 {
                     var f = (Fields.IInteger)field;
@@ -671,12 +689,11 @@ namespace Brayns.Shaper.Database
 
             var sql = "INSERT INTO [" + table.TableSqlName + "] (" +
                 ListFields(fields) +
-                ", [timestamp]) VALUES (" +
+                ") VALUES (" +
                 String.Join(", ", places) +
-                ", 1)";
+                ")";
 
             Execute(sql, pars.ToArray());
-            table.TableVersion.Value = 1;
 
             if ((identity != null) && (!identityInsert))
                 identity.Value = Query("SELECT last_insert_rowid() AS [id]")[0]["id"];
@@ -887,8 +904,6 @@ namespace Brayns.Shaper.Database
             List<BaseField> fields = new();
             foreach (BaseField f in table.UnitFields)
             {
-                if (f.Name == "timestamp")
-                    continue;
                 if (Functions.AreEquals(f.Value, f.XValue))
                     continue;
                 fields.Add(f);
@@ -896,14 +911,21 @@ namespace Brayns.Shaper.Database
             if (fields.Count == 0)
                 return;
 
+            fields.Add(table.TableVersion);
+
             var sql = "UPDATE [" + table.TableSqlName + "] SET ";
+            bool comma = false;
             foreach (BaseField f in fields)
             {
+                if (comma) sql += ", ";
+                comma = true;
                 sql += "[" + f.SqlName + "] = $p" + pars.Count;
-                sql += ", ";
-                pars.Add(ToSqlValue(f, f.Value));
+
+                if (f == table.TableVersion)
+                    pars.Add(ToSqlValue(f, table.TableVersion.Value + 1));
+                else
+                    pars.Add(ToSqlValue(f, f.Value));
             }
-            sql += "[timestamp] = [timestamp] + 1";
 
             sql += " WHERE ";
             sql += GetWherePrimaryKey(table, pars);

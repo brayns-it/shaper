@@ -16,8 +16,10 @@ namespace Brayns.Shaper.Database
 {
     public class SqlServer : Database
     {
+        string _dsn = "";
         SqlConnection? _connection;
         SqlTransaction? _transaction;
+        Dictionary<SqlDataReader, SqlConnection> _readerConns = new();
 
         public override void Compile(BaseTable table)
         {
@@ -29,30 +31,6 @@ namespace Brayns.Shaper.Database
             ProcessTable();
             ProcessPrimaryKey();
             ProcessIndexes();
-        }
-
-        private Dictionary<string, List<string>> GetIndexColums(BaseTable table)
-        {
-            var res = Query(@"SELECT c.name colName, i.name idxName FROM sys.objects o, sys.indexes i, sys.index_columns x, sys.columns c 
-                WHERE (o.name = @p0) AND (o.type = @p1) AND (o.object_id = i.object_id) AND (i.is_primary_key = 0) AND
-                (x.object_id = o.object_id) AND (x.index_id = i.index_id) AND (c.object_id = o.object_id) AND
-                (c.column_id = x.column_id) ORDER BY x.key_ordinal",
-                table.TableSqlName, "U");
-
-            var result = new Dictionary<string, List<string>>();
-            foreach (var row in res)
-            {
-                var colName = (string)row["colName"]!;
-                var idxName = (string)row["idxName"]!;
-
-                if (!result.ContainsKey(colName))
-                    result[colName] = new();
-
-                if (!result[colName].Contains(idxName))
-                    result[colName].Add(idxName);
-            }
-
-            return result;
         }
 
         private List<string> GetIndex(BaseTable table, string key)
@@ -220,6 +198,22 @@ namespace Brayns.Shaper.Database
             return res;
         }
 
+        private void DropIndexByColumn(string colName)
+        {
+            var res = Query(@"SELECT i.name FROM sys.objects o, sys.indexes i, sys.index_columns x, sys.columns c 
+                WHERE (o.name = @p0) AND (o.type = @p1) AND (o.object_id = i.object_id) AND (i.is_primary_key = 0) AND
+                (c.name = @p2) AND
+                (x.object_id = o.object_id) AND (x.index_id = i.index_id) AND (c.object_id = o.object_id) AND
+                (c.column_id = x.column_id) ORDER BY x.key_ordinal",
+                CompilingTable!.TableSqlName, "U", colName);
+
+            foreach (var row in res)
+            {
+                var sql = "DROP INDEX [" + row["name"] + "] ON [" + CompilingTable!.TableSqlName + "]";
+                CompileExec(sql, false);
+            }
+        }
+
         private void DropIndex(string key)
         {
             var res = Query(@"SELECT i.[name] FROM sys.objects o, sys.indexes i
@@ -344,19 +338,13 @@ namespace Brayns.Shaper.Database
 
                 if (toDelete.Count > 0)
                 {
-                    var indexes = GetIndexColums(CompilingTable!);
 
                     foreach (string fn in toDelete)
                     {
                         if (curPk.Contains(fn))
                             DropPrimaryKey();
 
-                        if (indexes.ContainsKey(fn))
-                            foreach (var idx in indexes[fn])
-                            {
-                                var sql2 = "DROP INDEX [" + idx + "] ON [" + CompilingTable.TableSqlName + "]";
-                                CompileExec(sql2, false);
-                            }
+                        DropIndexByColumn(fn);
 
                         var sql = "ALTER TABLE [" + CompilingTable.TableSqlName + "] " +
                             "DROP COLUMN [" + fn + "]";
@@ -469,6 +457,7 @@ namespace Brayns.Shaper.Database
 
         public override void Connect(string dsn)
         {
+            _dsn = dsn;
             _connection = new(dsn);
             _connection.Open();
             _transaction = _connection.BeginTransaction(System.Data.IsolationLevel.ReadCommitted);
@@ -485,22 +474,54 @@ namespace Brayns.Shaper.Database
             return cmd;
         }
 
-        public override List<Dictionary<string, object>> Query(string sql, params object[] args)
+        public override object ExecuteReader(string sql, params object[] args)
         {
-            var cmd = CreateCommand(sql, args);
-
-            var res = new List<Dictionary<string, object>>();
+            var conn = new SqlConnection(_dsn);
+            conn.Open();
+            
+            var cmd = conn.CreateCommand();
+            cmd.CommandText = sql;
+            for (int i = 0; i < args.Length; i++)
+                cmd.Parameters.AddWithValue("@p" + i.ToString(), args[i]);
 
             var rdr = cmd.ExecuteReader();
-            while (rdr.Read())
+            _readerConns.Add(rdr, conn);
+            return rdr;
+        }
+
+        public override DbRow? ReadRow(object reader)
+        {
+            var rdr = (SqlDataReader)reader;
+            if (rdr.Read())
             {
-                var row = new Dictionary<string, object>();
+                var row = new DbRow();
                 for (var i = 0; i < rdr.FieldCount; i++)
                     row[rdr.GetName(i)] = rdr[i];
-
-                res.Add(row);
+                return row;
             }
-            rdr.Close();
+            else
+            {
+                rdr.Close();
+
+                if (_readerConns.ContainsKey(rdr))
+                {
+                    _readerConns[rdr].Close();
+                    _readerConns.Remove(rdr);
+                }
+
+                return null;
+            }
+        }
+
+        public override List<Dictionary<string, object>> Query(string sql, params object[] args)
+        {
+            var res = new List<Dictionary<string, object>>();
+            Dictionary<string, object>? row;
+
+            var cmd = CreateCommand(sql, args);
+            var rdr = cmd.ExecuteReader();
+            while ((row = ReadRow(rdr)) != null)
+                res.Add(row);
 
             return res;
         }
@@ -512,6 +533,11 @@ namespace Brayns.Shaper.Database
 
             _connection?.Close();
             _connection = null;
+
+            foreach (var conn in _readerConns.Values)
+                conn.Close();
+
+            _readerConns.Clear();
         }
 
         private object? FromSqlValue(BaseField f, object value)
@@ -686,6 +712,8 @@ namespace Brayns.Shaper.Database
 
                 sql += expr;
             }
+            if (sql.Length > 0)
+                sql = "(" + sql + ")";
             return sql;
         }
 
