@@ -513,10 +513,10 @@ namespace Brayns.Shaper.Database
             }
         }
 
-        public override List<Dictionary<string, object>> Query(string sql, params object[] args)
+        public override DbTable Query(string sql, params object[] args)
         {
-            var res = new List<Dictionary<string, object>>();
-            Dictionary<string, object>? row;
+            var res = new DbTable();
+            DbRow? row;
 
             var cmd = CreateCommand(sql, args);
             var rdr = cmd.ExecuteReader();
@@ -817,7 +817,7 @@ namespace Brayns.Shaper.Database
             table.TableVersion.Value = (long)Query("SELECT CAST(@@DBTS AS bigint) [dbts]")[0]["dbts"]!;
         }
 
-        private List<Dictionary<string, object>> FindSet(BaseTable table, int? pageSize, int? offset, bool nextSet, bool? ascending, object[]? pkValues)
+        private DbTable FindSet(BaseTable table, int? pageSize, int? offset, bool nextSet, bool? ascending, object[]? pkValues)
         {
             List<object> pars = new();
             ascending = ascending ?? table.TableAscending;
@@ -911,27 +911,27 @@ namespace Brayns.Shaper.Database
             return (int)res[0]["c"]!;
         }
 
-        public override List<Dictionary<string, object>> FindFirst(BaseTable table)
+        public override DbTable FindFirst(BaseTable table)
         {
             return FindSet(table, 1, 0, false, null, null);
         }
 
-        public override List<Dictionary<string, object>> FindLast(BaseTable table)
+        public override DbTable FindLast(BaseTable table)
         {
             return FindSet(table, 1, 0, false, !(table.TableAscending ^ false), null);
         }
 
-        public override List<Dictionary<string, object>> FindSet(BaseTable table, int? pageSize = null, int? offset = null)
+        public override DbTable FindSet(BaseTable table, int? pageSize = null, int? offset = null)
         {
             return FindSet(table, pageSize, offset, false, null, null);
         }
 
-        public override List<Dictionary<string, object>> NextSet(BaseTable table)
+        public override DbTable NextSet(BaseTable table)
         {
             return FindSet(table, null, null, true, null, null);
         }
 
-        public override List<Dictionary<string, object>> Get(BaseTable table, object[] pkValues)
+        public override DbTable Get(BaseTable table, object[] pkValues)
         {
             return FindSet(table, null, null, false, null, pkValues);
         }

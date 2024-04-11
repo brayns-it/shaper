@@ -13,7 +13,7 @@
     {
         internal List<Fields.BaseField> DataFields { get; set; } = new();
         internal Dictionary<string, Controls.Control> AllItems { get; set; } = new();
-        internal List<Dictionary<string, object>> DataSet { get; set; } = new();
+        internal DbTable DataSet { get; set; } = new();
         internal List<int> Selection { get; set; } = new();
         internal bool MultipleRows { get; set; } = false;
         internal bool OpenAsNew { get; set; } = false;
@@ -694,7 +694,7 @@
 
         public void SetSelectionFilter<R>(R table) where R : BaseTable
         {
-            List<Dictionary<string, object>> selDs = new();
+            DbTable selDs = new();
             foreach (var n in Selection)
                 selDs.Add(DataSet[n]);
 

@@ -4,7 +4,7 @@ namespace Brayns.Shaper.Objects
 {
     public abstract class BaseTable : Unit
     {
-        private List<Dictionary<string, object>> _dataset = new();
+        private DbTable _dataset = new();
         private int _currentRow = -1;
         private List<FieldFilter> _lastFilters = new List<FieldFilter>();
         private bool _pagination = false;
@@ -63,13 +63,13 @@ namespace Brayns.Shaper.Objects
             return res;
         }
 
-        internal void SetDataset(Dictionary<string, object> dataset)
+        internal void SetDataset(DbRow dataset)
         {
             TableDatabase!.LoadRow(this, dataset);
             AcceptChanges();
         }
 
-        internal Dictionary<string, object> GetDataset()
+        internal DbRow GetDataset()
         {
             return _dataset![_currentRow];
         }
@@ -135,7 +135,7 @@ namespace Brayns.Shaper.Objects
             }
         }
 
-        internal void SetSelection(List<Dictionary<string, object>> dataset)
+        internal void SetSelection(DbTable dataset)
         {
             _pagination = true;
             _selection = true;

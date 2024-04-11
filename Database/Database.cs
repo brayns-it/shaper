@@ -51,7 +51,7 @@ namespace Brayns.Shaper.Database
         public abstract void Connect(string dsn);
         public abstract void Disconnect();
         public abstract void Compile(BaseTable table);
-        public abstract List<Dictionary<string, object>> Query(string sql, params object[] args);
+        public abstract DbTable Query(string sql, params object[] args);
         public abstract int Execute(string sql, params object[] args);
         public abstract void Commit();
         public abstract void Rollback();
@@ -64,11 +64,11 @@ namespace Brayns.Shaper.Database
         public abstract void Rename(BaseTable table);
         public abstract int Count(BaseTable table);
         public abstract int GetConnectionId();
-        public abstract List<Dictionary<string, object>> FindFirst(BaseTable table);
-        public abstract List<Dictionary<string, object>> FindLast(BaseTable table);
-        public abstract List<Dictionary<string, object>> FindSet(BaseTable table, int? pageSize = null, int? offset = null);
-        public abstract List<Dictionary<string, object>> NextSet(BaseTable table);
-        public abstract List<Dictionary<string, object>> Get(BaseTable table, object[] pkValues);
+        public abstract DbTable FindFirst(BaseTable table);
+        public abstract DbTable FindLast(BaseTable table);
+        public abstract DbTable FindSet(BaseTable table, int? pageSize = null, int? offset = null);
+        public abstract DbTable NextSet(BaseTable table);
+        public abstract DbTable Get(BaseTable table, object[] pkValues);
         public abstract void LoadRow(BaseTable table, Dictionary<string, object> row);
         public abstract object ExecuteReader(string sql, params object[] args);
         public abstract DbRow? ReadRow(object reader);

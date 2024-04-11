@@ -16,9 +16,10 @@ namespace Brayns.Shaper.Database
 {
     public class SQLite : Database
     {
+        string _dsn = "";
         SqliteConnection? _connection;
         SqliteTransaction? _transaction;
-        SqliteDataReader? _reader;
+        Dictionary<SqliteDataReader, SqliteConnection> _readerConns = new();
 
         static SQLite()
         {
@@ -65,15 +66,15 @@ namespace Brayns.Shaper.Database
             {
                 var f = (Fields.Text)field;
                 if (f.Length == Fields.Text.MAX_LENGTH)
-                    res += "nvarchar(max) NOT NULL";
+                    res += "text COLLATE NOCASE NOT NULL";
                 else
-                    res += "nvarchar(" + f.Length.ToString() + ") NOT NULL";
+                    res += "nvarchar(" + f.Length.ToString() + ") COLLATE NOCASE NOT NULL";
             }
             else if (field.Type == FieldTypes.INTEGER)
             {
                 var f = (Fields.Integer)field;
-                
-                if (f.AutoIncrement) 
+
+                if (f.AutoIncrement)
                     res += "INTEGER PRIMARY KEY AUTOINCREMENT";
                 else
                     res += "int NOT NULL";
@@ -104,7 +105,7 @@ namespace Brayns.Shaper.Database
             }
             else if (field.Type == FieldTypes.GUID)
             {
-                res += "nvarchar(100) NOT NULL";
+                res += "nvarchar(100) COLLATE NOCASE NOT NULL";
             }
             else if (field.Type == FieldTypes.BLOB)
             {
@@ -167,82 +168,54 @@ namespace Brayns.Shaper.Database
 
         private void DropPrimaryKey()
         {
-            var res = Query(@"SELECT i.[name] FROM sys.objects o, sys.indexes i
-                WHERE (o.name = @p0) AND (o.type = @p1) AND (o.object_id = i.object_id) AND
-                (i.is_primary_key = 1)",
-                CompilingTable!.TableSqlName, "U");
+            var res = Query(@"SELECT sql FROM sqlite_schema WHERE ([type] = 'index') AND ([name] = $p0) AND ([tbl_name] = $p1)",
+                CompilingTable!.TableSqlName + "$PK", CompilingTable!.TableSqlName);
 
             if (res.Count == 0)
                 return;
 
-            var sql = "ALTER TABLE [" + CompilingTable!.TableSqlName + "] " +
-                "DROP CONSTRAINT [" + res[0]["name"] + "]";
+            var sql = "DROP INDEX [" + CompilingTable!.TableSqlName + "$PK]";
 
             CompileExec(sql, false);
         }
 
         private void ProcessTable()
         {
-            if (Query("SELECT NULL FROM sqlite_schema WHERE ([type] = 'table') AND ([name] = $p0) LIMIT 1",
-                CompilingTable!.TableSqlName).Count > 0)
+            DbTable tab = Query("SELECT * FROM sqlite_schema WHERE ([type] = 'table') AND ([name] = $p0) LIMIT 1", CompilingTable!.TableSqlName);
+            if (tab.Count > 0)
             {
-                /* TODO
-                var res = Query(@"SELECT c.is_identity, c.max_length, t.name AS typename, c.precision, c.scale, 
-                    c.name, c.is_nullable FROM sys.objects o, sys.columns c, sys.types t 
-                    WHERE (o.name = @p0) AND (o.type = @p1) AND (c.object_id = o.object_id) AND 
-                    (c.system_type_id = t.system_type_id) AND (c.user_type_id = t.user_type_id)",
-                    CompilingTable!.TableSqlName,
-                    "U");
+                string def = tab[0].Value<string>("sql");
+                int n1 = def.IndexOf("(");
+                int n2 = def.LastIndexOf(")");
+                def = def.Substring(n1 + 1, n2 - n1 - 1);
+
+                string[] fieldDefs = def.Split(',');
 
                 var toDelete = new List<string>();
                 var toAdd = new List<Fields.BaseField>();
-                var toChange = new List<Fields.BaseField>();
                 var curPk = GetPrimaryKey(CompilingTable!);
 
                 foreach (var field in CompilingTable!.UnitFields)
                 {
                     bool ok = false;
 
-                    foreach (var row in res)
+                    foreach (var row in fieldDefs)
                     {
-                        if ((string)row["name"]! == field.SqlName)
+                        if (row.Trim().StartsWith("[" + field.SqlName + "]"))
                         {
                             var newDef = GetFieldType(field);
 
-                            var curDef = (string)row["typename"]!;
+                            n1 = row.IndexOf("]");
+                            var curDef = row.Substring(n1 + 1).Trim();
 
-                            if ((string)row["typename"]! == "nvarchar")
-                                curDef += "(" + (Convert.ToInt32(row["max_length"]) / 2).ToString() + ")";
-
-                            else if ((string)row["typename"]! == "decimal")
-                                curDef += "(" + Convert.ToInt32(row["precision"]).ToString() + "," + Convert.ToInt32(row["scale"]).ToString() + ")";
-
-                            if (Convert.ToInt32(row["is_identity"]) == 1)
-                                curDef += " IDENTITY(1,1)";
-
-                            if (Convert.ToInt32(row["is_nullable"]) == 0)
-                                curDef += " NOT NULL";
-                            else
-                                curDef += " NULL";
+                            n1 = curDef.IndexOf("DEFAULT");
+                            if (n1 > -1)
+                                curDef = curDef.Substring(0, n1).Trim();
 
                             if (!newDef.Equals(curDef, StringComparison.OrdinalIgnoreCase))
                             {
-                                if ((field.Type == FieldTypes.TEXT) || (field.Type == FieldTypes.CODE))
-                                {
-                                    var f = (Fields.Text)field;
-                                    if ((f.Length == Fields.Text.MAX_LENGTH) || (f.Length > (Convert.ToInt32(row["max_length"]) / 2)))
-                                        toChange.Add(field);
-                                    else
-                                    {
-                                        toDelete.Add(field.SqlName);
-                                        toAdd.Add(field);
-                                    }
-                                }
-                                else
-                                {
-                                    toDelete.Add(field.SqlName);
-                                    toAdd.Add(field);
-                                }
+                                toDelete.Add(field.SqlName);
+                                toAdd.Add(field);
                             }
 
                             ok = true;
@@ -254,16 +227,13 @@ namespace Brayns.Shaper.Database
                         toAdd.Add(field);
                 }
 
-                foreach (var row in res)
+                foreach (var row in fieldDefs)
                 {
-                    if ((string)row["name"]! == "timestamp")
-                        continue;
-
                     bool ok = false;
 
                     foreach (var field in CompilingTable!.UnitFields)
                     {
-                        if ((string)row["name"]! == field.SqlName)
+                        if (row.Trim().StartsWith("[" + field.SqlName + "]"))
                         {
                             ok = true;
                             break;
@@ -271,7 +241,11 @@ namespace Brayns.Shaper.Database
                     }
 
                     if (!ok)
-                        toDelete.Add((string)row["name"]!);
+                    {
+                        n1 = row.IndexOf("[");
+                        n2 = row.LastIndexOf("]");
+                        toDelete.Add(row.Substring(n1 + 1, n2 - n1 - 1));
+                    }
                 }
 
                 foreach (string fn in toDelete)
@@ -290,13 +264,13 @@ namespace Brayns.Shaper.Database
                     var sql = "ALTER TABLE [" + CompilingTable!.TableSqlName + "] ADD " +
                         "[" + field.SqlName + "] " + GetFieldType(field);
 
-                    if (field.Type != FieldTypes.BLOB)
+                    if ((field.Type != FieldTypes.BLOB))
                     {
-                        sql += " CONSTRAINT [" + field.SqlName + "$DEF] DEFAULT ";
+                        sql += " DEFAULT ";
 
                         if ((field.Type == FieldTypes.CODE) || (field.Type == FieldTypes.TEXT))
                             sql += "''";
-                        else if ((field.Type == FieldTypes.INTEGER) || (field.Type == FieldTypes.BIGINTEGER))
+                        else if ((field.Type == FieldTypes.INTEGER) || (field.Type == FieldTypes.BIGINTEGER) || (field.Type == FieldTypes.TIMESTAMP))
                             sql += "0";
                         else if ((field.Type == FieldTypes.DECIMAL) || (field.Type == FieldTypes.BOOLEAN))
                             sql += "0";
@@ -311,28 +285,7 @@ namespace Brayns.Shaper.Database
                     }
 
                     CompileExec(sql, false);
-
-                    if (field.Type != FieldTypes.BLOB)
-                    {
-                        sql = "ALTER TABLE [" + CompilingTable!.TableSqlName + "] " +
-                            "DROP CONSTRAINT [" + field.SqlName + "$DEF]";
-
-                        CompileExec(sql, false);
-                    }
                 }
-
-                foreach (BaseField field in toChange)
-                {
-                    if (curPk.Contains(field.SqlName))
-                        DropPrimaryKey();
-
-                    var sql = "ALTER TABLE [" + CompilingTable!.TableSqlName + "] " +
-                        "ALTER COLUMN [" + field.SqlName + "] " +
-                        GetFieldType(field);
-
-                    CompileExec(sql, false);
-                }
-                */
             }
             else
             {
@@ -387,6 +340,7 @@ namespace Brayns.Shaper.Database
 
         public override void Connect(string dsn)
         {
+            _dsn = dsn;
             _connection = new(dsn);
             _connection.Open();
             _transaction = _connection.BeginTransaction(System.Data.IsolationLevel.ReadCommitted);
@@ -405,18 +359,47 @@ namespace Brayns.Shaper.Database
 
         public override object ExecuteReader(string sql, params object[] args)
         {
-            throw new NotImplementedException();
+            var conn = new SqliteConnection(_dsn);
+            conn.Open();
+
+            var cmd = conn.CreateCommand();
+            cmd.CommandText = sql;
+            for (int i = 0; i < args.Length; i++)
+                cmd.Parameters.AddWithValue("@p" + i.ToString(), args[i]);
+
+            var rdr = cmd.ExecuteReader();
+            _readerConns.Add(rdr, conn);
+            return rdr;
         }
 
         public override DbRow? ReadRow(object reader)
         {
-            throw new NotImplementedException();
+            var rdr = (SqliteDataReader)reader;
+            if (rdr.Read())
+            {
+                var row = new DbRow();
+                for (var i = 0; i < rdr.FieldCount; i++)
+                    row[rdr.GetName(i)] = rdr[i];
+                return row;
+            }
+            else
+            {
+                rdr.Close();
+
+                if (_readerConns.ContainsKey(rdr))
+                {
+                    _readerConns[rdr].Close();
+                    _readerConns.Remove(rdr);
+                }
+
+                return null;
+            }
         }
 
-        public override List<Dictionary<string, object>> Query(string sql, params object[] args)
+        public override DbTable Query(string sql, params object[] args)
         {
-            var res = new List<Dictionary<string, object>>();
-            Dictionary<string, object>? row;
+            var res = new DbTable();
+            DbRow? row;
 
             var cmd = CreateCommand(sql, args);
             var rdr = cmd.ExecuteReader();
@@ -433,6 +416,11 @@ namespace Brayns.Shaper.Database
 
             _connection?.Close();
             _connection = null;
+
+            foreach (var conn in _readerConns.Values)
+                conn.Close();
+
+            _readerConns.Clear();
         }
 
         private object? FromSqlValue(BaseField f, object value)
@@ -456,7 +444,7 @@ namespace Brayns.Shaper.Database
                 return System.Guid.Parse(Convert.ToString(value)!);
 
             if (f.Type == FieldTypes.OPTION)
-                return Convert.ToInt32(value); 
+                return Convert.ToInt32(value);
 
             if (f.Type == FieldTypes.BOOLEAN)
                 return Convert.ToInt32(value) == 1;
@@ -699,7 +687,7 @@ namespace Brayns.Shaper.Database
                 identity.Value = Query("SELECT last_insert_rowid() AS [id]")[0]["id"];
         }
 
-        private List<Dictionary<string, object>> FindSet(BaseTable table, int? pageSize, int? offset, bool nextSet, bool? ascending, object[]? pkValues)
+        private DbTable FindSet(BaseTable table, int? pageSize, int? offset, bool nextSet, bool? ascending, object[]? pkValues)
         {
             List<object> pars = new();
             ascending = ascending ?? table.TableAscending;
@@ -791,27 +779,27 @@ namespace Brayns.Shaper.Database
             return Convert.ToInt32(res[0]["c"]!);
         }
 
-        public override List<Dictionary<string, object>> FindFirst(BaseTable table)
+        public override DbTable FindFirst(BaseTable table)
         {
             return FindSet(table, 1, 0, false, null, null);
         }
 
-        public override List<Dictionary<string, object>> FindLast(BaseTable table)
+        public override DbTable FindLast(BaseTable table)
         {
             return FindSet(table, 1, 0, false, !(table.TableAscending ^ false), null);
         }
 
-        public override List<Dictionary<string, object>> FindSet(BaseTable table, int? pageSize = null, int? offset = null)
+        public override DbTable FindSet(BaseTable table, int? pageSize = null, int? offset = null)
         {
             return FindSet(table, pageSize, offset, false, null, null);
         }
 
-        public override List<Dictionary<string, object>> NextSet(BaseTable table)
+        public override DbTable NextSet(BaseTable table)
         {
             return FindSet(table, null, null, true, null, null);
         }
 
-        public override List<Dictionary<string, object>> Get(BaseTable table, object[] pkValues)
+        public override DbTable Get(BaseTable table, object[] pkValues)
         {
             return FindSet(table, null, null, false, null, pkValues);
         }
