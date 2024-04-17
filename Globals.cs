@@ -13,6 +13,7 @@ global using BatchMethod = Brayns.Shaper.Classes.BatchMethodAttribute;
 global using ApiMethod = Brayns.Shaper.Classes.ApiMethodAttribute;
 global using RawRequest = Brayns.Shaper.Classes.RawRequestMethodAttribute;
 global using RawSession = Brayns.Shaper.RawSession;
+global using ApiResult = Brayns.Shaper.ApiResult;
 global using ApiAction = Brayns.Shaper.Classes.ApiAction;
 global using Extended = Brayns.Shaper.Classes.ExtendedAttribute;
 global using VirtualTable = Brayns.Shaper.Classes.VirtualTableAttribute;
