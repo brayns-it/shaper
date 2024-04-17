@@ -503,8 +503,6 @@
                 RefreshRow();
                 SendDataRow();
             }
-
-            Client.Flush();
         }
 
         public void Close()

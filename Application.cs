@@ -9,8 +9,6 @@ using System.Diagnostics;
 
 namespace Brayns.Shaper
 {
-    public delegate void SessionCleaningHandler(List<Guid> sessionsIds);
-
     public static class Application
     {
         private static readonly object _lockLog = new();
@@ -28,7 +26,6 @@ namespace Brayns.Shaper
         public static string? RootPath { get; internal set; }
         public static event GenericHandler? Initializing;
         public static event GenericHandler? Monitoring;
-        public static event SessionCleaningHandler? SessionCleaning;
 
         private static string? _debugPath;
         public static string? DebugPath
@@ -100,7 +97,6 @@ namespace Brayns.Shaper
 
         private static void MonitorWork()
         {
-            DateTime lastCleanup = DateTime.Now;
             bool sessionStarted = false;
             bool restart = false;
 
@@ -139,12 +135,7 @@ namespace Brayns.Shaper
                     if (sessionStarted)
                     {
                         // session cleanup
-                        if (DateTime.Now.Subtract(lastCleanup).TotalSeconds > 60)
-                        {
-                            var ids = Session.CleanupClients();
-                            SessionCleaning?.Invoke(ids);
-                            lastCleanup = DateTime.Now;
-                        }
+                        Session.CleanupFinished();
 
                         // monitoring
                         Monitoring?.Invoke();
@@ -235,17 +226,17 @@ namespace Brayns.Shaper
             if (prefix == "/") prefix = "";
 
             app.MapMethods("/" + prefix + "/{**path}", new string[] { "GET", "POST", "PUT", "DELETE" },
-                async ctx => await WebDispatcher.Dispatch(ctx, HttpContextType.RawRequest)).WithName(name);
+                async ctx => await WebDispatcher.DispatchRaw(ctx)).WithName(name);
         }
 
         public static void MapShaperApi(this WebApplication app)
         {
             // rest entry point
-            app.MapMethods("/api/{**path}", new string[] { "GET", "POST", "PUT", "DELETE" }, async ctx => await WebDispatcher.Dispatch(ctx, HttpContextType.Api));
-            app.MapMethods("/rpc/{**path}", new string[] { "GET", "POST", "PUT", "DELETE" }, async ctx => await WebDispatcher.Dispatch(ctx, HttpContextType.Api));
+            app.MapMethods("/api/{**path}", new string[] { "GET", "POST", "PUT", "DELETE" }, async ctx => await WebDispatcher.DispatchApi(ctx));
+            app.MapMethods("/rpc/{**path}", new string[] { "GET", "POST", "PUT", "DELETE" }, async ctx => await WebDispatcher.DispatchApi(ctx));
 
             // client entry point
-            app.MapPost("/rpc", async ctx => await WebDispatcher.Dispatch(ctx, HttpContextType.Rpc));
+            app.MapGet("/rpc", async ctx => await WebDispatcher.DispatchRpc(ctx));
         }
 
         internal static void SetValue(string key, object value)

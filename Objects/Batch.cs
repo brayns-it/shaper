@@ -39,7 +39,7 @@
         public void Stop()
         {
             if (SessionInstance != null)
-                SessionInstance.StopRequested = true;
+                SessionInstance.Cancel();
         }
 
         public static Thread ThreadStart(ThreadStart method)
@@ -110,7 +110,7 @@
                 }
             }
 
-            CurrentSession.Stop(true);
+            CurrentSession.Stop();
         }
     }
 }

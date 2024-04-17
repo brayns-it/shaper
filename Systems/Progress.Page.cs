@@ -12,7 +12,7 @@
             var actionArea = Controls.ActionArea.Create(this);
             {
                 var actionCancel = new Controls.Action(actionArea, Label("Cancel"));
-                actionCancel.Triggering += Cancel_Triggering;
+                actionCancel.IsCancelation = true;
                 actionCancel.Shortcut = "Escape";
             }
         }
@@ -34,7 +34,6 @@
             {
                 Lines[key].Content = value;
                 Control<Controls.ContentArea>()!.Redraw();
-                Client.Flush();
             }
         }
 
@@ -52,13 +51,6 @@
                 return;
 
             RunModal();
-            Client.Flush();
-        }
-
-        private void Cancel_Triggering()
-        {
-            CurrentSession.Instance.StopRequested = true;
-            Close();
         }
     }
 }

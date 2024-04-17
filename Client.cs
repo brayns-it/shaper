@@ -2,20 +2,20 @@
 
 namespace Brayns.Shaper
 {
-    internal class ClientMessageBoundary
-    {
-    }
-
-    internal class ClientMessageAuthentication
+    internal class ClientMessageAuthentication : ClientMessage
     {
         public DateTimeOffset? Expires { get; set; }
         public bool Clear { get; set; }
         public string Token { get; set; } = "";
     }
 
-    internal class ClientMessage
+    internal class ClientDirectMessage : ClientMessage
     {
-        public string Value { get; set; } = "";
+        public object Value { get; set; } = new();
+    }
+
+    internal abstract class ClientMessage
+    {
     }
 
     public static class Client
@@ -34,22 +34,14 @@ namespace Brayns.Shaper
             });
         }
 
-        public static void Flush()
-        {
-            Send(new ClientMessageBoundary());
-        }
-
         public static void SendMessage(object o)
         {
             if (CurrentSession.Type != SessionTypes.WEBCLIENT)
                 throw new Error("Current session does not support client messaging");
 
-            var jo = JObject.FromObject(o);
-            jo["type"] = "send";
-
-            Send(new ClientMessage()
+            Send(new ClientDirectMessage()
             {
-                Value = jo.ToString(Newtonsoft.Json.Formatting.Indented)
+                Value = o
             });
         }
 
@@ -62,7 +54,7 @@ namespace Brayns.Shaper
             return true;
         }
 
-        private static void Send(object msg)
+        private static void Send(ClientMessage msg)
         {
             if (CurrentSession.WebTask == null)
                 throw new Error(Label("No client connected"));

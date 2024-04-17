@@ -11,6 +11,7 @@ namespace Brayns.Shaper.Controls
         public event ActionTriggerHandler? Triggering;
         public string Shortcut { get; set; } = "";
         public Type? PermissionBy { get; set; } = null;
+        public bool IsCancelation { get; set; } = false;
 
         private Type? _run;
         public Type? Run
@@ -101,6 +102,7 @@ namespace Brayns.Shaper.Controls
             jo["caption"] = Caption;
             jo["icon"] = (Icon != null) ? Icon.ToString() : "";
             jo["shortcut"] = Shortcut;
+            jo["isCancelation"] = IsCancelation;
             return jo;
         }
 

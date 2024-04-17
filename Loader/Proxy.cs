@@ -21,7 +21,6 @@ namespace Brayns.Shaper.Loader
         private Dictionary<string, string> _par = new();
         private string _bodyParam = "";
 
-        public string ResultName { get; init; } = "value";
         public bool SkipMethodSecurity { get; set; }
 
         static Proxy()
@@ -54,11 +53,7 @@ namespace Brayns.Shaper.Loader
 
             var rm = _met.GetCustomAttribute<ApiMethod>(true);
             if (rm != null)
-            {
                 _bodyParam = rm.BodyParam;
-                if (rm.ResultName.Length > 0)
-                    ResultName = rm.ResultName;
-            }
         }
 
         public static Proxy CreateFromName(string fullName, bool skipUnitSecurity = false)

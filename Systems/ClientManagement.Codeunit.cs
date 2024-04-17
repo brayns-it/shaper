@@ -68,12 +68,6 @@ namespace Brayns.Shaper.Systems
                 u.TriggerPoll();
         }
 
-        [PublicAccess]
-        public void Destroy()
-        {
-            CurrentSession.Stop(true);
-        }
-
         private void StartPage(string requestedPage)
         {
             Loader.Proxy.AssertType<BasePage>(requestedPage);

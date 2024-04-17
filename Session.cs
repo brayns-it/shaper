@@ -35,6 +35,8 @@ namespace Brayns.Shaper
 
     internal class SessionData
     {
+        internal object _lockChildrens = new();
+
         internal Opt<SessionTypes> Type { get; set; }
         internal CultureInfo CultureInfo { get; set; }
         internal string UserId { get; set; }
@@ -48,8 +50,9 @@ namespace Brayns.Shaper
         internal string ApplicationName { get; set; }
         internal bool IsSuperuser { get; set; }
         internal DateTime LastPoll { get; set; }
-        internal bool StopRequested { get; set; }
+        internal bool CancelRequested { get; private set; }
         internal SessionData? Parent { get; set; }
+        internal List<SessionData> Childrens { get; set; } = new();
 
         public SessionData()
         {
@@ -62,13 +65,25 @@ namespace Brayns.Shaper
             Units = new Dictionary<string, Unit>();
             ApplicationName = "";
             IsSuperuser = false;
-            StopRequested = false;
+            CancelRequested = false;
             LastPoll = DateTime.Now;
         }
 
         public override string ToString()
         {
             return Id.ToString();
+        }
+
+        public void ResetCancel()
+        {
+            CancelRequested = false;
+        }
+
+        public void Cancel()
+        {
+            CancelRequested = true;
+            foreach (var sd in Childrens)
+                sd.CancelRequested = true;
         }
     }
 
@@ -80,21 +95,23 @@ namespace Brayns.Shaper
         public Guid? AuthenticationId { get; set; }
         public string? Address { get; set; }
         internal WebTask? WebTask { get; set; }
-        internal SessionData? Parent { get; set; } 
+        internal SessionData? Parent { get; set; }
     }
 
     public delegate void SessionStartingHandler(bool sessionIsNew);
+    public delegate void SessionDestroyingHandler(Guid sessionId);
 
     public static class Session
     {
         public static event SessionStartingHandler? Starting;
         public static event GenericHandler? Stopping;
-        public static event GenericHandler? Destroying;
+        public static event SessionDestroyingHandler? Destroying;
 
-        internal static object _lockSessions = new object();
-        internal static Dictionary<Guid, SessionData> SessionData { get; } = new Dictionary<Guid, SessionData>();
-        internal static Dictionary<int, SessionData> SessionMap { get; } = new Dictionary<int, SessionData>();
-        internal static Dictionary<int, ThreadData> ThreadMap { get; } = new Dictionary<int, ThreadData>();
+        internal static object _lockSessions = new();
+        internal static Dictionary<Guid, SessionData> SessionData { get; } = new();
+        internal static Dictionary<int, SessionData> SessionMap { get; } = new();
+        internal static Dictionary<int, ThreadData> ThreadMap { get; } = new();
+        internal static List<Guid> Finished { get; } = new();
 
         public static Opt<SessionTypes> Type
         {
@@ -235,15 +252,27 @@ namespace Brayns.Shaper
             }
         }
 
-        public static void Stop(bool forceDestroy = false)
+        public static void Destroy(Guid sessionId)
+        {
+            try
+            {
+                Destroying?.Invoke(Id);
+                Commit();
+            }
+            catch
+            {
+            }
+        }
+
+        public static void Stop()
         {
             try
             {
                 Rollback();
 
                 Stopping?.Invoke();
-                if ((Type != SessionTypes.WEBCLIENT) || forceDestroy)
-                    Destroying?.Invoke();
+                if (Type != SessionTypes.WEBCLIENT)
+                    Destroying?.Invoke(Id);
 
                 Commit();
             }
@@ -261,9 +290,20 @@ namespace Brayns.Shaper
 
             Database = null;
 
+            Instance.ResetCancel();
+            if (Instance.Parent != null)
+            {
+                lock (Instance.Parent._lockChildrens)
+                {
+                    if (Instance.Parent.Childrens.Contains(Instance))
+                        Instance.Parent.Childrens.Remove(Instance);
+                }
+                Instance.Parent = null;
+            }
+
             if (Id != Guid.Empty)
             {
-                if ((Type != SessionTypes.WEBCLIENT) || forceDestroy)
+                if (Type != SessionTypes.WEBCLIENT)
                 {
                     if (SessionData.ContainsKey(Id))
                     {
@@ -314,45 +354,50 @@ namespace Brayns.Shaper
             }
 
             Database = DatabaseCreate();
-            
+
             if (Database != null)
                 Database.Connect();
         }
 
-        internal static List<System.Guid> CleanupClients()
+        internal static void CleanupFinished()
         {
             lock (_lockSessions)
             {
-                List<System.Guid> toDel = new();
-                foreach (var sd in SessionData.Values)
+                while (Finished.Count > 0)
                 {
-                    if ((DateTime.Now.Subtract(sd.LastPoll).TotalSeconds > 300) &&
-                       (!SessionMap.Values.Contains(sd)) &&
-                       (sd.Type == SessionTypes.WEBCLIENT))
-                        toDel.Add(sd.Id);
+                    var id = Finished[0];
+
+                    Destroying?.Invoke(id);
+                    Commit();
+
+                    if (SessionData.ContainsKey(id))
+                        SessionData.Remove(id);
+
+                    Finished.RemoveAt(0);
                 }
-                foreach (var id in toDel)
-                {
-                    SessionData.Remove(id);
-                }
-                return toDel;                
             }
         }
 
-        public static bool StopRequested
+        internal static void Cancel(Guid id)
+        {
+            lock (_lockSessions)
+            {
+                if (SessionData.ContainsKey(id))
+                    SessionData[id].Cancel();
+            }
+        }
+
+        public static bool CancelRequested
         {
             get
             {
-                if ((Instance.Parent != null) && Instance.Parent.StopRequested)
-                    return true;
-
-                return Instance.StopRequested;
+                return Instance.CancelRequested;
             }
         }
 
-        public static void ThrowIfStopRequested()
+        public static void ThrowIfCancelRequested()
         {
-            if (StopRequested)
+            if (CancelRequested)
                 throw new Error(Label("Session interrupted"));
         }
 
@@ -385,7 +430,11 @@ namespace Brayns.Shaper
                 if (arg.CultureInfo != null) CultureInfo = arg.CultureInfo;
                 if (arg.WebTask != null) Instance.WebTask = arg.WebTask;
                 if (arg.AuthenticationId != null) AuthenticationId = arg.AuthenticationId;
-                if (arg.Parent != null) Instance.Parent = arg.Parent;
+                if (arg.Parent != null)
+                {
+                    Instance.Parent = arg.Parent;
+                    arg.Parent.Childrens.Add(Instance);
+                }
             }
 
             if (Application.IsReady)

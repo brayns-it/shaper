@@ -90,7 +90,6 @@ namespace Brayns.Shaper.Classes
         public ApiAction Action { get; init; } = ApiAction.Read;
         public string Route { get; init; } = "";
         public string BodyParam { get; init; } = "";
-        public string ResultName { get; init; } = "";
     }
 
     /// <summary>
