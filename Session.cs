@@ -41,7 +41,7 @@ namespace Brayns.Shaper
         internal CultureInfo CultureInfo { get; set; }
         internal string UserId { get; set; }
         internal Guid Id { get; set; }
-        internal Guid? AuthenticationId { get; set; }
+        internal String? AuthenticationId { get; set; }
         internal string Address { get; set; }
         internal WebTask? WebTask { get; set; }
         internal Dictionary<string, object> State { get; set; }
@@ -92,7 +92,7 @@ namespace Brayns.Shaper
         public Opt<SessionTypes>? Type { get; set; }
         public CultureInfo? CultureInfo { get; set; }
         public Guid? Id { get; set; }
-        public Guid? AuthenticationId { get; set; }
+        public String? AuthenticationId { get; set; }
         public string? Address { get; set; }
         internal WebTask? WebTask { get; set; }
         internal SessionData? Parent { get; set; }
@@ -131,7 +131,7 @@ namespace Brayns.Shaper
             internal set { Instance.Address = value; }
         }
 
-        public static Guid? AuthenticationId
+        public static String? AuthenticationId
         {
             get { return Instance.AuthenticationId; }
             set { Instance.AuthenticationId = value; }

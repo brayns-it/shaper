@@ -25,11 +25,11 @@ namespace Brayns.Shaper
             Send(new ClientMessageAuthentication() { Clear = true });
         }
 
-        public static void SetAuthenticationToken(Guid token, DateTimeOffset? expires = null)
+        public static void SetAuthenticationToken(string token, DateTimeOffset? expires = null)
         {
             Send(new ClientMessageAuthentication()
             {
-                Token = token.ToString(),
+                Token = token,
                 Expires = expires
             });
         }

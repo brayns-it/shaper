@@ -59,7 +59,7 @@ namespace Brayns.Shaper
 
         internal CultureInfo? CultureInfo { get; set; }
         internal Guid SessionId { get; set; }
-        internal Guid? AuthenticationId { get; set; }
+        internal string? AuthenticationId { get; set; }
         internal string? Address { get; set; }
 
         internal WebSocket? WebSocket { get; set; }
@@ -341,10 +341,10 @@ namespace Brayns.Shaper
             {
                 if (ctx.Request.Headers.ContainsKey("Authorization") &&
                     ctx.Request.Headers["Authorization"].ToString().StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
-                    task.AuthenticationId = Guid.Parse(ctx.Request.Headers["Authorization"].ToString().Substring(7));
+                    task.AuthenticationId = ctx.Request.Headers["Authorization"].ToString().Substring(7);
 
                 else if (ctx.Request.Cookies.ContainsKey("X-Authorization"))
-                    task.AuthenticationId = Guid.Parse(ctx.Request.Cookies["X-Authorization"]!);
+                    task.AuthenticationId = ctx.Request.Cookies["X-Authorization"]!;
 
                 if ((ctx.Request.ContentLength > 0) && ((ctx.Request.ContentType ?? "").ToLower() == "application/json"))
                 {
