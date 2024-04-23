@@ -73,11 +73,11 @@ namespace Brayns.Shaper.Classes
     }
 
     [Flags]
-    public enum ApiAction
+    public enum RequestMethod
     {
-        Create = 1,
-        Read = 2,
-        Update = 4,
+        Get = 1,
+        Post = 2,
+        Put = 4,
         Delete = 8
     }
 
@@ -87,7 +87,7 @@ namespace Brayns.Shaper.Classes
     [AttributeUsage(AttributeTargets.Method)]
     public class ApiMethodAttribute : Attribute
     {
-        public ApiAction Action { get; init; } = ApiAction.Read;
+        public RequestMethod Method { get; init; } = RequestMethod.Get;
         public string Route { get; init; } = "";
         public string BodyParam { get; init; } = "";
     }
@@ -96,10 +96,11 @@ namespace Brayns.Shaper.Classes
     /// Raw HTTP Method callable
     /// </summary>
     [AttributeUsage(AttributeTargets.Method)]
-    public class RawRequestMethodAttribute : Attribute
+    public class RawMethodAttribute : Attribute
     {
         public string RouteName { get; init; } = "";
         public string Route { get; init; } = "";
+        public RequestMethod Method { get; init; } = RequestMethod.Get;
     }
 
     /// <summary>

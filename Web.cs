@@ -27,10 +27,13 @@ namespace Brayns.Shaper
 
     public class RawSession
     {
+        public Dictionary<string, string> RouteParts { get; } = new();
+
         public byte[]? Request { get; set; }
         public string? RequestType { get; set; }
         public Dictionary<string, string> RequestHeaders { get; set; } = new();
-        public string RequestMethod { get; set; } = "";
+        public RequestMethod RequestMethod { get; set; }
+        public string RequestPath { get; set; } = "";
         public string RequestPathWithQuery { get; set; } = "";
         public string RequestURI { get; set; } = "";
 
@@ -51,7 +54,7 @@ namespace Brayns.Shaper
         internal string? ObjectId { get; set; }
         internal string? MethodName { get; set; }
         internal string Route { get; set; } = "";
-        internal ApiAction? ApiAction { get; set; }
+        internal RequestMethod HttpMethod { get; set; }
         internal JObject Parameters { get; set; } = new();
 
         internal RawSession RawSession { get; set; } = new();
@@ -139,12 +142,12 @@ namespace Brayns.Shaper
                 Proxy proxy;
                 if (IsApiRequest)
                 {
-                    proxy = Proxy.CreateFromRoute(Route!, ApiAction!.Value);
+                    proxy = Proxy.CreateFromRoute(Route!, HttpMethod);
                     res = proxy.Invoke(Parameters);
                 }
                 else if (IsRawRequest)
                 {
-                    proxy = Proxy.CreateFromRawRoute(RouteName!, Route!);
+                    proxy = Proxy.CreateFromRawRoute(RouteName!, Route!, RawSession);
                     res = proxy.Invoke(RawSession);
                 }
                 else
@@ -325,6 +328,22 @@ namespace Brayns.Shaper
                 task.Route = string.Join('/', segs);
             }
 
+            switch (ctx.Request.Method)
+            {
+                case "POST":
+                    task.HttpMethod = RequestMethod.Post;
+                    break;
+                case "PUT":
+                    task.HttpMethod = RequestMethod.Put;
+                    break;
+                case "GET":
+                    task.HttpMethod = RequestMethod.Get;
+                    break;
+                case "DELETE":
+                    task.HttpMethod = RequestMethod.Delete;
+                    break;
+            }
+
             if (isRawRequest)
             {
                 MemoryStream ms = new();
@@ -336,9 +355,10 @@ namespace Brayns.Shaper
                     task.RawSession.RequestHeaders.Add(hk, ctx.Request.Headers[hk].First()!);
 
                 task.RawSession.RequestType = ctx.Request.ContentType;
-                task.RawSession.RequestMethod = ctx.Request.Method;
+                task.RawSession.RequestPath = ctx.Request.Path;
                 task.RawSession.RequestPathWithQuery = ctx.Request.Path + ((ctx.Request.QueryString.HasValue) ? ctx.Request.QueryString : "");
                 task.RawSession.RequestURI = ctx.Request.Scheme + "://" + ctx.Request.Host + ctx.Request.Path;
+                task.RawSession.RequestMethod = task.HttpMethod;
 
                 RouteNameMetadata? md = ctx.GetEndpoint()!.Metadata.GetMetadata<RouteNameMetadata>();
                 if ((md != null) && (md.RouteName != null)) task.RouteName = md.RouteName;
@@ -399,6 +419,23 @@ namespace Brayns.Shaper
             try
             {
                 task = await ParseRequest(ctx, true);
+
+                switch (ctx.Request.Method)
+                {
+                    case "POST":
+                        task.RawSession.RequestMethod = RequestMethod.Post;
+                        break;
+                    case "PUT":
+                        task.RawSession.RequestMethod = RequestMethod.Put;
+                        break;
+                    case "GET":
+                        task.RawSession.RequestMethod = RequestMethod.Get;
+                        break;
+                    case "DELETE":
+                        task.RawSession.RequestMethod = RequestMethod.Delete;
+                        break;
+                }
+
                 task.IsRawRequest = true;
                 task.Execute();
 
@@ -477,23 +514,7 @@ namespace Brayns.Shaper
                 task = await ParseRequest(ctx, false);
                 task.IsApiRequest = true;
 
-                switch (ctx.Request.Method)
-                {
-                    case "POST":
-                        task.ApiAction = Classes.ApiAction.Create;
-                        break;
-                    case "PUT":
-                        task.ApiAction = Classes.ApiAction.Update;
-                        break;
-                    case "GET":
-                        task.ApiAction = Classes.ApiAction.Read;
-                        break;
-                    case "DELETE":
-                        task.ApiAction = Classes.ApiAction.Delete;
-                        break;
-                    default:
-                        throw new Error(Label("Invalid API action '{0}'", ctx.Request.Method));
-                }
+
 
                 task.Execute();
             }

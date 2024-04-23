@@ -108,7 +108,7 @@ namespace Brayns.Shaper.Loader
             if (fi.Exists)
             {
                 try
-                { 
+                {
                     StreamReader sr = new StreamReader(fi.FullName);
                     Application.Config = Config.FromJson(sr.ReadToEnd());
                     sr.Close();
@@ -150,38 +150,13 @@ namespace Brayns.Shaper.Loader
             {
                 foreach (var m in t.GetMethods(BindingFlags.Instance | BindingFlags.Public))
                 {
-                    var r = m.GetCustomAttribute<ApiMethodAttribute>(true);
-                    if ((r != null) && (r.Route != null) && (r.Route.Length > 0))
-                    {
-                        if (r.Action.HasFlag(Classes.ApiAction.Create))
-                        {
-                            if (!Application.Routes.ContainsKey(Classes.ApiAction.Create)) Application.Routes[Classes.ApiAction.Create] = new();
-                            Application.Routes[Classes.ApiAction.Create][r.Route.ToLower()] = m;
-                        }
-                        if (r.Action.HasFlag(Classes.ApiAction.Update))
-                        {
-                            if (!Application.Routes.ContainsKey(Classes.ApiAction.Update)) Application.Routes[Classes.ApiAction.Update] = new();
-                            Application.Routes[Classes.ApiAction.Update][r.Route.ToLower()] = m;
-                        }
-                        if (r.Action.HasFlag(Classes.ApiAction.Delete))
-                        {
-                            if (!Application.Routes.ContainsKey(Classes.ApiAction.Delete)) Application.Routes[Classes.ApiAction.Delete] = new();
-                            Application.Routes[Classes.ApiAction.Delete][r.Route.ToLower()] = m;
-                        }
-                        if (r.Action.HasFlag(Classes.ApiAction.Read))
-                        {
-                            if (!Application.Routes.ContainsKey(Classes.ApiAction.Read)) Application.Routes[Classes.ApiAction.Read] = new();
-                            Application.Routes[Classes.ApiAction.Read][r.Route.ToLower()] = m;
-                        }
-                    }
+                    var r = m.GetCustomAttribute<ApiMethod>(true);
+                    if (r != null)
+                        Application.Routes.Add(r, m);
 
-                    var w = m.GetCustomAttribute<RawRequest>(true);
-                    if ((w != null) && (w.Route != null) && (w.Route.Length > 0))
-                    {
-                        string k = w.Route;
-                        if (w.RouteName != null) k = w.RouteName + "_" + k;
-                        Application.RawRoutes[k.ToLower()] = m;
-                    }
+                    var w = m.GetCustomAttribute<RawMethodAttribute>(true);
+                    if (w != null)
+                        Application.RawRoutes.Add(w, m);
                 }
             }
         }
@@ -237,7 +212,7 @@ namespace Brayns.Shaper.Loader
 
             foreach (Type t in TableTypes)
             {
-                if (t.GetCustomAttribute<VirtualTable>(true) != null) 
+                if (t.GetCustomAttribute<VirtualTable>(true) != null)
                     continue;
 
                 var tab = (BaseTable)Activator.CreateInstance(t)!;

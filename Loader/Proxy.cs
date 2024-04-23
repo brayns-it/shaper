@@ -64,14 +64,16 @@ namespace Brayns.Shaper.Loader
             return new Proxy(Activator.CreateInstance(t)!);
         }
 
-        public static Proxy CreateFromRawRoute(string routeName, string route)
+        public static Proxy CreateFromRawRoute(string routeName, string route, RawSession session)
         {
             MethodInfo? mi = null;
 
-            string k = route;
-            if (routeName.Length > 0) k = (routeName + "_" + route).ToLower();
-            if (Application.RawRoutes.ContainsKey(k))
-                mi = Application.RawRoutes[k];
+            foreach (var r in Application.RawRoutes.Keys)
+                if (r.Method.HasFlag((Enum)session.RequestMethod) && (routeName == r.RouteName) && RouteIsMatch(route, r.Route, session.RouteParts))
+                {
+                    mi = Application.RawRoutes[r];
+                    break;
+                }
 
             if (mi == null)
                 throw new Error(Error.E_INVALID_ROUTE, Label("Invalid raw route '{0}' '{1}'", routeName, route));
@@ -81,36 +83,39 @@ namespace Brayns.Shaper.Loader
             return new Proxy(mi);
         }
 
-        public static Proxy CreateFromRoute(string route, ApiAction action)
+        private static bool RouteIsMatch(string route, string pattern, Dictionary<string, string> parts)
         {
             Regex re = new Regex("{(.*?)}");
-            MethodInfo? mi = null;
-            Match? routeMatch = null;
-            MatchCollection? patternMatch = null;
+            Regex pat = new Regex("^" + re.Replace(pattern, "(.*?)") + "$", RegexOptions.IgnoreCase);
+            parts.Clear();
 
-            if (Application.Routes.ContainsKey(action))
-            {
-                foreach (string pattern in Application.Routes[action].Keys)
+            var rouMatch = pat.Match(route);
+            if (!rouMatch.Success)
+                return false;
+
+            var patMatch = re.Matches(pattern);
+            for (int i = 0; i < patMatch!.Count; i++)
+                parts.Add(patMatch![i].Groups[1].Value, rouMatch!.Groups[i + 1].Value);
+
+            return true;
+        }
+
+        public static Proxy CreateFromRoute(string route, RequestMethod method)
+        {
+            Dictionary<string, string> param = new();
+            MethodInfo? mi = null;
+
+            foreach (var r in Application.Routes.Keys)
+                if (r.Method.HasFlag(method) && RouteIsMatch(route, r.Route, param))
                 {
-                    Regex pat = new Regex("^" + re.Replace(pattern, "(.*?)") + "$", RegexOptions.IgnoreCase);
-                    routeMatch = pat.Match(route);
-                    if (routeMatch.Success)
-                    {
-                        patternMatch = re.Matches(pattern);
-                        mi = Application.Routes[action][pattern];
-                        break;
-                    }
+                    mi = Application.Routes[r];
+                    break;
                 }
-            }
 
             if (mi == null)
-                throw new Error(Error.E_INVALID_ROUTE, Label("Invalid {0} route '{1}'", action, route));
+                throw new Error(Error.E_INVALID_ROUTE, Label("Invalid {0} route '{1}'", method, route));
 
             AssertMethodSecurity(mi);
-
-            Dictionary<string, string> param = new Dictionary<string, string>();
-            for (int i = 0; i < patternMatch!.Count; i++)
-                param[patternMatch![i].Groups[1].Value] = routeMatch!.Groups[i + 1].Value;
 
             return new Proxy(mi, param);
         }
@@ -172,11 +177,11 @@ namespace Brayns.Shaper.Loader
         {
             return (T)_obj!;
         }
-        
+
         public object? Invoke(string methodName, object[] pars)
         {
             MethodInfo mi = MethodFromName(_typ, methodName);
-            
+
             if (!SkipMethodSecurity)
                 AssertMethodSecurity(mi);
 
@@ -303,7 +308,7 @@ namespace Brayns.Shaper.Loader
         {
             return typeof(T).IsAssignableFrom(TypeFromName(fullName));
         }
-        
+
         public static MethodInfo MethodFromName(string typeName, string methodName)
         {
             return MethodFromName(TypeFromName(typeName), methodName);

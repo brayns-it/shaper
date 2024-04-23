@@ -17,8 +17,8 @@ namespace Brayns.Shaper
 
         internal static Thread? MonitorThread { get; set; }
         internal static Dictionary<string, object> Values = new();
-        internal static Dictionary<ApiAction, Dictionary<string, MethodInfo>> Routes { get; } = new();
-        internal static Dictionary<string, MethodInfo> RawRoutes { get; } = new();
+        internal static Dictionary<ApiMethod, MethodInfo> Routes { get; } = new();
+        internal static Dictionary<RawMethodAttribute, MethodInfo> RawRoutes { get; } = new();
         internal static Dictionary<Guid, AppModule> Apps { get; } = new();
         internal static Config Config { get; set; } = new Config();
         internal static bool IsLoaded { get; private set; } = false;
