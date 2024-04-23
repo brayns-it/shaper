@@ -11,7 +11,7 @@
 
     public abstract class BasePage : Unit
     {
-        internal List<Fields.BaseField> DataFields { get; set; } = new();
+        internal Fields.FieldList DataFields { get; set; } = new();
         internal Dictionary<string, Controls.Control> AllItems { get; set; } = new();
         internal DbTable DataSet { get; set; } = new();
         internal List<int> Selection { get; set; } = new();
@@ -215,6 +215,7 @@
                 item["codename"] = field.CodeName;
                 item["fieldType"] = field.Type.ToString();
                 item["hasFormat"] = field.HasFormat;
+                item["hasRelations"] = (field.TableRelations.Count > 0);
 
                 if (field.Type == Fields.FieldTypes.OPTION)
                 {
@@ -229,7 +230,7 @@
                     }
                     item["options"] = options;
                 }
-
+                
                 result.Add(item);
             }
             return result;
@@ -278,29 +279,7 @@
         [PublicAccess]
         internal void Search(string text)
         {
-            Rec!.Reset(Fields.FilterLevel.Or);
-            Rec!.TableFilterLevel = Fields.FilterLevel.Or;
-
-            if (text.Trim().Length > 0)
-                foreach (var f in DataFields)
-                {
-                    if ((f.Type == Fields.FieldTypes.CODE) || (f.Type == Fields.FieldTypes.TEXT))
-                        f.SetFilter("*" + text + "*");
-                    else
-                        f.SetFilter(text);
-
-                    int n = f.Filters.Count - 1;
-                    try
-                    {
-                        List<object> vals = new();
-                        f.Filters[n].Tokenize(vals);
-                    }
-                    catch
-                    {
-                        f.Filters.RemoveAt(n);
-                    }
-                }
-
+            Rec!.SetTextFilter(DataFields, text);
             SendDataSet();
         }
 
@@ -550,12 +529,12 @@
         }
 
         [PublicAccess]
-        internal void ControlInvoke(string controlid, string method, JObject? args = null)
+        internal object? ControlInvoke(string controlid, string method, JObject? args = null)
         {
             var ctl = AllItems[controlid];
             var prx = Loader.Proxy.CreateFromObject(ctl);
             prx.SkipMethodSecurity = true;
-            prx.Invoke(method, args);
+            return prx.Invoke(method, args);
         }
 
         public bool ControlExists(string name)

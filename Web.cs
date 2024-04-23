@@ -186,7 +186,7 @@ namespace Brayns.Shaper
 
     public class WebDispatcher
     {
-        private static string ObjectToJson(object? o, bool addResponseType = false)
+        private static string ObjectToJson(object? o, bool addResponseType = false, string? requestId = null)
         {
             JObject jo;
             if (o == null)
@@ -206,17 +206,23 @@ namespace Brayns.Shaper
                 }
             }
             if (addResponseType)
+            {
                 jo["type"] = "response";
+                if (requestId != null)
+                    jo["requestid"] = requestId!;
+            }
 
             return jo.ToString(Newtonsoft.Json.Formatting.Indented);
         }
 
-        private static string ExceptionToJson(Exception ex)
+        private static string ExceptionToJson(Exception ex, string? requestId = null)
         {
             var res = new JObject();
             res["classname"] = ex.GetType().FullName;
             res["message"] = ex.Message;
             res["type"] = "exception";
+            if (requestId != null)
+                res["requestid"] = requestId!;
 
             res["code"] = 0;
             if (typeof(Error).IsAssignableFrom(ex.GetType()))
@@ -316,7 +322,7 @@ namespace Brayns.Shaper
             if (ctx.Request.RouteValues.ContainsKey("path") && (ctx.Request.RouteValues["path"] != null))
             {
                 string[] segs = ctx.Request.RouteValues["path"]!.ToString()!.Split('/', StringSplitOptions.RemoveEmptyEntries);
-                task.Route = "/" + string.Join('/', segs);
+                task.Route = string.Join('/', segs);
             }
 
             if (isRawRequest)
@@ -346,7 +352,7 @@ namespace Brayns.Shaper
                 else if (ctx.Request.Cookies.ContainsKey("X-Authorization"))
                     task.AuthenticationId = ctx.Request.Cookies["X-Authorization"]!;
 
-                if ((ctx.Request.ContentLength > 0) && ((ctx.Request.ContentType ?? "").ToLower() == "application/json"))
+                if ((ctx.Request.ContentLength > 0) && ctx.Request.HasJsonContentType())
                 {
                     StreamReader sr = new(ctx.Request.Body);
                     task.Parameters = JObject.Parse(await sr.ReadToEndAsync());
@@ -542,11 +548,11 @@ namespace Brayns.Shaper
             }
         }
 
-        private static async Task WriteRpcException(WebSocket ws, Exception ex)
+        private static async Task WriteRpcException(WebSocket ws, Exception ex, string? requestId)
         {
             try
             {
-                await ws.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(ExceptionToJson(ex))), WebSocketMessageType.Text, true, CancellationToken.None);
+                await ws.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(ExceptionToJson(ex, requestId))), WebSocketMessageType.Text, true, CancellationToken.None);
             }
             catch
             {
@@ -575,23 +581,14 @@ namespace Brayns.Shaper
             await ws.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(jo.ToString(Newtonsoft.Json.Formatting.Indented))), WebSocketMessageType.Text, true, CancellationToken.None);
         }
 
-        private static async Task WriteRpcResponse(WebSocket ws, object? obj)
+        private static async Task WriteRpcResponse(WebSocket ws, object? obj, string? requestId)
         {
-            await ws.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(ObjectToJson(obj, true))), WebSocketMessageType.Text, true, CancellationToken.None);
+            await ws.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(ObjectToJson(obj, true, requestId))), WebSocketMessageType.Text, true, CancellationToken.None);
         }
 
-        private static async Task<TaskResult> ReceiveMessage(WebSocket ws, List<TaskResult>? requests = null)
+        private static async Task<TaskResult> ReceiveMessage(WebSocket ws)
         {
-            TaskResult result;
-
-            if ((requests != null) && (requests.Count > 0))
-            {
-                result = requests[0];
-                requests.RemoveAt(0);
-                return result;
-            }
-
-            result = new();
+            TaskResult result = new();
             result.IsRequest = true;
 
             var buf = new byte[1024];
@@ -628,14 +625,25 @@ namespace Brayns.Shaper
                 {
                     var ws = await ctx.WebSockets.AcceptWebSocketAsync();
                     WebTask? task = null;
+                    string? requestId = null;
                     List<TaskResult> requests = new();
                     Task<TaskResult>? reqTask = null;
 
                     while (!ws.CloseStatus.HasValue)
                     {
-                        if (reqTask == null) reqTask = ReceiveMessage(ws, requests);
-                        var req = await reqTask;
-                        reqTask = null;
+                        TaskResult req;
+
+                        if (requests.Count > 0)
+                        {
+                            req = requests[0];
+                            requests.RemoveAt(0);
+                        }
+                        else
+                        {
+                            if (reqTask == null) reqTask = ReceiveMessage(ws);
+                            req = await reqTask;
+                            reqTask = null;
+                        }
 
                         if (req.Finished) break;
                         if (req.IsCancelation) continue;
@@ -647,12 +655,18 @@ namespace Brayns.Shaper
                             task.SessionId = sessionId;
 
                             var jReq = (JObject)req.Result!;
+
                             if (jReq.ContainsKey("objectid"))
                                 task.ObjectId = jReq["objectid"]!.ToString();
                             else
                                 task.TypeName = jReq["classname"]!.ToString();
                             task.MethodName = jReq["method"]!.ToString();
                             task.Parameters = (JObject)jReq["arguments"]!;
+
+                            requestId = null;
+                            if (jReq.ContainsKey("requestid"))
+                                requestId = jReq["requestid"]!.ToString();
+
                             task.Execute();
 
                             Task<TaskResult>? resTask = null;
@@ -682,7 +696,7 @@ namespace Brayns.Shaper
                                             break;
 
                                         default:
-                                            await WriteRpcResponse(ws, res.Result);
+                                            await WriteRpcResponse(ws, res.Result, requestId);
                                             break;
                                     }
                                 }
@@ -701,7 +715,7 @@ namespace Brayns.Shaper
                         }
                         catch (Exception ex)
                         {
-                            await WriteRpcException(ws, ex);
+                            await WriteRpcException(ws, ex, requestId);
                             LogException(ex, ctx, task);
                         }
                     }

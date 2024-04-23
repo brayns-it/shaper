@@ -11,12 +11,27 @@ namespace Brayns.Shaper.Objects
     public delegate void TableRelationConditionHandler<U>(U table) where U : BaseTable;
     public delegate void TableRelationFilterHandler<T>(T table) where T : BaseTable;
 
+    internal class TableRelationList : List<ITableRelation>
+    {
+        public ITableRelation? Get()
+        {
+            foreach (var tr in this)
+                if (tr.IsActive())
+                    return tr;
+
+            return null;
+        }
+    }
+
     internal interface ITableRelation
     {
         public string FieldFrom { get; }
         public Type? TableFrom { get; }
         public (Type, string) GetFieldForCollect();
         public void ModifyAll(object? oldValue, object? newValue);
+        public bool IsActive();
+        public void ThrowIfNotValid();
+        public BaseField GetFieldTo();
     }
 
     internal class TableRelation<T> : ITableRelation where T : BaseTable
@@ -29,7 +44,7 @@ namespace Brayns.Shaper.Objects
         public TableRelationFilterHandler<T>? FilterHandler { get; set; }
         public TableRelationFieldHandler<T>? FieldHandler { get; set; }
 
-        public (Type, string) GetFieldForCollect()
+        public BaseField GetFieldTo()
         {
             var t = (T)Activator.CreateInstance(TableTo)!;
             BaseField f = t.TablePrimaryKey[0];
@@ -40,6 +55,13 @@ namespace Brayns.Shaper.Objects
                 if (!t.TablePrimaryKey.Contains(f))
                     throw new Error(Label("Cannot relate to field '{0}' because it's not primary key member", f.Caption));
             }
+
+            return f;
+        }
+
+        public (Type, string) GetFieldForCollect()
+        {
+            var f = GetFieldTo();
 
             if (f.Type != FieldFromInstance.Type)
                 throw new Error(Label("Field '{0}' must be of the same type of '{1}'", f.Caption, FieldFromInstance.Caption));
@@ -60,6 +82,16 @@ namespace Brayns.Shaper.Objects
 
             if (fieldFrom.Table != null)
                 TableFrom = fieldFrom.Table.GetType();
+        }
+
+        public void ThrowIfNotValid()
+        {
+            var f = GetFieldTo();
+            FilterHandler?.Invoke((T)f.Table!);
+            f.Table!.TableFilterLevel = FilterLevel.Private;
+            f.SetRange(FieldFromInstance.Value);
+            if (f.Table.IsEmpty())
+                throw new Error(Label("Value {0} not found in related table {1}", FieldFromInstance.Format(), f.Table!.UnitCaption));
         }
 
         protected void ModifyAll(BaseTable t, object? oldValue, object? newValue)
@@ -94,6 +126,25 @@ namespace Brayns.Shaper.Objects
 
         protected virtual void OnApplyCondition(BaseTable t)
         {
+        }
+
+        public bool IsActive()
+        {
+            if (TableFrom == null)
+                return false;
+
+            var t = (BaseTable)Activator.CreateInstance(TableFrom)!;
+            OnApplyCondition(t);
+            foreach (var f in t.UnitFields)
+                foreach (var r in f.Filters)
+                {
+                    if (r.Type != FilterType.Equal)
+                        throw new Error(Label("Unsupported relation filter type {0} on {1}", r.Type, f.Caption));
+
+                    if (!Functions.AreEquals(FieldFromInstance.Table!.FieldByName(f.Name)!.Value, r.Value))
+                        return false;
+                }
+            return true;
         }
     }
 

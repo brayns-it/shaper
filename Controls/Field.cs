@@ -27,7 +27,7 @@ namespace Brayns.Shaper.Controls
     public class Field : Control
     {
         public string Caption { get; set; } = "";
-        public Fields.BaseField BaseField { get; protected set; }
+        public Fields.BaseField SourceField { get; protected set; }
         public InputType InputType { get; set; }
         public event Fields.ValidatingHandler? Validating;
         public bool ReadOnly { get; set; } = false;
@@ -44,7 +44,7 @@ namespace Brayns.Shaper.Controls
             Init(group, name, baseField);
         }
 
-        public Field(Group group, Shaper.Fields.BaseField baseField) : this (group, "", baseField)
+        public Field(Group group, Shaper.Fields.BaseField baseField) : this(group, "", baseField)
         {
         }
 
@@ -62,8 +62,8 @@ namespace Brayns.Shaper.Controls
         private void Init(Control parent, string name, Shaper.Fields.BaseField baseField)
         {
             Attach(parent);
-            BaseField = baseField;
-            Caption = BaseField.Caption;
+            SourceField = baseField;
+            Caption = SourceField.Caption;
             InputType = InputType.Text;
             Name = name;
 
@@ -75,8 +75,8 @@ namespace Brayns.Shaper.Controls
         {
             var jo = base.Render();
             jo["caption"] = Caption;
-            jo["codename"] = BaseField.CodeName;
-            jo["fieldType"] = BaseField.Type.ToString();
+            jo["codename"] = SourceField.CodeName;
+            jo["fieldType"] = SourceField.Type.ToString();
             jo["inputType"] = InputType.ToString();
             jo["readOnly"] = ReadOnly;
             jo["fontSize"] = FontSize.ToString();
@@ -86,7 +86,7 @@ namespace Brayns.Shaper.Controls
                 if (typeof(Group).IsAssignableFrom(Parent.GetType()))
                     if (((Group)Parent!).LabelStyle == LabelStyle.Placeholder)
                         jo["placeholder"] = Caption;
-                        
+
             if (Triggering?.GetInvocationList().Length > 0)
                 jo["isLink"] = true;
 
@@ -107,14 +107,47 @@ namespace Brayns.Shaper.Controls
             Triggering?.Invoke();
         }
 
+        internal JArray GetValues(string text)
+        {
+            JArray result = new();
+
+            Fields.BaseField? bf = SourceField.TableRelations.Get()?.GetFieldTo();
+            if (bf != null)
+            {
+                if (bf.Table!.TableLookup.Count == 0)
+                    bf.Table!.TableLookup.Add(bf);
+
+                bf.Table!.SetTextFilter(bf.Table!.TableLookup, text);
+
+                if (bf.Table!.FindSet(100))
+                    while (bf.Table!.Read())
+                    {
+                        JObject item = new();
+                        item["value"] = bf.Serialize();
+                        item["hasFormat"] = bf.HasFormat;
+                        if (bf.HasFormat)
+                            item["fvalue"] = bf.Format();
+
+                        JArray display = new();
+                        foreach (var df in bf.Table!.TableLookup)
+                            display.Add(df.Format());
+
+                        item["display"] = display;
+                        result.Add(item);
+                    }
+            }
+
+            return result;
+        }
+
         internal void Validate(object? value, bool parseValue = true)
         {
             if (parseValue)
-                BaseField.Evaluate(value!.ToString()!, out value);
+                SourceField.Evaluate(value!.ToString()!, out value);
 
-            BaseField.Validate(value);
+            SourceField.Validate(value);
             Validating?.Invoke();
-            Page!.AfterValidate(BaseField);
+            Page!.AfterValidate(SourceField);
         }
     }
 }

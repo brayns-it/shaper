@@ -28,6 +28,7 @@ namespace Brayns.Shaper.Objects
         public FilterLevel TableFilterLevel { get; set; }
         public bool TableAscending { get; set; } = true;
         public bool TableLock { get; set; } = false;
+        public FieldList TableLookup { get; init; } = new();
         public FieldList TableSort { get; init; } = new();
         public FieldList TablePrimaryKey { get; init; } = new();
         public IndexList TableIndexes { get; init; } = new();
@@ -114,6 +115,36 @@ namespace Brayns.Shaper.Objects
             TableDatabase!.LoadRow(this, _dataset![_currentRow]);
             AcceptChanges();
             return true;
+        }
+
+        internal void SetTextFilter(FieldList fields, string text)
+        {
+            Reset(FilterLevel.Or);
+
+            var xLevel = TableFilterLevel;
+            TableFilterLevel = FilterLevel.Or;
+
+            if (text.Trim().Length > 0)
+                foreach (var f in fields)
+                {
+                    if ((f.Type == Fields.FieldTypes.CODE) || (f.Type == Fields.FieldTypes.TEXT))
+                        f.SetFilter("*" + text + "*");
+                    else
+                        f.SetFilter(text);
+
+                    int n = f.Filters.Count - 1;
+                    try
+                    {
+                        List<object> vals = new();
+                        f.Filters[n].Tokenize(vals);
+                    }
+                    catch
+                    {
+                        f.Filters.RemoveAt(n);
+                    }
+                }
+
+            TableFilterLevel = xLevel;
         }
 
         internal void ModifyAll(BaseField field, object? newValue, bool runTrigger = false)
@@ -367,6 +398,8 @@ namespace Brayns.Shaper.Objects
             t.FieldHandler = fieldTo;
             t.FilterHandler = filterTo;
             TableRelations.Add(t);
+
+            fieldFrom.TableRelations.Add(t);
         }
 
         public void AddRelation<S, U>(BaseField fieldFrom,
@@ -379,6 +412,8 @@ namespace Brayns.Shaper.Objects
             t.ConditionHandler = conditionFrom;
             t.FilterHandler = filterTo;
             TableRelations.Add(t);
+
+            fieldFrom.TableRelations.Add(t);
         }
 
         public void Init()

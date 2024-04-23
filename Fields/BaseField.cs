@@ -224,6 +224,7 @@ namespace Brayns.Shaper.Fields
     {
         internal bool ValuePerSession { get; set; }
         internal Unit? Parent { get; set; }
+        internal TableRelationList TableRelations { get; init; } = new();
 
         public Opt<FieldTypes> Type { get; init; }
         public string Name { get; init; }
@@ -234,6 +235,7 @@ namespace Brayns.Shaper.Fields
         public event ValidatingHandler? Validating;
         public List<FieldFilter> Filters { get; init; }
         public BaseTable? Table { get; internal set; }
+        public bool ValidateRelation { get; set; } = true;
 
         private object? _value;
         public object? Value
@@ -317,6 +319,9 @@ namespace Brayns.Shaper.Fields
         {
             Value = value;
             Validating?.Invoke();
+
+            if (ValidateRelation && (!IsEmpty()))
+                TableRelations.Get()?.ThrowIfNotValid();
         }
 
         internal void SetFilter(string expression)

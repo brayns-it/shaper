@@ -306,14 +306,20 @@ namespace Brayns.Shaper.Database
 
         public override void Commit()
         {
-            _transaction!.Commit();
-            _transaction = _connection!.BeginTransaction(System.Data.IsolationLevel.ReadCommitted);
+            if (_transaction != null)
+            {
+                _transaction!.Commit();
+                _transaction = null;
+            }
         }
 
         public override void Rollback()
         {
-            _transaction!.Rollback();
-            _transaction = _connection!.BeginTransaction(System.Data.IsolationLevel.ReadCommitted);
+            if (_transaction != null)
+            {
+                _transaction!.Rollback();
+                _transaction = null;
+            }
         }
 
         public static string GetConnectionString(string fileName)
@@ -332,7 +338,7 @@ namespace Brayns.Shaper.Database
             {
                 _connection = new("Data Source=:memory:");
                 _connection.Open();
-                _transaction = _connection.BeginTransaction(System.Data.IsolationLevel.ReadCommitted);
+                _transaction = null;
             }
             else
                 Connect();
@@ -343,12 +349,13 @@ namespace Brayns.Shaper.Database
             _dsn = dsn;
             _connection = new(dsn);
             _connection.Open();
-            _transaction = _connection.BeginTransaction(System.Data.IsolationLevel.ReadCommitted);
+            _transaction = null;
         }
 
         private SqliteCommand CreateCommand(string sql, params object[] args)
         {
             var cmd = _connection!.CreateCommand();
+            if (_transaction == null) _transaction = _connection.BeginTransaction(System.Data.IsolationLevel.ReadCommitted);
             cmd.Transaction = _transaction;
             cmd.CommandText = sql;
             for (int i = 0; i < args.Length; i++)
