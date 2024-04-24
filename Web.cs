@@ -27,7 +27,7 @@ namespace Brayns.Shaper
 
     public class RawSession
     {
-        public Dictionary<string, string> RouteParts { get; } = new();
+        public Dictionary<string, string> RouteParts { get; internal set; } = new();
 
         public byte[]? Request { get; set; }
         public string? RequestType { get; set; }
@@ -406,8 +406,11 @@ namespace Brayns.Shaper
                     case null:  // return void allowed          
                         return;
 
+                    case Exception ex:
+                        throw ex;
+
                     default:
-                        throw new Error(Label("Unhandled type in raw web loop {0}", r.GetType()));
+                        throw new Error(Label("Unhandled type in raw web loop {0}", r.Result.GetType()));
                 }
             }
         }
@@ -454,7 +457,7 @@ namespace Brayns.Shaper
             }
             catch (Exception ex)
             {
-                if (ctx.Response.HasStarted)
+                if (!ctx.Response.HasStarted)
                     ctx.Response.StatusCode = 500;
 
                 LogException(ex, ctx, task);

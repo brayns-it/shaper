@@ -64,19 +64,31 @@ namespace Brayns.Shaper.Loader
             return new Proxy(Activator.CreateInstance(t)!);
         }
 
+        private static MethodInfo GetBestRoute(Dictionary<MethodInfo, Dictionary<string, string>> routes)
+        {
+            foreach (MethodInfo mi in routes.Keys)
+                if (routes[mi].Count == 0)
+                    return mi;
+
+            return routes.Keys.First();
+        }
+
         public static Proxy CreateFromRawRoute(string routeName, string route, RawSession session)
         {
-            MethodInfo? mi = null;
-
+            Dictionary<MethodInfo, Dictionary<string, string>> routes = new();
+            
             foreach (var r in Application.RawRoutes.Keys)
-                if (r.Method.HasFlag((Enum)session.RequestMethod) && (routeName == r.RouteName) && RouteIsMatch(route, r.Route, session.RouteParts))
-                {
-                    mi = Application.RawRoutes[r];
-                    break;
-                }
+            {
+                Dictionary<string, string> parts = new();
+                if (r.Method.HasFlag((Enum)session.RequestMethod) && (routeName == r.RouteName) && RouteIsMatch(route, r.Route, parts))
+                    routes.Add(Application.RawRoutes[r], parts);
+            }
 
-            if (mi == null)
+            if (routes.Count == 0)
                 throw new Error(Error.E_INVALID_ROUTE, Label("Invalid raw route '{0}' '{1}'", routeName, route));
+
+            var mi = GetBestRoute(routes);
+            session.RouteParts = routes[mi];
 
             AssertMethodSecurity(mi);
 

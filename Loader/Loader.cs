@@ -150,13 +150,11 @@ namespace Brayns.Shaper.Loader
             {
                 foreach (var m in t.GetMethods(BindingFlags.Instance | BindingFlags.Public))
                 {
-                    var r = m.GetCustomAttribute<ApiMethod>(true);
-                    if (r != null)
+                    foreach (var r in m.GetCustomAttributes<ApiMethod>(true))
                         Application.Routes.Add(r, m);
 
-                    var w = m.GetCustomAttribute<RawMethodAttribute>(true);
-                    if (w != null)
-                        Application.RawRoutes.Add(w, m);
+                    foreach (var r in m.GetCustomAttributes<RawMethod>(true))
+                        Application.RawRoutes.Add(r, m);
                 }
             }
         }

@@ -84,7 +84,7 @@ namespace Brayns.Shaper.Classes
     /// <summary>
     /// Method is callable via REST
     /// </summary>
-    [AttributeUsage(AttributeTargets.Method)]
+    [AttributeUsage(AttributeTargets.Method, AllowMultiple = true)]
     public class ApiMethodAttribute : Attribute
     {
         public RequestMethod Method { get; init; } = RequestMethod.Get;
@@ -95,7 +95,7 @@ namespace Brayns.Shaper.Classes
     /// <summary>
     /// Raw HTTP Method callable
     /// </summary>
-    [AttributeUsage(AttributeTargets.Method)]
+    [AttributeUsage(AttributeTargets.Method, AllowMultiple = true)]
     public class RawMethodAttribute : Attribute
     {
         public string RouteName { get; init; } = "";
