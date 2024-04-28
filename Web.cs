@@ -32,10 +32,12 @@ namespace Brayns.Shaper
         public byte[]? Request { get; set; }
         public string? RequestType { get; set; }
         public Dictionary<string, string> RequestHeaders { get; set; } = new();
+        public Dictionary<string, string> RequestQuery { get; set; } = new();
         public RequestMethod RequestMethod { get; set; }
         public string RequestPath { get; set; } = "";
         public string RequestPathWithQuery { get; set; } = "";
         public string RequestURI { get; set; } = "";
+        public string RequestBaseURI { get; set; } = "";
 
         public byte[]? Response { get; set; }
         public string ResponseType { get; set; } = "text/plain";
@@ -359,6 +361,16 @@ namespace Brayns.Shaper
                 task.RawSession.RequestPathWithQuery = ctx.Request.Path + ((ctx.Request.QueryString.HasValue) ? ctx.Request.QueryString : "");
                 task.RawSession.RequestURI = ctx.Request.Scheme + "://" + ctx.Request.Host + ctx.Request.Path;
                 task.RawSession.RequestMethod = task.HttpMethod;
+
+                task.RawSession.RequestBaseURI = task.RawSession.RequestURI.Trim();
+                if (task.RawSession.RequestBaseURI.EndsWith("/")) task.RawSession.RequestBaseURI = task.RawSession.RequestBaseURI.Substring(0, task.RawSession.RequestBaseURI.Length - 1);
+                int n = task.RawSession.RequestBaseURI.LastIndexOf("/");
+                if (n > -1) task.RawSession.RequestBaseURI = task.RawSession.RequestBaseURI.Substring(0, n);
+                if (!task.RawSession.RequestBaseURI.EndsWith("/")) task.RawSession.RequestBaseURI += "/";
+
+                foreach (string k in ctx.Request.Query.Keys)
+                    if (!task.RawSession.RequestQuery.ContainsKey(k))
+                        task.RawSession.RequestQuery.Add(k, ctx.Request.Query[k].First()!);
 
                 RouteNameMetadata? md = ctx.GetEndpoint()!.Metadata.GetMetadata<RouteNameMetadata>();
                 if ((md != null) && (md.RouteName != null)) task.RouteName = md.RouteName;

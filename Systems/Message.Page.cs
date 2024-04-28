@@ -21,6 +21,15 @@
             }
         }
 
+        public static void Show(string text)
+        {
+            if (!Client.IsAllowed())
+                return;
+
+            var msg = new Message(text);
+            msg.RunModal();
+        }
+
         private void Actions_Triggering()
         {
             Close();
