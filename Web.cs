@@ -460,6 +460,8 @@ namespace Brayns.Shaper
                 {
                     ctx.Response.StatusCode = task.RawSession.ResponseCode;
                     ctx.Response.ContentType = task.RawSession.ResponseType;
+                    if (task.RawSession.Response != null)
+                        ctx.Response.ContentLength = task.RawSession.Response.Length;
                     foreach (string hk in task.RawSession.ResponseHeaders.Keys)
                         ctx.Response.Headers.Append(hk, task.RawSession.ResponseHeaders[hk]);
                 }
