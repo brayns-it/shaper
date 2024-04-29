@@ -179,115 +179,144 @@ namespace Brayns.Shaper.Database
             CompileExec(sql, false);
         }
 
-        private void ProcessTable()
+        private bool AlterTable(string def)
         {
-            DbTable tab = Query("SELECT * FROM sqlite_schema WHERE ([type] = 'table') AND ([name] = $p0) LIMIT 1", CompilingTable!.TableSqlName);
-            if (tab.Count > 0)
+            int n1 = def.IndexOf("(");
+            int n2 = def.LastIndexOf(")");
+            def = def.Substring(n1 + 1, n2 - n1 - 1);
+
+            string[] fieldDefs = def.Split(',');
+
+            var toDelete = new List<string>();
+            var toAdd = new List<Fields.BaseField>();
+            var curPk = GetPrimaryKey(CompilingTable!);
+
+            foreach (var field in CompilingTable!.UnitFields)
             {
-                string def = tab[0].Value<string>("sql");
-                int n1 = def.IndexOf("(");
-                int n2 = def.LastIndexOf(")");
-                def = def.Substring(n1 + 1, n2 - n1 - 1);
-
-                string[] fieldDefs = def.Split(',');
-
-                var toDelete = new List<string>();
-                var toAdd = new List<Fields.BaseField>();
-                var curPk = GetPrimaryKey(CompilingTable!);
-
-                foreach (var field in CompilingTable!.UnitFields)
-                {
-                    bool ok = false;
-
-                    foreach (var row in fieldDefs)
-                    {
-                        if (row.Trim().StartsWith("[" + field.SqlName + "]"))
-                        {
-                            var newDef = GetFieldType(field);
-
-                            n1 = row.IndexOf("]");
-                            var curDef = row.Substring(n1 + 1).Trim();
-
-                            n1 = curDef.IndexOf("DEFAULT");
-                            if (n1 > -1)
-                                curDef = curDef.Substring(0, n1).Trim();
-
-                            if (!newDef.Equals(curDef, StringComparison.OrdinalIgnoreCase))
-                            {
-                                toDelete.Add(field.SqlName);
-                                toAdd.Add(field);
-                            }
-
-                            ok = true;
-                            break;
-                        }
-                    }
-
-                    if (!ok)
-                        toAdd.Add(field);
-                }
+                bool ok = false;
+                var newDef = GetFieldType(field);
 
                 foreach (var row in fieldDefs)
                 {
-                    bool ok = false;
-
-                    foreach (var field in CompilingTable!.UnitFields)
+                    if (row.Trim().StartsWith("[" + field.SqlName + "]"))
                     {
-                        if (row.Trim().StartsWith("[" + field.SqlName + "]"))
+                        n1 = row.IndexOf("]");
+                        var curDef = row.Substring(n1 + 1).Trim();
+
+                        n1 = curDef.IndexOf("DEFAULT");
+                        if (n1 > -1)
+                            curDef = curDef.Substring(0, n1).Trim();
+
+                        if (!newDef.Equals(curDef, StringComparison.OrdinalIgnoreCase))
                         {
-                            ok = true;
-                            break;
+                            if (newDef.Contains("PRIMARY KEY", StringComparison.OrdinalIgnoreCase) || curDef.Contains("PRIMARY KEY", StringComparison.OrdinalIgnoreCase))
+                            {
+                                // cannot add primary key to tables
+                                return false;
+                            }
+
+                            toDelete.Add(field.SqlName);
+                            toAdd.Add(field);
                         }
-                    }
 
-                    if (!ok)
-                    {
-                        n1 = row.IndexOf("[");
-                        n2 = row.LastIndexOf("]");
-                        toDelete.Add(row.Substring(n1 + 1, n2 - n1 - 1));
+                        ok = true;
+                        break;
                     }
                 }
 
-                foreach (string fn in toDelete)
+                if (!ok)
                 {
-                    if (curPk.Contains(fn))
-                        DropPrimaryKey();
-
-                    var sql = "ALTER TABLE [" + CompilingTable.TableSqlName + "] " +
-                        "DROP COLUMN [" + fn + "]";
-
-                    CompileExec(sql, true);
-                }
-
-                foreach (BaseField field in toAdd)
-                {
-                    var sql = "ALTER TABLE [" + CompilingTable!.TableSqlName + "] ADD " +
-                        "[" + field.SqlName + "] " + GetFieldType(field);
-
-                    if ((field.Type != FieldTypes.BLOB))
+                    if (newDef.Contains("PRIMARY KEY", StringComparison.OrdinalIgnoreCase))
                     {
-                        sql += " DEFAULT ";
-
-                        if ((field.Type == FieldTypes.CODE) || (field.Type == FieldTypes.TEXT))
-                            sql += "''";
-                        else if ((field.Type == FieldTypes.INTEGER) || (field.Type == FieldTypes.BIGINTEGER) || (field.Type == FieldTypes.TIMESTAMP))
-                            sql += "0";
-                        else if ((field.Type == FieldTypes.DECIMAL) || (field.Type == FieldTypes.BOOLEAN))
-                            sql += "0";
-                        else if (field.Type == FieldTypes.OPTION)
-                            sql += "0";
-                        else if (field.Type == FieldTypes.GUID)
-                            sql += "'00000000-0000-0000-0000-000000000000'";
-                        else if ((field.Type == FieldTypes.DATE) || (field.Type == FieldTypes.DATETIME))
-                            sql += "'17530101'";
-                        else if (field.Type == FieldTypes.TIME)
-                            sql += "'17530101'";
+                        // cannot add primary key to tables
+                        return false;
                     }
 
-                    CompileExec(sql, false);
+                    toAdd.Add(field);
                 }
             }
-            else
+
+            foreach (var row in fieldDefs)
+            {
+                bool ok = false;
+
+                foreach (var field in CompilingTable!.UnitFields)
+                {
+                    if (row.Trim().StartsWith("[" + field.SqlName + "]"))
+                    {
+                        ok = true;
+                        break;
+                    }
+                }
+
+                if (!ok)
+                {
+                    n1 = row.IndexOf("[");
+                    n2 = row.LastIndexOf("]");
+                    toDelete.Add(row.Substring(n1 + 1, n2 - n1 - 1));
+                }
+            }
+
+            foreach (string fn in toDelete)
+            {
+                if (curPk.Contains(fn))
+                    DropPrimaryKey();
+
+                var sql = "ALTER TABLE [" + CompilingTable.TableSqlName + "] " +
+                    "DROP COLUMN [" + fn + "]";
+
+                CompileExec(sql, true);
+            }
+
+            foreach (BaseField field in toAdd)
+            {
+                var sql = "ALTER TABLE [" + CompilingTable!.TableSqlName + "] ADD " +
+                    "[" + field.SqlName + "] " + GetFieldType(field);
+
+                if ((field.Type != FieldTypes.BLOB))
+                {
+                    sql += " DEFAULT ";
+
+                    if ((field.Type == FieldTypes.CODE) || (field.Type == FieldTypes.TEXT))
+                        sql += "''";
+                    else if ((field.Type == FieldTypes.INTEGER) || (field.Type == FieldTypes.BIGINTEGER) || (field.Type == FieldTypes.TIMESTAMP))
+                        sql += "0";
+                    else if ((field.Type == FieldTypes.DECIMAL) || (field.Type == FieldTypes.BOOLEAN))
+                        sql += "0";
+                    else if (field.Type == FieldTypes.OPTION)
+                        sql += "0";
+                    else if (field.Type == FieldTypes.GUID)
+                        sql += "'00000000-0000-0000-0000-000000000000'";
+                    else if ((field.Type == FieldTypes.DATE) || (field.Type == FieldTypes.DATETIME))
+                        sql += "'17530101'";
+                    else if (field.Type == FieldTypes.TIME)
+                        sql += "'17530101'";
+                }
+
+                CompileExec(sql, false);
+            }
+
+            return true;
+        }
+
+        private void ProcessTable()
+        {
+            DbTable tab = Query("SELECT * FROM sqlite_schema WHERE ([type] = 'table') AND ([name] = $p0) LIMIT 1", CompilingTable!.TableSqlName);
+            bool createTable = true;
+
+            if (tab.Count > 0)
+            {
+                string def = tab[0].Value<string>("sql");
+                createTable = !AlterTable(def);
+
+                if (createTable)
+                {
+                    var sql = "DROP TABLE [" + CompilingTable.TableSqlName + "]";
+                    CompileExec(sql, true);
+                }
+            }
+
+            if (createTable)
             {
                 var sql = "CREATE TABLE [" + CompilingTable!.TableSqlName + "] (";
 
@@ -639,11 +668,13 @@ namespace Brayns.Shaper.Database
         public override bool IsEmpty(BaseTable table)
         {
             List<object> pars = new();
-            var sql = "SELECT TOP 1 NULL [ne] FROM [" + table.TableSqlName + "]";
+            var sql = "SELECT NULL [ne] FROM [" + table.TableSqlName + "]";
 
             var where = GetWhere(table, pars);
             if (where.Count > 0)
                 sql += " WHERE " + String.Join(" AND ", where);
+
+            sql += " LIMIT 1";
 
             if (Query(sql, pars.ToArray()).Count == 0)
                 return true;

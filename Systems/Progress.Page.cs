@@ -44,6 +44,15 @@
             UpdateLine(key, value);
         }
 
+        public string UpdateLinePercent(string key, int count, int total)
+        {
+            string prc = "";
+            if (total != 0)
+                prc = (count / total * 100).ToString("0") + "%";
+            UpdateLine(key, prc);
+            return prc;
+        }
+
         public void UpdateLine(string key, string value)
         {
             if (!Client.IsAllowed())

@@ -26,6 +26,12 @@
             }
         }
 
+        public static void Show(string text = "", Controls.ActionTriggerHandler? onYes = null, Controls.ActionTriggerHandler? onNo = null)
+        {
+            var cnf = new Confirm(text, onYes, onNo);
+            cnf.RunModal();
+        }
+
         private void Actions_Triggering()
         {
             Close();

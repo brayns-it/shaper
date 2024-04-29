@@ -118,10 +118,7 @@
                 else
                 {
                     Rec!.Delete(true);
-                    Close();
-
-                    if ((SourcePage != null) && (SourcePage.Rec != null) && (SourcePage.Rec!.GetType() == Rec.GetType()))
-                        SourcePage.SendDataSet();
+                    Close(true);
                 }
             }).RunModal();
         }
@@ -481,10 +478,11 @@
             {
                 RefreshRow();
                 SendDataRow();
+                SendCaption();
             }
         }
 
-        public void Close()
+        public void Close(bool updateSourcePage = false)
         {
             Closing?.Invoke();
             SessionUnregister();
@@ -494,6 +492,12 @@
             result["action"] = "closepage";
 
             Client.SendMessage(result);
+
+            if (updateSourcePage)
+            {
+                if ((SourcePage != null) && (SourcePage.Rec != null) && (Rec != null) && (SourcePage.Rec!.GetType() == Rec.GetType()))
+                    SourcePage.SendDataSet();
+            }
         }
 
         [PublicAccess]

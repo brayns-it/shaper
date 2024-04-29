@@ -43,20 +43,12 @@ msgctxt "Brayns.Shaper.SessionTypes"
 msgid "Web Client"
 msgstr ""
 
-msgctxt "Brayns.Shaper.WebDispatcher"
-msgid "Invalid session"
+msgctxt "Brayns.Shaper.Session"
+msgid "Session interrupted"
 msgstr ""
 
 msgctxt "Brayns.Shaper.WebDispatcher"
-msgid "Invalid API action '{0}'"
-msgstr ""
-
-msgctxt "Brayns.Shaper.WebDispatcher"
-msgid "Invalid HTTP RPC JSON body"
-msgstr ""
-
-msgctxt "Brayns.Shaper.WebDispatcher"
-msgid "Unhandled type in web loop {0}"
+msgid "Unhandled type in raw web loop {0}"
 msgstr ""
 
 msgctxt "Brayns.Shaper.Classes.Functions"
@@ -163,6 +155,10 @@ msgctxt "Brayns.Shaper.Fields.FieldTypes"
 msgid "Guid"
 msgstr ""
 
+msgctxt "Brayns.Shaper.Fields.FieldTypes"
+msgid "Timestamp"
+msgstr ""
+
 msgctxt "Brayns.Shaper.Fields.BaseField"
 msgid "Field '{0}' does not belongs to table"
 msgstr ""
@@ -195,8 +191,8 @@ msgctxt "Brayns.Shaper.Fields.Text"
 msgid "Value of '{0}' cannot be longer than {1}"
 msgstr ""
 
-msgctxt "Brayns.Shaper.Loader.Loader"
-msgid "Cannot load assembly '{0}'"
+msgctxt "Brayns.Shaper.Loader.Proxy"
+msgid "Invalid raw route '{0}' '{1}'"
 msgstr ""
 
 msgctxt "Brayns.Shaper.Loader.Proxy"
@@ -208,10 +204,6 @@ msgid "Invalid object ID '{0}'"
 msgstr ""
 
 msgctxt "Brayns.Shaper.Loader.Proxy"
-msgid "Invalid object name '{0}'"
-msgstr ""
-
-msgctxt "Brayns.Shaper.Loader.Proxy"
 msgid "Unauthorized access to unit '{0}'"
 msgstr ""
 
@@ -220,15 +212,31 @@ msgid "Unauthorized access to method '{0}'"
 msgstr ""
 
 msgctxt "Brayns.Shaper.Loader.Proxy"
-msgid "Invalid method name '{0}'"
-msgstr ""
-
-msgctxt "Brayns.Shaper.Loader.Proxy"
 msgid "Unknown method to invoke"
 msgstr ""
 
 msgctxt "Brayns.Shaper.Loader.Proxy"
 msgid "Missing parameter '{0}' in method '{1}'"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Loader.Proxy"
+msgid "Invalid object name '{0}'"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Loader.Proxy"
+msgid "{0} invalid type"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Loader.Proxy"
+msgid "Invalid method name '{0}'"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Objects.RunningTask"
+msgid "{0} is not batchable"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Objects.RunningTask"
+msgid "{0} is not a Batch method"
 msgstr ""
 
 msgctxt "Brayns.Shaper.Objects.BasePage"
@@ -296,6 +304,14 @@ msgid "Field '{0}' must be of the same size of '{1}'"
 msgstr ""
 
 msgctxt "Brayns.Shaper.Objects.TableRelation"
+msgid "Value {0} not found in related table {1}"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Objects.TableRelation"
+msgid "Unsupported relation filter type {0} on {1}"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Objects.TableRelation"
 msgid "Field '{0}' does not belong to '{1}'"
 msgstr ""
 
@@ -308,7 +324,15 @@ msgid "Codeunit"
 msgstr ""
 
 msgctxt "Brayns.Shaper.Objects.UnitTypes"
+msgid "Batch"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Objects.UnitTypes"
 msgid "Page"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Objects.UnitTypes"
+msgid "Query"
 msgstr ""
 
 msgctxt "Brayns.Shaper.Systems.Admin"
@@ -405,6 +429,14 @@ msgstr ""
 
 msgctxt "Brayns.Shaper.Systems.Message"
 msgid "OK"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Systems.Progress"
+msgid "Progress"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Systems.Progress"
+msgid "Cancel"
 msgstr ""
 
 msgctxt "Brayns.Shaper.Systems.Setup"
