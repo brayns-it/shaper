@@ -338,6 +338,7 @@ namespace Brayns.Shaper
                 case "PUT":
                     task.HttpMethod = RequestMethod.Put;
                     break;
+                case "HEAD":
                 case "GET":
                     task.HttpMethod = RequestMethod.Get;
                     break;
@@ -434,23 +435,6 @@ namespace Brayns.Shaper
             try
             {
                 task = await ParseRequest(ctx, true);
-
-                switch (ctx.Request.Method)
-                {
-                    case "POST":
-                        task.RawSession.RequestMethod = RequestMethod.Post;
-                        break;
-                    case "PUT":
-                        task.RawSession.RequestMethod = RequestMethod.Put;
-                        break;
-                    case "GET":
-                        task.RawSession.RequestMethod = RequestMethod.Get;
-                        break;
-                    case "DELETE":
-                        task.RawSession.RequestMethod = RequestMethod.Delete;
-                        break;
-                }
-
                 task.IsRawRequest = true;
                 task.Execute();
 
@@ -466,8 +450,9 @@ namespace Brayns.Shaper
                         ctx.Response.Headers.Append(hk, task.RawSession.ResponseHeaders[hk]);
                 }
 
-                if (task.RawSession.Response != null)
-                    await ctx.Response.Body.WriteAsync(task.RawSession.Response, 0, task.RawSession.Response.Length);
+                if (ctx.Request.Method != "HEAD")
+                    if (task.RawSession.Response != null)
+                        await ctx.Response.Body.WriteAsync(task.RawSession.Response, 0, task.RawSession.Response.Length);
             }
             catch (Exception ex)
             {
@@ -484,10 +469,13 @@ namespace Brayns.Shaper
             {
                 ctx.Response.ContentType = result.ContentType;
                 ctx.Response.StatusCode = result.StatusCode;
+                if ((result.Content != null) && (result.Content.Length > 0))
+                    ctx.Response.ContentLength = result.Content.Length;
             }
 
-            if ((result.Content != null) && (result.Content.Length > 0))
-                await ctx.Response.Body.WriteAsync(result.Content, 0, result.Content.Length);
+            if (ctx.Request.Method != "HEAD")
+                if ((result.Content != null) && (result.Content.Length > 0))
+                    await ctx.Response.Body.WriteAsync(result.Content, 0, result.Content.Length);
         }
 
         private static async Task WriteApiResponse(HttpContext ctx, object? obj)
@@ -530,9 +518,6 @@ namespace Brayns.Shaper
 
                 task = await ParseRequest(ctx, false);
                 task.IsApiRequest = true;
-
-
-
                 task.Execute();
             }
             catch (Exception ex)
@@ -715,7 +700,7 @@ namespace Brayns.Shaper
                                 if (reqTask == null) reqTask = ReceiveMessage(ws);
 
                                 Task<TaskResult> first = await Task.WhenAny(resTask, reqTask);
-                                    
+
                                 if (first == resTask)
                                 {
                                     var res = await first;

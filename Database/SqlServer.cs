@@ -358,7 +358,14 @@ namespace Brayns.Shaper.Database
                     var sql = "ALTER TABLE [" + CompilingTable!.TableSqlName + "] ADD " +
                         "[" + field.SqlName + "] " + GetFieldType(field);
 
-                    if (field.Type != FieldTypes.BLOB)
+                    bool hasDefault = true;
+                    if (field.Type == FieldTypes.BLOB)
+                        hasDefault = false;
+                    if ((field.Type == FieldTypes.INTEGER) || (field.Type == FieldTypes.BIGINTEGER))
+                        if (((Fields.IInteger)field).AutoIncrement)
+                            hasDefault = false;
+
+                    if (hasDefault)
                     {
                         sql += " CONSTRAINT [" + field.SqlName + "$DEF] DEFAULT ";
 
@@ -380,7 +387,7 @@ namespace Brayns.Shaper.Database
 
                     CompileExec(sql, false);
 
-                    if (field.Type != FieldTypes.BLOB)
+                    if (hasDefault)
                     {
                         sql = "ALTER TABLE [" + CompilingTable!.TableSqlName + "] " +
                             "DROP CONSTRAINT [" + field.SqlName + "$DEF]";

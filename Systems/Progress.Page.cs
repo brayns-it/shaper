@@ -48,7 +48,7 @@
         {
             string prc = "";
             if (total != 0)
-                prc = (count / total * 100).ToString("0") + "%";
+                prc = (Convert.ToDecimal(count) / Convert.ToDecimal(total) * 100).ToString("0") + "%";
             UpdateLine(key, prc);
             return prc;
         }

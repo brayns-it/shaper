@@ -225,15 +225,15 @@ namespace Brayns.Shaper
             if ((prefix.Length > 1) && prefix.EndsWith("/")) prefix = prefix.Substring(0, prefix.Length - 1);
             if (prefix == "/") prefix = "";
 
-            app.MapMethods("/" + prefix + "/{**path}", new string[] { "GET", "POST", "PUT", "DELETE" },
+            app.MapMethods("/" + prefix + "/{**path}", new string[] { "HEAD", "GET", "POST", "PUT", "DELETE" },
                 async ctx => await WebDispatcher.DispatchRaw(ctx)).WithName(name);
         }
 
         public static void MapShaperApi(this WebApplication app)
         {
             // rest entry point
-            app.MapMethods("/api/{**path}", new string[] { "GET", "POST", "PUT", "DELETE" }, async ctx => await WebDispatcher.DispatchApi(ctx));
-            app.MapMethods("/rpc/{**path}", new string[] { "GET", "POST", "PUT", "DELETE" }, async ctx => await WebDispatcher.DispatchApi(ctx));
+            app.MapMethods("/api/{**path}", new string[] { "HEAD", "GET", "POST", "PUT", "DELETE" }, async ctx => await WebDispatcher.DispatchApi(ctx));
+            app.MapMethods("/rpc/{**path}", new string[] { "HEAD", "GET", "POST", "PUT", "DELETE" }, async ctx => await WebDispatcher.DispatchApi(ctx));
 
             // client entry point
             app.MapGet("/rpc", async ctx => await WebDispatcher.DispatchRpc(ctx));
