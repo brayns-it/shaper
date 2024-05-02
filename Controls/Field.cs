@@ -11,7 +11,8 @@ namespace Brayns.Shaper.Controls
     {
         Text,
         Password,
-        Html
+        Html,
+        TextArea
     }
 
     public enum InputMode
@@ -36,6 +37,7 @@ namespace Brayns.Shaper.Controls
         public bool OpenRecord { get; set; } = false;
         public InputMode InputMode { get; set; } = InputMode.Text;
         public FontSize FontSize { get; set; } = FontSize.Small;
+        public bool FontFixed { get; set; } = false;
 
 #pragma warning disable CS8618
         public Field(Group group, string name, Shaper.Fields.BaseField baseField)
@@ -80,6 +82,7 @@ namespace Brayns.Shaper.Controls
             jo["inputType"] = InputType.ToString();
             jo["readOnly"] = ReadOnly;
             jo["fontSize"] = FontSize.ToString();
+            jo["fontFixed"] = FontFixed;
             jo["showCaption"] = ShowCaption;
 
             if (Parent != null)

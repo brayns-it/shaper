@@ -79,7 +79,7 @@ namespace Brayns.Shaper.Fields
 
         public override string Format()
         {
-            return FormatValue(Value);
+            return FormatValue(Value, BlankZero);
         }
 
         public void SetRange(int value)
