@@ -170,9 +170,6 @@ namespace Brayns.Shaper
             }
             catch (Exception ex)
             {
-                while (ex.InnerException != null)
-                    ex = ex.InnerException;
-
                 Results.Add(new TaskResult() { Result = ex });
             }
 
@@ -222,6 +219,28 @@ namespace Brayns.Shaper
 
         private static string ExceptionToJson(Exception ex, string? requestId = null)
         {
+            var trace = new List<string>();
+
+            while (true)
+            {
+                var st = new StackTrace(ex, true);
+                var frames = st.GetFrames();
+                foreach (var frame in frames)
+                {
+                    string? fn = frame.GetFileName();
+                    if (fn != null)
+                    {
+                        FileInfo fi = new FileInfo(fn);
+                        trace.Add("in '" + fi.Name + "' line " + frame.GetFileLineNumber() + " method '" + frame.GetMethod()!.Name + "'");
+                    }
+                }
+
+                if (ex.InnerException == null)
+                    break;
+
+                ex = ex.InnerException;
+            }
+
             var res = new JObject();
             res["classname"] = ex.GetType().FullName;
             res["message"] = ex.Message;
@@ -237,21 +256,7 @@ namespace Brayns.Shaper
                 if (err.SourceId.Length > 0)
                     res["sourceId"] = err.SourceId;
             }
-
-            var trace = new List<string>();
-
-            var st = new StackTrace(ex, true);
-            var frames = st.GetFrames();
-            foreach (var frame in frames)
-            {
-                string? fn = frame.GetFileName();
-                if (fn != null)
-                {
-                    FileInfo fi = new FileInfo(fn);
-                    trace.Add("in '" + fi.Name + "' line " + frame.GetFileLineNumber() + " method '" + frame.GetMethod()!.Name + "'");
-                }
-            }
-
+            
             res["trace"] = JArray.FromObject(trace);
 
             return res.ToString(Newtonsoft.Json.Formatting.Indented);

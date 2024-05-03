@@ -127,6 +127,9 @@ namespace Brayns.Shaper.Objects
             if (text.Trim().Length > 0)
                 foreach (var f in fields)
                 {
+                    if (!UnitFields.Contains(f))
+                        continue;
+
                     if ((f.Type == Fields.FieldTypes.CODE) || (f.Type == Fields.FieldTypes.TEXT))
                         f.SetFilter("*" + text + "*");
                     else
