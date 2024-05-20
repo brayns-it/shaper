@@ -18,6 +18,8 @@ namespace Brayns.Shaper.Classes
         public string DatabaseName { get; set; } = "";
         public string EnvironmentName { get; set; } = "Production";
         public string MaintenanceNetwork { get; set; } = "";
+        public bool ReversiblePasswords { get; set; } = false;
+        public string ReversibleKey { get; set; } = "";
 
         public static Config FromJson(string json)
         {

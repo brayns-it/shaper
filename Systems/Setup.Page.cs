@@ -10,6 +10,8 @@
         private Fields.Text DatabaseServer { get; } = new(Label("Database server"));
         private Fields.Text EnvironmentName { get; } = new(Label("Environment name"));
         private Fields.Text MaintenanceNetwork { get; } = new(Label("Maintenance network"));
+        private Fields.Boolean ReversiblePasswords { get; } = new("Reversible passwords", Label("Reversible passwords"));
+        private Fields.Text ReversibleKey { get; } = new("Reversible key", Label("Reversible key"), 50);
 
         public Setup()
         {
@@ -40,6 +42,12 @@
                     new Controls.Field(database, DatabasePassword) { InputType = Shaper.Controls.InputType.Password };
                     new Controls.Field(database, DatabaseConnection);
                 }
+
+                var password = new Controls.Group(content, Label("Password"));
+                {
+                    new Controls.Field(password, ReversibleKey) { InputType = Shaper.Controls.InputType.Password };
+                    new Controls.Field(password, ReversiblePasswords);
+                }
             }
 
             var actions = Controls.ActionArea.Create(this);
@@ -61,6 +69,8 @@
             DatabaseServer.Value = Application.Config.DatabaseServer;
             EnvironmentName.Value = Application.Config.EnvironmentName;
             MaintenanceNetwork.Value = Application.Config.MaintenanceNetwork;
+            ReversibleKey.Value = Application.Config.ReversibleKey;
+            ReversiblePasswords.Value = Application.Config.ReversiblePasswords;
 
             if (CurrentSession.ApplicationName.Length == 0)
                 CurrentSession.ApplicationName = Label("New Shaper");
@@ -89,6 +99,8 @@
             Application.Config.DatabaseName = DatabaseName.Value;
             Application.Config.DatabaseServer = DatabaseServer.Value;
             Application.Config.MaintenanceNetwork = MaintenanceNetwork.Value;
+            Application.Config.ReversibleKey = ReversibleKey.Value;
+            Application.Config.ReversiblePasswords = ReversiblePasswords.Value;
 
             if (DatabaseType.Value != Database.DatabaseTypes.NONE)
             {
