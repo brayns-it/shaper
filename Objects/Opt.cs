@@ -105,7 +105,14 @@ namespace Brayns.Shaper.Objects
             Value = value;
             Instance = Activator.CreateInstance<T>()!;
         }
-        
+
+        public Opt(long value)
+        {
+            Type = typeof(T);
+            Value = Convert.ToInt32(value);
+            Instance = Activator.CreateInstance<T>()!;
+        }
+
         public static implicit operator int(Opt<T> opt)
         {
             return opt.Value;

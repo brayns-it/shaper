@@ -19,6 +19,7 @@ namespace Brayns.Shaper.Controls
         public List<Control> Items { get; private set; } = new();
         public String Name { get; protected set; }
         public bool Visible { get; set; } = true;
+        public Object? Tag { get; set; }
 
         public Control()
         {
@@ -116,7 +117,9 @@ namespace Brayns.Shaper.Controls
         public void Redraw()
         {
             var result = Render();
-            result["action"] = "redrawControl";
+            result["action"] = "ui";
+            result["command"] = "redrawControl";
+            result["pageid"] = Page!.UnitID.ToString();
             Client.SendMessage(result);
         }
 

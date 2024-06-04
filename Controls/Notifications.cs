@@ -2,28 +2,52 @@
 
 namespace Brayns.Shaper.Controls
 {
-    public class NotificationItem
+    public class NotificationItem : Control
     {
-        public string ID { get; set; } = "";
         public string Title { get; set; } = "";
         public string Description { get; set; } = "";
-        public string Icon { get; set; } = "";
-        public DateTime DateTime { get; set; } = DateTime.Now; 
-    }
+        public Icon? Icon { get; set; }
+        public DateTime DateTime { get; set; } = DateTime.Now;
+        public event ActionTriggerHandler? Triggering;
 
-    public delegate void NotificationsGettingHandler(List<NotificationItem> items);
-    public delegate void NotificationTriggeringHandler(string notificationID);
+        public void Attach(Notifications parent)
+        {
+            base.Attach(parent);
+            parent.Items.Remove(this);
+
+            int i = 0;
+            while (i < parent.Items.Count)
+            {
+                if (parent.Items[i].GetType() != typeof(NotificationItem))
+                    break;
+
+                i++;
+            }
+
+            parent.Items.Insert(i, this);
+        }
+
+        internal override JObject Render()
+        {
+            var jo = base.Render();
+            jo["title"] = Title;
+            jo["icon"] = (Icon != null) ? Icon.ToString() : "";
+            jo["description"] = Description;
+            jo["dateTime"] = DateTime.ToString("G", Session.CultureInfo);
+            return jo;
+        }
+
+        internal void Trigger()
+        {
+            Triggering?.Invoke();
+        }
+    }
 
     public class Notifications : Control
     {
-        private List<string>? _cache;
-        public event NotificationsGettingHandler? Getting;
-        public event NotificationTriggeringHandler? Triggering;
-
         private Notifications(AppCenter center)
         {
             Attach(center);
-            Page!.UnitPolling += Page_UnitPolling;
         }
 
         public static Notifications Create(AppCenter center)
@@ -34,68 +58,23 @@ namespace Brayns.Shaper.Controls
             return ret;
         }
 
-        private void Page_UnitPolling()
+        public void Clear()
         {
-            GetNotifications();
+            List<Control> toDel = new();
+
+            foreach (var item in Items)
+                if (item.GetType() == typeof(NotificationItem))
+                    toDel.Add(item);
+
+            foreach (var item in toDel)
+                this.Items.Remove(item);
         }
 
-        internal void Trigger(string notificationID)
+        internal override JObject Render()
         {
-            Triggering?.Invoke(notificationID);
-            GetNotifications();
-        }
-
-        private void GetNotifications()
-        {
-            List<NotificationItem> items = new();
-            Getting?.Invoke(items);
-
-            if (_cache != null)
-            {
-                bool diff = false;
-                if (items.Count == _cache.Count)
-                {
-                    for (int i = 0; i < items.Count; i++)
-                        if (_cache[i] != items[i].ID)
-                            diff = true;
-                }
-                else
-                    diff = true;
-
-                if (!diff)
-                    return;
-
-                _cache.Clear();
-            }
-            else
-                _cache = new List<string>();
-
-            var jo = new JObject();
-            var notifs = new JArray();
-
-            foreach (var itm in items)
-            {
-                var jn = new JObject();
-                jn["notificationID"] = itm.ID;
-                jn["title"] = itm.Title;
-                jn["description"] = itm.Description;
-                jn["icon"] = itm.Icon;
-                jn["age"] = Functions.Format(DateTime.Now.Subtract(itm.DateTime), 1);
-                notifs.Add(jn);
-
-                _cache.Add(itm.ID);
-            }
-
-            if (items.Count == 0)
-            {
-                var jn = new JObject();
-                jn["description"] = Label("No new notifications");
-                notifs.Add(jn);
-            }
-
-            jo["items"] = notifs;
-            jo["action"] = "notifications";
-            Client.SendMessage(jo);
+            var jo = base.Render();
+            jo["emptyText"] = Label("No new notifications");
+            return jo;
         }
     }
 }

@@ -49,8 +49,8 @@ namespace Brayns.Shaper.Fields
         internal override object? CheckValue(object? value)
         {
             Opt<T> val;
-            if (value!.GetType() == typeof(int))
-                val = (int)value!;
+            if ((value!.GetType() == typeof(int)) || (value!.GetType() == typeof(long)))
+                val = Convert.ToInt32(value!);
             else
                 val = (Opt<T>)value!;
             return val;

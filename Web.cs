@@ -598,13 +598,13 @@ namespace Brayns.Shaper
                     jo = JObject.FromObject(dm.Value);
                 else
                     jo = new();
+                jo["type"] = "send";
             }
             else
             {
                 jo = JObject.FromObject(msg);
-                jo["messageType"] = msg.GetType().Name!;
+                jo["type"] = msg.GetType().Name!.ToLower();
             }
-            jo["type"] = "send";
 
             await ws.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(jo.ToString(Newtonsoft.Json.Formatting.Indented))), WebSocketMessageType.Text, true, CancellationToken.None);
         }

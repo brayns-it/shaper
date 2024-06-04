@@ -76,6 +76,18 @@ namespace Brayns.Shaper.Controls
             Icon = icon;
         }
 
+        public Action(Notifications notif, string name, string caption, Icon? icon = null)
+        {
+            Init(notif, name, caption);
+            Icon = icon;
+        }
+
+        public Action(Notifications notif, string caption, Icon? icon = null)
+        {
+            Init(notif, "", caption);
+            Icon = icon;
+        }
+
         public Action(Group group, string name, string caption)
         {
             Init(group, name, caption);

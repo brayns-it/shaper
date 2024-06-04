@@ -66,6 +66,7 @@
                     actDelete.Triggering += ActDelete_Triggering;
 
                     var actRefresh = new Controls.Action(actData, "act-data-refresh", Label("Refresh"));
+                    actRefresh.Shortcut = "F5";
                     actRefresh.Triggering += ActRefresh_Triggering;
                 }
             }
@@ -310,6 +311,7 @@
 
             var result = new JObject();
             result["pageSize"] = PageSize;
+            result["offset"] = Offset;
 
             if (Rec != null)
             {
@@ -320,8 +322,13 @@
 
                 if ((!OpenAsNew) && Rec.FindSet(PageSize, Offset))
                 {
+                    DbRow? firstRow = null;
+
                     while (Rec.Read())
                     {
+                        if (firstRow == null)
+                            firstRow = Rec.GetDataset();
+
                         DataReading?.Invoke();
                         DataSet.Add(Rec.GetDataset());
                         jset.Add(GetDataRow(false));
@@ -330,6 +337,9 @@
                         if (!MultipleRows)
                             break;
                     }
+
+                    if (firstRow != null)
+                        Rec.SetDataset(firstRow);
                 }
                 else if (!MultipleRows)
                 {
@@ -434,10 +444,9 @@
             CaptionSetting?.Invoke();
 
             var result = new JObject();
-            result["action"] = "property";
+            result["action"] = "ui";
             result["pageid"] = UnitID.ToString();
-            result["target"] = "page";
-            result["property"] = "caption";
+            result["command"] = "setPageCaption";
             result["value"] = UnitCaption;
 
             Client.SendMessage(result);
@@ -489,7 +498,8 @@
 
             var result = new JObject();
             result["pageid"] = UnitID.ToString();
-            result["action"] = "closepage";
+            result["action"] = "ui";
+            result["command"] = "closePage";
 
             Client.SendMessage(result);
 
