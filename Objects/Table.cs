@@ -83,15 +83,14 @@ namespace Brayns.Shaper.Objects
             return db;
         }
 
-        public void Connect(Database.Database db)
+        internal void Connect(Database.Database db)
         {
             _database = db;
         }
 
-        public void Connect(bool temporary)
+        public void SetTemporary()
         {
-            if (temporary)
-                _database = GetMemoryDatabase();
+            _database = GetMemoryDatabase();
         }
 
         public bool Read()
@@ -490,7 +489,7 @@ namespace Brayns.Shaper.Objects
                 }
                 else
                 {
-                    Connect(true);
+                    SetTemporary();
                 }
             }
         }
