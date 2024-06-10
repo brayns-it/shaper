@@ -16,7 +16,7 @@ namespace Brayns.Shaper.Systems
                 var log = new Controls.Group(content, Label("Log"));
                 {
                     log.FieldPerRow = Controls.FieldPerRow.One;
-                    new Controls.Field(log, Log) { InputType = Controls.InputType.Html, ReadOnly = true };
+                    new Controls.Field(log, Log) { InputType = Controls.InputType.Html, ReadOnly = true, ShowCaption = false };
                 }
             }
 

@@ -288,9 +288,9 @@ namespace Brayns.Shaper.Database
                     else if (field.Type == FieldTypes.GUID)
                         sql += "'00000000-0000-0000-0000-000000000000'";
                     else if ((field.Type == FieldTypes.DATE) || (field.Type == FieldTypes.DATETIME))
-                        sql += "'17530101'";
+                        sql += "'1753-01-01'";
                     else if (field.Type == FieldTypes.TIME)
-                        sql += "'17530101'";
+                        sql += "'1753-01-01'";
                 }
 
                 CompileExec(sql, false);
