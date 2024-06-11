@@ -84,7 +84,7 @@
                     if (!Loader.Proxy.HasAttribute<BatchMethod>(mi))
                         throw new Error(Label("{0} is not a Batch method", MethodName));
 
-                    proxy = Loader.Proxy.CreateFromName(TypeName, true);
+                    proxy = Loader.Proxy.CreateFromName(TypeName);
                 }
 
                 Starting?.Invoke(this);

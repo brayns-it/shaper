@@ -56,12 +56,11 @@ namespace Brayns.Shaper.Loader
                 _bodyParam = rm.BodyParam;
         }
 
-        public static Proxy CreateFromName(string fullName, bool skipUnitSecurity = false)
+        public static Proxy CreateFromName(string fullName, params object?[]? args)
         {
             var t = TypeFromName(fullName);
-            if (!skipUnitSecurity)
-                AssertUnitSecurity(t);
-            return new Proxy(Activator.CreateInstance(t)!);
+            AssertUnitSecurity(t);
+            return new Proxy(Activator.CreateInstance(t, args)!);
         }
 
         private static MethodInfo GetBestRoute(Dictionary<MethodInfo, Dictionary<string, string>> routes)
