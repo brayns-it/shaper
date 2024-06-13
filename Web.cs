@@ -618,13 +618,14 @@ namespace Brayns.Shaper
         {
             TaskResult result = new();
             result.IsRequest = true;
-
+            
             var buf = new byte[1024];
             var ms = new MemoryStream();
-            while (!ws.CloseStatus.HasValue)
+            while ((!ws.CloseStatus.HasValue) && (!Application.Shutdown))
             {
-                var rcv = await ws.ReceiveAsync(new ArraySegment<byte>(buf), CancellationToken.None);
+                var rcv = await ws.ReceiveAsync(new ArraySegment<byte>(buf), Application.ShutdownCancellation);
                 if (rcv.CloseStatus.HasValue) break;
+                if (Application.Shutdown) break;
 
                 ms.Write(buf, 0, rcv.Count);
                 if (rcv.EndOfMessage)
@@ -657,7 +658,7 @@ namespace Brayns.Shaper
                     List<TaskResult> requests = new();
                     Task<TaskResult>? reqTask = null;
 
-                    while (!ws.CloseStatus.HasValue)
+                    while ((!ws.CloseStatus.HasValue) && (!Application.Shutdown))
                     {
                         TaskResult req;
 
@@ -699,7 +700,7 @@ namespace Brayns.Shaper
 
                             Task<TaskResult>? resTask = null;
 
-                            while (true)
+                            while (!Application.Shutdown)
                             {
                                 if (resTask == null) resTask = task.GetNextResult();
                                 if (reqTask == null) reqTask = ReceiveMessage(ws);

@@ -13,8 +13,7 @@ namespace Brayns.Shaper
     {
         private static readonly object _lockLog = new();
         private static readonly object _lockValues = new();
-        private static bool _quitMonitor = false;
-
+        
         internal static Thread? MonitorThread { get; set; }
         internal static Dictionary<string, object> Values = new();
         internal static Dictionary<ApiMethod, MethodInfo> Routes { get; } = new();
@@ -23,9 +22,17 @@ namespace Brayns.Shaper
         internal static Config Config { get; set; } = new Config();
         internal static bool IsLoaded { get; private set; } = false;
         internal static bool IsReady { get { return Config.Ready; } }
+        internal static CancellationTokenSource ShutdownSource { get; } = new CancellationTokenSource();
+
         public static string? RootPath { get; internal set; }
         public static event GenericHandler? Initializing;
         public static event GenericHandler? Monitoring;
+
+        public static bool Shutdown { get; internal set; } = false;
+        public static CancellationToken ShutdownCancellation
+        {
+            get { return ShutdownSource.Token; }
+        }
 
         private static string? _debugPath;
         public static string? DebugPath
@@ -100,7 +107,7 @@ namespace Brayns.Shaper
             bool sessionStarted = false;
             bool restart = false;
 
-            while (!_quitMonitor)
+            while (!Shutdown)
             {
                 if (IsLoaded && IsReady && (!sessionStarted))
                     try
@@ -213,9 +220,10 @@ namespace Brayns.Shaper
             MonitorThread = new Thread(new ThreadStart(MonitorWork));
             MonitorThread.Start();
 
-            app.Lifetime.ApplicationStopped.Register(() =>
+            app.Lifetime.ApplicationStopping.Register(() =>
             {
-                _quitMonitor = true;
+                Shutdown = true;
+                ShutdownSource.Cancel();
             });
         }
 

@@ -391,7 +391,7 @@ namespace Brayns.Shaper
         {
             get
             {
-                return Instance.CancelRequested;
+                return Instance.CancelRequested || Application.Shutdown;
             }
         }
 

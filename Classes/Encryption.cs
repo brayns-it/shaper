@@ -53,20 +53,5 @@ namespace Brayns.Shaper.Classes
             var aesVal = aes.DecryptEcb(Convert.FromBase64String(value), PaddingMode.PKCS7);
             return Encoding.UTF8.GetString(aesVal);
         }
-
-        public static bool ArePasswordReversbile()
-        {
-            return Application.Config.ReversiblePasswords;
-        }
-
-        public static string EncryptPassword(string value)
-        {
-            return EncryptString(value, Application.Config.ReversibleKey);
-        }
-
-        public static string DecryptPassword(string value)
-        {
-            return DecryptString(value, Application.Config.ReversibleKey);
-        }
     }
 }
