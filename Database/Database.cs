@@ -46,11 +46,13 @@ namespace Brayns.Shaper.Database
         internal int DatasetSize { get; set; } = 50;
         internal DatabaseCompileMode CompileMode { get; set; } = DatabaseCompileMode.Normal;
         internal List<string> CompileResult { get; init; } = new();
+        internal List<string> CompiledTables { get; init; } = new();
 
         public abstract void Connect();
         public abstract void Connect(string dsn);
         public abstract void Disconnect();
         public abstract void Compile(BaseTable table);
+        public abstract void DatabaseCheck();
         public abstract DbTable Query(string sql, params object[] args);
         public abstract int Execute(string sql, params object[] args);
         public abstract void Commit();

@@ -217,6 +217,8 @@ namespace Brayns.Shaper.Loader
                 Session.Database!.Compile(tab);
                 Commit();
             }
+
+            CurrentSession.Database.DatabaseCheck();
         }
     }
 }

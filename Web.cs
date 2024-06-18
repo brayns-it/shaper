@@ -223,20 +223,22 @@ namespace Brayns.Shaper
 
             while (true)
             {
-                var st = new StackTrace(ex, true);
-                var frames = st.GetFrames();
-                foreach (var frame in frames)
-                {
-                    string? fn = frame.GetFileName();
-                    if (fn != null)
-                    {
-                        FileInfo fi = new FileInfo(fn);
-                        trace.Add("in '" + fi.Name + "' line " + frame.GetFileLineNumber() + " method '" + frame.GetMethod()!.Name + "'");
-                    }
-                }
-
                 if (ex.InnerException == null)
+                {
+                    var st = new StackTrace(ex, true);
+                    var frames = st.GetFrames();
+                    foreach (var frame in frames)
+                    {
+                        string? fn = frame.GetFileName();
+                        if (fn != null)
+                        {
+                            FileInfo fi = new FileInfo(fn);
+                            trace.Add("in '" + fi.Name + "' line " + frame.GetFileLineNumber() + " method '" + frame.GetMethod()!.Name + "'");
+                        }
+                    }
+
                     break;
+                }
 
                 ex = ex.InnerException;
             }

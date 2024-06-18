@@ -25,6 +25,11 @@ namespace Brayns.Shaper.Database
         {
             SQLitePCL.Batteries.Init();
         }
+        
+        public override void DatabaseCheck()
+        {
+            // TODO
+        }
 
         public override void Compile(BaseTable table)
         {

@@ -63,14 +63,28 @@ namespace Brayns.Shaper.Fields
             return SerializeJson(Value);
         }
 
+        public override void Deserialize(JValue? value)
+        {
+            Value = DeserializeJson(value);
+        }
+
         public static JValue SerializeJson(System.DateTime val)
         {
             return new JValue(val.ToString("HH:mm:ss.fff"));
         }
 
-        public override void Deserialize(JValue? value)
+        public static System.DateTime DeserializeJson(JValue? value)
         {
-            throw new NotImplementedException();
+            string val = value!.ToString();
+            if (val.Length == 0)
+                return System.DateTime.MinValue;
+            else
+            {
+                string fmt = "HH:mm:ss";
+                if (val.Length > 9)
+                    fmt += "." + "".PadRight(val.Length - 9, 'f');
+                return System.DateTime.ParseExact(value!.ToString(), fmt, System.Globalization.CultureInfo.InvariantCulture);
+            }
         }
     }
 }

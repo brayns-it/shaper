@@ -21,12 +21,23 @@ namespace Brayns.Shaper.Database
         SqlTransaction? _transaction;
         Dictionary<SqlDataReader, SqlConnection> _readerConns = new();
 
+        public override void DatabaseCheck()
+        {
+            var res = Query("SELECT o.name FROM sysobjects o WHERE o.xtype = @p0", "U");
+            foreach (var row in res)
+                if (!CompiledTables.Contains(row.Value<string>("name")))
+                    Application.Log("database", "I", Label("Foreign table '{0}' found", row.Value<string>("name")));
+        }
+
         public override void Compile(BaseTable table)
         {
             if (table.TablePrimaryKey.Count == 0)
                 throw table.ErrorNoPrimaryKey();
 
             CompilingTable = table;
+
+            if (!CompiledTables.Contains(table.TableSqlName))
+                CompiledTables.Add(table.TableSqlName);
 
             ProcessTable();
             ProcessPrimaryKey();
