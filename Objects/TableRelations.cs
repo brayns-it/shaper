@@ -56,6 +56,7 @@ namespace Brayns.Shaper.Objects
                     throw new Error(Label("Cannot relate to field '{0}' because it's not primary key member", f.Caption));
             }
 
+            FilterHandler?.Invoke(t);
             return f;
         }
 

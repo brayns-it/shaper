@@ -17,11 +17,11 @@
         internal List<int> Selection { get; set; } = new();
         internal bool MultipleRows { get; set; } = false;
         internal bool OpenAsNew { get; set; } = false;
-        internal BasePage? SourcePage { get; set; }
         internal Controls.BaseSubpage? Parent { get; set; }
         internal int PageSize { get; set; } = 100;
         internal int Offset { get; set; } = 0;
 
+        public BasePage? SourcePage { get; internal set; }
         public List<Controls.Control> AllControls
         {
             get { return new(AllItems.Values); }

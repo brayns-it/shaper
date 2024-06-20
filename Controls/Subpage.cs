@@ -24,6 +24,7 @@ namespace Brayns.Shaper.Controls
         {
             Instance = (BasePage)Activator.CreateInstance(Part)!;
             Instance.Parent = this;
+            Instance.SourcePage = this.Page;
             ApplyFilter();
             Instance.Run();
         }
