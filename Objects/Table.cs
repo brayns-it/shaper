@@ -440,6 +440,18 @@ namespace Brayns.Shaper.Objects
             return null;
         }
 
+        public void CopyValues<T>(T fromTable) where T : BaseTable
+        {
+            Init();
+            foreach (var f in UnitFields)
+            {
+                var f2 = fromTable.FieldByName(f.Name);
+                if (f2 == null) continue;
+                if (f2.Type != f.Type) continue;
+                f.Value = f2.Value;
+            }
+        }
+
         public void CopyFilters<T>(T fromTable) where T : BaseTable
         {
             Reset();
