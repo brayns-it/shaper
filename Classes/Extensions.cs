@@ -19,5 +19,25 @@
 
             return true;
         }
+
+        public static DateTime StartingWeek(this DateTime value)
+        {
+            if (value.DayOfWeek != DayOfWeek.Monday)
+            {
+                int d = (value.DayOfWeek == DayOfWeek.Sunday) ? 6 : Convert.ToInt32(value.DayOfWeek) - 1;
+                value = value.AddDays(-d);
+            }
+            return value;
+        }
+
+        public static DateTime EndingWeek(this DateTime value)
+        {
+            if (value.DayOfWeek != DayOfWeek.Sunday)
+            {
+                int d = 7 - Convert.ToInt32(value.DayOfWeek);
+                value = value.AddDays(d);
+            }
+            return value;
+        }
     }
 }

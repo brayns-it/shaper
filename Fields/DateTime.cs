@@ -105,7 +105,16 @@ namespace Brayns.Shaper.Fields
 
         public override void Deserialize(JValue? value)
         {
-            throw new NotImplementedException();
+            Value = DeserializeJson(value);
+        }
+
+        public static System.DateTime DeserializeJson(JValue? value)
+        {
+            string val = value!.ToString();
+            if (val.Length == 0)
+                return System.DateTime.MinValue;
+            else
+                return System.DateTime.ParseExact(value!.ToString(), "o", System.Globalization.CultureInfo.InvariantCulture);
         }
 
         public void SetFilter(string expression, params DateTime[] pars)

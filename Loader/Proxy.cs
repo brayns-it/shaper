@@ -75,12 +75,13 @@ namespace Brayns.Shaper.Loader
         public static Proxy CreateFromRawRoute(string routeName, string route, RawSession session)
         {
             Dictionary<MethodInfo, Dictionary<string, string>> routes = new();
-            
+
             foreach (var r in Application.RawRoutes.Keys)
             {
                 Dictionary<string, string> parts = new();
                 if (r.Method.HasFlag((Enum)session.RequestMethod) && (routeName == r.RouteName) && RouteIsMatch(route, r.Route, parts))
-                    routes.Add(Application.RawRoutes[r], parts);
+                    if (!routes.ContainsKey(Application.RawRoutes[r]))
+                        routes.Add(Application.RawRoutes[r], parts);
             }
 
             if (routes.Count == 0)

@@ -490,7 +490,7 @@ namespace Brayns.Shaper.Database
         private SqlCommand CreateCommand(string sql, params object[] args)
         {
             var cmd = _connection!.CreateCommand();
-            if (_transaction != null) _transaction = _connection!.BeginTransaction(System.Data.IsolationLevel.ReadCommitted);
+            if (_transaction == null) _transaction = _connection!.BeginTransaction(System.Data.IsolationLevel.ReadCommitted);
             cmd.Transaction = _transaction;
             cmd.CommandText = sql;
             for (int i = 0; i < args.Length; i++)
@@ -1100,7 +1100,7 @@ namespace Brayns.Shaper.Database
 
             sql += " WHERE ";
             sql += GetWherePrimaryKey(table, pars);
-
+                        
             int a = Execute(sql, pars.ToArray());
             if (a != 1)
                 throw table.ErrorConcurrency();
