@@ -271,22 +271,12 @@ namespace Brayns.Shaper
 
         public static void LogException(string context, string message, Exception ex)
         {
-            string trace = "";
-
-            var st = new StackTrace(ex, true);
-            var frames = st.GetFrames();
-            foreach (var frame in frames)
-            {
-                string? fn = frame.GetFileName();
-                if (fn != null)
-                {
-                    FileInfo fi = new FileInfo(fn);
-                    trace += " in '" + fi.Name + "' line " + frame.GetFileLineNumber() + " method '" + frame.GetMethod()!.Name + "'";
-                }
-            }
+            var fe = new Classes.FormattedException(ex);
 
             if (message.Length > 0) message += " ";
-            message += ex.Message + trace;
+            message += fe.Message;
+            foreach (var t in fe.Trace)
+                message += " " + t;
 
             Log(context, "E", message);
         }

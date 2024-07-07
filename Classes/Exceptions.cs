@@ -4,9 +4,56 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using static System.Net.Mime.MediaTypeNames;
+using System.Diagnostics;
 
 namespace Brayns.Shaper.Classes
 {
+    public class FormattedException
+    {
+        public Exception Exception { get; init; }
+        public string Message { get; init; }
+        public List<string> Trace { get; } = new();
+        public Type Type { get; init; }
+        public int ErrorCode { get; init; }
+        public string SourceId { get; init; }
+
+        public FormattedException(Exception ex)
+        {
+            while (true)
+            {
+                var st = new StackTrace(ex, true);
+                var frames = st.GetFrames();
+                foreach (var frame in frames)
+                {
+                    string? fn = frame.GetFileName();
+                    if (fn != null)
+                    {
+                        FileInfo fi = new FileInfo(fn);
+                        Trace.Add("in '" + fi.Name + "' line " + frame.GetFileLineNumber() + " method '" + frame.GetMethod()!.Name + "'");
+                    }
+                }
+
+                if (ex.InnerException != null)
+                    ex = ex.InnerException;
+                else
+                    break;
+            }
+
+            Exception = ex;
+            Type = ex.GetType();
+            Message = ex.Message;
+
+            ErrorCode = 0;
+            SourceId = "";
+
+            if (typeof(Error).IsAssignableFrom(ex.GetType()))
+            {
+                ErrorCode = ((Error)ex).ErrorCode;
+                SourceId = ((Error)ex).SourceId;
+            }
+        }
+    }
+
     public class Error : Exception
     {
         public const int E_SYSTEM_IN_MAINTENANCE = 1;

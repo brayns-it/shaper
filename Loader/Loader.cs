@@ -208,6 +208,8 @@ namespace Brayns.Shaper.Loader
             CurrentSession.Database.CompileMode = mode;
             CurrentSession.Database.CompileResult.Clear();
 
+            CurrentSession.Database.DatabaseInit();
+
             foreach (Type t in TableTypes)
             {
                 if (t.GetCustomAttribute<VirtualTable>(true) != null)

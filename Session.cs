@@ -356,7 +356,7 @@ namespace Brayns.Shaper
             Database = DatabaseCreate();
 
             if (Database != null)
-                Database.Connect();
+                Database.Connect(Database.GetConnectionString());
         }
 
         internal static void CleanupFinished()

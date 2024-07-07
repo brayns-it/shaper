@@ -4,6 +4,7 @@ using Brayns.Shaper.Objects;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Data.Common;
 using Microsoft.Data.SqlClient;
 using System.Drawing;
 using System.Linq;
@@ -16,29 +17,16 @@ namespace Brayns.Shaper.Database
 {
     public class SqlServer : Database
     {
-        string _dsn = "";
-        SqlConnection? _connection;
-        SqlTransaction? _transaction;
-        Dictionary<SqlDataReader, SqlConnection> _readerConns = new();
-
-        public override void DatabaseCheck()
+        protected override List<string> GetTables()
         {
-            var res = Query("SELECT o.name FROM sysobjects o WHERE o.xtype = @p0", "U");
-            foreach (var row in res)
-                if (!CompiledTables.Contains(row.Value<string>("name")))
-                    Application.Log("database", "I", Label("Foreign table '{0}' found", row.Value<string>("name")));
+            var res = new List<string>();
+            foreach (var row in Query("SELECT o.name FROM sysobjects o WHERE o.xtype = @p0", "U"))
+                res.Add(row.Value<string>("name"));
+            return res;
         }
 
-        public override void Compile(BaseTable table)
+        protected override void CompileTable(BaseTable table)
         {
-            if (table.TablePrimaryKey.Count == 0)
-                throw table.ErrorNoPrimaryKey();
-
-            CompilingTable = table;
-
-            if (!CompiledTables.Contains(table.TableSqlName))
-                CompiledTables.Add(table.TableSqlName);
-
             ProcessTable();
             ProcessPrimaryKey();
             ProcessIndexes();
@@ -136,12 +124,6 @@ namespace Brayns.Shaper.Database
             return res;
         }
 
-        public override int Execute(string sql, params object[] args)
-        {
-            var cmd = CreateCommand(sql, args);
-            return cmd.ExecuteNonQuery();
-        }
-
         public override int GetConnectionId()
         {
             return Convert.ToInt32(Query("SELECT @@SPID [spid]")[0]["spid"]!);
@@ -193,20 +175,6 @@ namespace Brayns.Shaper.Database
 
                 CompileExec(sql, false);
             }
-        }
-
-        private string ListFields(List<BaseField> fields, string prefix = "")
-        {
-            var res = "";
-            bool comma = false;
-            foreach (BaseField f in fields)
-            {
-                if (comma) res += ", ";
-                comma = true;
-
-                res += prefix + "[" + f.SqlName + "]";
-            }
-            return res;
         }
 
         private void DropIndexByColumn(string colName)
@@ -436,32 +404,14 @@ namespace Brayns.Shaper.Database
             }
         }
 
-        public override void Commit()
-        {
-            if (_transaction != null)
-            {
-                _transaction!.Commit();
-                _transaction = null;
-            }
-        }
-
-        public override void Rollback()
-        {
-            if (_transaction != null)
-            {
-                _transaction!.Rollback();
-                _transaction = null;
-            }
-        }
-
-        public static string GetConnectionString(string server, string database, string envName)
+        public static string CreateConnectionString(string server, string database, string envName)
         {
             return "Data Source=" + server + ";Initial Catalog=" + database +
                 ";Application Name=" + envName +
                 ";Trust Server Certificate=true";
         }
 
-        public override void Connect()
+        internal override string GetConnectionString()
         {
             string dsn = Application.Config.DatabaseConnection;
             if (!dsn.EndsWith("; ")) dsn += ";";
@@ -476,96 +426,35 @@ namespace Brayns.Shaper.Database
             {
                 dsn += "Integrated Security=true;";
             }
-            Connect(dsn);
+
+            return dsn;
         }
 
-        public override void Connect(string dsn)
+        internal override DbConnection GetConnection(string dsn)
         {
-            _dsn = dsn;
-            _connection = new(dsn);
-            _connection.Open();
-            _transaction = null;
+            var conn = new SqlConnection(dsn);
+            conn.Open();
+            return conn;
         }
 
-        private SqlCommand CreateCommand(string sql, params object[] args)
+        protected override DbCommand CreateCommand(DbConnection connection, string sql, params object[] args)
         {
-            var cmd = _connection!.CreateCommand();
-            if (_transaction == null) _transaction = _connection!.BeginTransaction(System.Data.IsolationLevel.ReadCommitted);
-            cmd.Transaction = _transaction;
+            var cmd = connection.CreateCommand();
+
+            if (Connection == connection)
+            {
+                if (Transaction == null) Transaction = connection.BeginTransaction(System.Data.IsolationLevel.ReadCommitted);
+                cmd.Transaction = Transaction;
+            }
+
             cmd.CommandText = sql;
             for (int i = 0; i < args.Length; i++)
-                cmd.Parameters.AddWithValue("@p" + i.ToString(), args[i]);
+                cmd.Parameters.Add(new SqlParameter("@p" + i.ToString(), args[i]));
 
             return cmd;
         }
 
-        public override object ExecuteReader(string sql, params object[] args)
-        {
-            var conn = new SqlConnection(_dsn);
-            conn.Open();
-
-            var cmd = conn.CreateCommand();
-            cmd.CommandText = sql;
-            for (int i = 0; i < args.Length; i++)
-                cmd.Parameters.AddWithValue("@p" + i.ToString(), args[i]);
-
-            var rdr = cmd.ExecuteReader();
-            _readerConns.Add(rdr, conn);
-            return rdr;
-        }
-
-        public override DbRow? ReadRow(object reader)
-        {
-            var rdr = (SqlDataReader)reader;
-            if (rdr.Read())
-            {
-                var row = new DbRow();
-                for (var i = 0; i < rdr.FieldCount; i++)
-                    row[rdr.GetName(i)] = rdr[i];
-                return row;
-            }
-            else
-            {
-                rdr.Close();
-
-                if (_readerConns.ContainsKey(rdr))
-                {
-                    _readerConns[rdr].Close();
-                    _readerConns.Remove(rdr);
-                }
-
-                return null;
-            }
-        }
-
-        public override DbTable Query(string sql, params object[] args)
-        {
-            var res = new DbTable();
-            DbRow? row;
-
-            var cmd = CreateCommand(sql, args);
-            var rdr = cmd.ExecuteReader();
-            while ((row = ReadRow(rdr)) != null)
-                res.Add(row);
-
-            return res;
-        }
-
-        public override void Disconnect()
-        {
-            _transaction?.Rollback();
-            _transaction = null;
-
-            _connection?.Close();
-            _connection = null;
-
-            foreach (var conn in _readerConns.Values)
-                conn.Close();
-
-            _readerConns.Clear();
-        }
-
-        private object? FromSqlValue(BaseField f, object value)
+        protected override object? FromSqlValue(BaseField f, object value)
         {
             if (f.Type == FieldTypes.TIMESTAMP)
                 return TimestampToLong((byte[])value!);
@@ -621,7 +510,7 @@ namespace Brayns.Shaper.Database
             throw new Error(Label("Unknown field type '{0}'", f.Type));
         }
 
-        private object ToSqlValue(BaseField f, object? value)
+        protected override object ToSqlValue(BaseField f, object? value)
         {
             if (f.Type == FieldTypes.TIMESTAMP)
                 return LongToTimestamp((long)value!);
@@ -680,291 +569,45 @@ namespace Brayns.Shaper.Database
             throw new Error(Label("Unknown field type '{0}'", f.Type));
         }
 
-        private string GetWherePrimaryKey(BaseTable table, List<object> pars, bool withTimestamp = true, bool useXvalues = false)
+        protected override string QuoteIdentifier(string name)
         {
-            var sql = "";
-
-            bool comma = false;
-            foreach (BaseField f in table.TablePrimaryKey)
-            {
-                if (comma) sql += " AND ";
-                comma = true;
-
-                sql += "([" + f.SqlName + "] = @p" + pars.Count + ")";
-
-                if (useXvalues)
-                    pars.Add(ToSqlValue(f, f.XValue));
-                else
-                    pars.Add(ToSqlValue(f, f.Value));
-            }
-
-            if (withTimestamp)
-            {
-                sql += " AND ([timestamp] <= @p" + pars.Count + ")";
-                pars.Add(ToSqlValue(table.TableVersion, table.TableVersion.Value));
-            }
-
-            return sql;
+            return "[" + name + "]";
         }
 
-        private string FilterToSql(FieldFilter ff, List<object> pars)
+        protected override string GetParameterName(int number)
         {
-            string sql = "";
-            if (ff.Type == FilterType.Equal)
-            {
-                sql += "[" + ff.Field.SqlName + "] = @p" + pars.Count;
-                pars.Add(ToSqlValue(ff.Field, ff.Value));
-            }
-            else if (ff.Type == FilterType.Range)
-            {
-                sql += "[" + ff.Field.SqlName + "] BETWEEN @p" + pars.Count + " AND @p" + (pars.Count + 1);
-                pars.Add(ToSqlValue(ff.Field, ff.MinValue));
-                pars.Add(ToSqlValue(ff.Field, ff.MaxValue));
-            }
-            else if (ff.Type == FilterType.Expression)
-            {
-                List<object> vals = new List<object>();
-                string expr = ff.Tokenize(vals);
-
-                Regex re = new Regex("({f})(.*?){(\\d)}");
-                expr = re.Replace(expr, m =>
-                {
-                    int n = pars.Count;
-                    int d = int.Parse(m.Groups[3].Value);
-                    pars.Add(ToSqlValue(ff.Field, vals[d]));
-                    return "[" + ff.Field.SqlName + "]" + m.Groups[2].Value + "@p" + n;
-                });
-
-                sql += expr;
-            }
-            if (sql.Length > 0)
-                sql = "(" + sql + ")";
-            return sql;
+            return "@p" + number.ToString();
         }
 
-        private List<string> GetWhere(BaseTable table, List<object> pars)
+        protected override void OnFindSetAfterSelect(BaseTable table, ref string sql)
         {
-            var where = new List<string>();
-            var filters = new Dictionary<FilterLevel, List<FieldFilter>>();
-
-            foreach (BaseField f in table.UnitFields)
-            {
-                foreach (FieldFilter ff in f.Filters)
-                {
-                    if (!filters.ContainsKey(ff.Level))
-                        filters[ff.Level] = new List<FieldFilter>();
-                    filters[ff.Level].Add(ff);
-                }
-            }
-
-            foreach (FilterLevel l in filters.Keys)
-            {
-                var lWhere = new List<string>();
-                foreach (FieldFilter ff in filters[l])
-                    lWhere.Add(FilterToSql(ff, pars));
-
-                var mode = (l == FilterLevel.Or) ? " OR " : " AND ";
-                where.Add("(" + String.Join(mode, lWhere) + ")");
-            }
-
-            return where;
-        }
-
-        public override bool IsEmpty(BaseTable table)
-        {
-            List<object> pars = new();
-            var sql = "SELECT TOP 1 NULL [ne] FROM [" + table.TableSqlName + "]";
-
-            var where = GetWhere(table, pars);
-            if (where.Count > 0)
-                sql += " WHERE " + String.Join(" AND ", where);
-
-            if (Query(sql, pars.ToArray()).Count == 0)
-                return true;
-            else
-                return false;
-        }
-
-        public override void Insert(BaseTable table)
-        {
-            List<object> pars = new();
-            List<string> places = new();
-
-            BaseField? identity = null;
-            bool identityInsert = false;
-            List<BaseField> fields = new();
-
-            foreach (BaseField field in table.UnitFields)
-            {
-                if (field.Type == FieldTypes.TIMESTAMP)
-                    continue;
-
-                if ((field.Type == FieldTypes.INTEGER) || (field.Type == FieldTypes.BIGINTEGER))
-                {
-                    var f = (Fields.IInteger)field;
-                    if (f.AutoIncrement)
-                    {
-                        identity = field;
-                        if (Convert.ToInt64(field.Value!) == 0)
-                            continue;
-                        else
-                            identityInsert = true;
-                    }
-                }
-
-                fields.Add(field);
-                places.Add("@p" + pars.Count);
-                pars.Add(ToSqlValue(field, field.Value));
-            }
-
-            var sql = "INSERT INTO [" + table.TableSqlName + "] (" +
-                ListFields(fields) +
-                ") VALUES (" +
-                String.Join(", ", places) +
-                ")";
-
-            if (identityInsert)
-                Execute("SET IDENTITY_INSERT [" + table.TableSqlName + "] ON");
-
-            Execute(sql, pars.ToArray());
-            SetVersion(table);
-
-            if (identityInsert)
-                Execute("SET IDENTITY_INSERT [" + table.TableSqlName + "] OFF");
-
-            if (identity != null)
-                identity.Value = Query("SELECT @@IDENTITY AS [id]")[0]["id"];
-
-        }
-
-        private void SetVersion(BaseTable table)
-        {
-            table.TableVersion.Value = (long)Query("SELECT CAST(@@DBTS AS bigint) [dbts]")[0]["dbts"]!;
-        }
-
-        private DbTable FindSet(BaseTable table, int? pageSize, int? offset, bool nextSet, bool? ascending, object[]? pkValues)
-        {
-            List<object> pars = new();
-            ascending = ascending ?? table.TableAscending;
-
-            var sql = "SELECT " + ListFields(table.UnitFields) + " FROM [" + table.TableSqlName + "]";
             if (table.TableLock)
                 sql += " WITH (UPDLOCK)";
-
-            var where = new List<string>();
-            if (pkValues != null)
-            {
-                int i = 0;
-                foreach (BaseField f in table.TablePrimaryKey)
-                {
-                    where.Add("([" + f.SqlName + "] = @p" + pars.Count + ")");
-                    pars.Add(ToSqlValue(f, pkValues[i]));
-                    i++;
-                }
-            }
-            else
-            {
-                if (nextSet)
-                {
-                    List<BaseField> ck = table.GetCurrentSort();
-                    int k = ck.Count;
-                    int l = k;
-                    var wn = new List<string>();
-
-                    for (int i = 0; i < k; i++)
-                    {
-                        var ws = new List<string>();
-
-                        for (int j = 0; j < l; j++)
-                        {
-                            BaseField f = ck[j];
-                            string op = "=";
-                            if (j == (l - 1))
-                                op = (ascending ?? false) ? ">" : "<";
-
-                            ws.Add("([" + f.SqlName + "] " + op + " @p" + pars.Count + ")");
-                            pars.Add(ToSqlValue(f, f.Value));
-                        }
-
-                        wn.Add("(" + String.Join(" AND ", ws) + ")");
-                        l--;
-                    }
-
-                    where.Add("(" + String.Join(" OR ", wn) + ")");
-                }
-
-                where.AddRange(GetWhere(table, pars));
-            }
-
-            if (where.Count > 0)
-                sql += " WHERE " + String.Join(" AND ", where);
-
-            if (pkValues == null)
-            {
-                sql += " ORDER BY ";
-
-                bool comma = false;
-                foreach (BaseField f in table.GetCurrentSort())
-                {
-                    if (comma) sql += ", ";
-                    comma = true;
-
-                    sql += "[" + f.SqlName + "]";
-                    if (!(ascending ?? false))
-                        sql += " DESC";
-                }
-
-                offset = offset ?? 0;
-                pageSize = pageSize ?? DatasetSize;
-
-                sql += " OFFSET " + offset.ToString() + " ROWS FETCH FIRST " + pageSize.ToString() + " ROWS ONLY";
-            }
-
-            return Query(sql, pars.ToArray());
         }
 
-        public override int Count(BaseTable table)
+        protected override void OnInsertBeforeIdentityInsert(BaseTable table)
         {
-            List<object> pars = new();
-            var sql = "SELECT COUNT(*) [c] FROM [" + table.TableSqlName + "]";
-
-            List<string> where = GetWhere(table, pars);
-            if (where.Count > 0)
-                sql += " WHERE " + String.Join(" AND ", where);
-
-            var res = Query(sql, pars.ToArray());
-            return (int)res[0]["c"]!;
+            Execute("SET IDENTITY_INSERT [" + table.TableSqlName + "] ON");
         }
 
-        public override DbTable FindFirst(BaseTable table)
+        protected override void OnInsertAfterIdentityInsert(BaseTable table)
         {
-            return FindSet(table, 1, 0, false, null, null);
+            Execute("SET IDENTITY_INSERT [" + table.TableSqlName + "] OFF");
         }
 
-        public override DbTable FindLast(BaseTable table)
+        protected override void OnInsertGetLastIdentity(BaseTable table, BaseField identity)
         {
-            return FindSet(table, 1, 0, false, !(table.TableAscending ^ false), null);
+            identity.Value = Query("SELECT @@IDENTITY AS [id]")[0]["id"];
         }
 
-        public override DbTable FindSet(BaseTable table, int? pageSize = null, int? offset = null)
+        protected override void SetVersionAfterExecute(BaseTable table)
         {
-            return FindSet(table, pageSize, offset, false, null, null);
+            table.TableVersion.Value = Query("SELECT CAST(@@DBTS AS bigint) [dbts]")[0].Value<long>("dbts");
         }
-
-        public override DbTable NextSet(BaseTable table)
+        
+        protected override string GetOffset(int offset, int first)
         {
-            return FindSet(table, null, null, true, null, null);
-        }
-
-        public override DbTable Get(BaseTable table, object[] pkValues)
-        {
-            return FindSet(table, null, null, false, null, pkValues);
-        }
-
-        public override void LoadRow(BaseTable table, Dictionary<string, object> row)
-        {
-            foreach (BaseField f in table.UnitFields)
-                f.Value = FromSqlValue(f, row[f.SqlName]);
+            return " OFFSET " + offset.ToString() + " ROWS FETCH FIRST " + first.ToString() + " ROWS ONLY";
         }
 
         private byte[] LongToTimestamp(long val)
@@ -995,117 +638,5 @@ namespace Brayns.Shaper.Database
             return res;
         }
 
-        public override void Delete(BaseTable table)
-        {
-            List<object> pars = new();
-            var sql = "DELETE FROM [" + table.TableSqlName + "] WHERE " +
-                GetWherePrimaryKey(table, pars);
-
-            int a = Execute(sql, pars.ToArray());
-            if (a != 1)
-                throw table.ErrorConcurrency();
-        }
-
-        public override void DeleteAll(BaseTable table)
-        {
-            List<object> pars = new();
-            var sql = "DELETE FROM [" + table.TableSqlName + "]";
-
-            List<string> where = GetWhere(table, pars);
-            if (where.Count > 0)
-                sql += " WHERE " + String.Join(" AND ", where);
-
-            Execute(sql, pars.ToArray());
-        }
-
-        public override void ModifyAll(BaseTable table, Fields.BaseField field)
-        {
-            List<object> pars = new();
-
-            var sql = "UPDATE [" + table.TableSqlName + "] SET " +
-                "[" + field.SqlName + "] = @p0";
-            pars.Add(ToSqlValue(field, field.Value));
-
-            List<string> where = GetWhere(table, pars);
-            if (where.Count > 0)
-                sql += " WHERE " + String.Join(" AND ", where);
-
-            Execute(sql, pars.ToArray());
-            SetVersion(table);
-        }
-
-        public override void Rename(BaseTable table)
-        {
-            List<object> pars = new();
-
-            List<BaseField> fields = new();
-            foreach (BaseField f in table.TablePrimaryKey)
-            {
-                if (Functions.AreEquals(f.Value, f.XValue))
-                    continue;
-                fields.Add(f);
-            }
-            if (fields.Count == 0)
-                return;
-
-            var sql = "UPDATE [" + table.TableSqlName + "] SET ";
-
-            bool comma = false;
-            foreach (BaseField f in fields)
-            {
-                if (comma) sql += ", ";
-                comma = true;
-
-                sql += "[" + f.SqlName + "] = @p" + pars.Count;
-                pars.Add(ToSqlValue(f, f.Value));
-            }
-
-            sql += " WHERE ";
-            sql += GetWherePrimaryKey(table, pars, true, true);
-
-            int a = Execute(sql, pars.ToArray());
-            if (a != 1)
-                throw table.ErrorConcurrency();
-
-            SetVersion(table);
-        }
-
-        public override void Modify(BaseTable table)
-        {
-            List<object> pars = new();
-
-            List<BaseField> fields = new();
-            foreach (BaseField f in table.UnitFields)
-            {
-                if (f.Type == FieldTypes.TIMESTAMP)
-                    continue;
-                if (Functions.AreEquals(f.Value, f.XValue))
-                    continue;
-                fields.Add(f);
-            }
-            if (fields.Count == 0)
-                return;
-
-            var sql = "UPDATE [" + table.TableSqlName + "] SET ";
-
-            bool comma = false;
-            foreach (BaseField f in fields)
-            {
-                if (comma) sql += ", ";
-                comma = true;
-
-                sql += "[" + f.SqlName + "] = @p" + pars.Count;
-                pars.Add(ToSqlValue(f, f.Value));
-            }
-
-            sql += " WHERE ";
-            sql += GetWherePrimaryKey(table, pars);
-                        
-            int a = Execute(sql, pars.ToArray());
-            if (a != 1)
-                throw table.ErrorConcurrency();
-
-            SetVersion(table);
-        }
     }
 }

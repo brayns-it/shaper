@@ -78,7 +78,7 @@ namespace Brayns.Shaper.Objects
         internal Database.Database GetMemoryDatabase()
         {
             var db = new Database.SQLite();
-            db.Connect(true);
+            db.MemoryConnect();
             db.Compile(this);
             return db;
         }
@@ -420,8 +420,21 @@ namespace Brayns.Shaper.Objects
 
         public void Init()
         {
+            Init(false);
+        }
+
+        public void Init(bool keepPrimaryKey)
+        {
             foreach (BaseField f in UnitFields)
-                f.Init();
+            {
+                if (keepPrimaryKey && TablePrimaryKey.Contains(f)) continue;
+                if (keepPrimaryKey && (f == TableVersion)) continue;
+
+                if (keepPrimaryKey)
+                    f.Value = f.InitValue;
+                else
+                    f.Init();
+            }
         }
 
         public BaseField? FieldByName(string name)

@@ -25,19 +25,19 @@
                     new Controls.Field(general, MaintenanceNetwork);
                 }
 
-                var database = new Controls.Group(content, Label("Database"));
+                var database = new Controls.Group(content, "database", Label("Database"));
                 {
                     var dbPar = new Controls.Field(database, DatabaseType);
                     dbPar.Validating += DbPar_Validating;
 
-                    dbPar = new Controls.Field(database, DatabaseServer);
+                    dbPar = new Controls.Field(database, "db-server", DatabaseServer);
                     dbPar.Validating += DbPar_Validating;
 
-                    dbPar = new Controls.Field(database, DatabaseName);
+                    dbPar = new Controls.Field(database, "db-name", DatabaseName);
                     dbPar.Validating += DbPar_Validating;
 
-                    new Controls.Field(database, DatabaseLogin);
-                    new Controls.Field(database, DatabasePassword) { InputType = Shaper.Controls.InputType.Password };
+                    new Controls.Field(database, "db-login", DatabaseLogin);
+                    new Controls.Field(database, "db-password", DatabasePassword) { InputType = Shaper.Controls.InputType.Password };
                     new Controls.Field(database, DatabaseConnection);
                 }
             }
@@ -64,6 +64,17 @@
 
             if (CurrentSession.ApplicationName.Length == 0)
                 CurrentSession.ApplicationName = Label("New Shaper");
+
+            ShowFields();
+        }
+
+        private void ShowFields()
+        {
+            var v = DatabaseType.Value == Database.DatabaseTypes.SQLSERVER;
+            Control("db-server")!.Visible = v;
+            Control("db-name")!.Visible = v;
+            Control("db-login")!.Visible = v;
+            Control("db-password")!.Visible = v;
         }
 
         private void DbPar_Validating()
@@ -71,12 +82,15 @@
             switch (DatabaseType.Value)
             {
                 case Database.DatabaseTypes.SQLSERVER:
-                    DatabaseConnection.Value = Database.SqlServer.GetConnectionString(DatabaseServer.Value, DatabaseName.Value, EnvironmentName.Value);
+                    DatabaseConnection.Value = Database.SqlServer.CreateConnectionString(DatabaseServer.Value, DatabaseName.Value, EnvironmentName.Value);
                     break;
                 case Database.DatabaseTypes.SQLITE:
-                    DatabaseConnection.Value = Database.SQLite.GetConnectionString(DatabaseServer.Value);
+                    DatabaseConnection.Value = Database.SQLite.CreateConnectionString();
                     break;
             }
+
+            ShowFields();
+            Control("database")!.Redraw();
         }
 
         private void Save_Triggering()

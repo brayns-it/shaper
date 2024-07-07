@@ -219,47 +219,18 @@ namespace Brayns.Shaper
 
         private static string ExceptionToJson(Exception ex, string? requestId = null)
         {
-            var trace = new List<string>();
-
-            while (true)
-            {
-                if (ex.InnerException == null)
-                {
-                    var st = new StackTrace(ex, true);
-                    var frames = st.GetFrames();
-                    foreach (var frame in frames)
-                    {
-                        string? fn = frame.GetFileName();
-                        if (fn != null)
-                        {
-                            FileInfo fi = new FileInfo(fn);
-                            trace.Add("in '" + fi.Name + "' line " + frame.GetFileLineNumber() + " method '" + frame.GetMethod()!.Name + "'");
-                        }
-                    }
-
-                    break;
-                }
-
-                ex = ex.InnerException;
-            }
+            var fe = new Classes.FormattedException(ex);
 
             var res = new JObject();
-            res["classname"] = ex.GetType().FullName;
-            res["message"] = ex.Message;
+            res["classname"] = fe.Type.FullName;
+            res["message"] = fe.Message;
             res["type"] = "exception";
             if (requestId != null)
                 res["requestid"] = requestId!;
 
-            res["code"] = 0;
-            if (typeof(Error).IsAssignableFrom(ex.GetType()))
-            {
-                var err = (Error)ex;
-                res["code"] = err.ErrorCode;
-                if (err.SourceId.Length > 0)
-                    res["sourceId"] = err.SourceId;
-            }
-            
-            res["trace"] = JArray.FromObject(trace);
+            res["code"] = fe.ErrorCode;
+            res["sourceId"] = fe.SourceId;
+            res["trace"] = JArray.FromObject(fe.Trace);
 
             return res.ToString(Newtonsoft.Json.Formatting.Indented);
         }
