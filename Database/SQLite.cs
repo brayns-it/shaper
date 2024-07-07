@@ -332,9 +332,9 @@ namespace Brayns.Shaper.Database
             return Application.Config.DatabaseConnection;
         }
 
-        internal override DbConnection GetConnection(string dsn)
+        protected override DbConnection GetConnection()
         {
-            var conn = new SqliteConnection(dsn);
+            var conn = new SqliteConnection(Dsn);
             conn.Open();
             return conn;
         }
@@ -345,9 +345,9 @@ namespace Brayns.Shaper.Database
             Connection.Open();
         }
 
-        protected override DbCommand CreateCommand(DbConnection connection, string sql, params object[] args)
+        protected override DbCommand CreateCommand(string sql, params object[] args)
         {
-            var cmd = connection!.CreateCommand();
+            var cmd = Connection!.CreateCommand();
             cmd.CommandText = sql;
             
             // sqlite currently not support transactions to avoid database lock

@@ -49,7 +49,6 @@ namespace Brayns.Shaper.Database
         protected string Dsn { get; set; } = "";
         protected DbConnection? Connection { get; set; }
         protected DbTransaction? Transaction { get; set; }
-        protected Dictionary<DbDataReader, DbConnection> ReaderConnections = new();
         protected BaseTable? CompilingTable { get; set; }
         protected abstract object? FromSqlValue(Fields.BaseField f, object value);
         protected abstract object ToSqlValue(Fields.BaseField f, object? value);
@@ -57,15 +56,15 @@ namespace Brayns.Shaper.Database
         protected abstract void CompileTable(BaseTable table);
         protected abstract string QuoteIdentifier(string name);
         protected abstract string GetParameterName(int number);
-        protected abstract DbCommand CreateCommand(DbConnection connection, string sql, params object[] args);
+        protected abstract DbCommand CreateCommand(string sql, params object[] args);
         protected abstract string GetOffset(int offset, int first);
+        protected abstract DbConnection GetConnection();
 
         internal int DatasetSize { get; set; } = 50;
         internal DatabaseCompileMode CompileMode { get; set; } = DatabaseCompileMode.Normal;
         internal List<string> CompileResult { get; init; } = new();
         internal List<string> CompiledTables { get; init; } = new();
-
-        internal abstract DbConnection GetConnection(string dsn);
+                
         internal abstract string GetConnectionString();
 
         public abstract int GetConnectionId();
@@ -122,7 +121,7 @@ namespace Brayns.Shaper.Database
 
         internal int Execute(string sql, params object[] args)
         {
-            var cmd = CreateCommand(Connection!, sql, args);
+            var cmd = CreateCommand(sql, args);
             return cmd.ExecuteNonQuery();
         }
 
@@ -162,15 +161,6 @@ namespace Brayns.Shaper.Database
             else
             {
                 reader.Close();
-
-                if (ReaderConnections.ContainsKey(reader))
-                {
-                    if (ReaderConnections[reader] != Connection)
-                        ReaderConnections[reader].Close();
-
-                    ReaderConnections.Remove(reader);
-                }
-
                 return null;
             }
         }
@@ -187,40 +177,24 @@ namespace Brayns.Shaper.Database
             return res;
         }
 
-        internal void Connect(string dsn = "")
+        internal void Connect(string dsn)
         {
             if (Connection != null)
-            {
-                if (dsn == Dsn) return;
-                Connection.Close();
-                Connection = null;
-            }
+                return;
 
-            if (dsn.Length > 0) Dsn = dsn;
-            
-            Connection = GetConnection(dsn); 
+            Dsn = dsn;
+            Connection = GetConnection(); 
         }
 
         internal DbDataReader ExecuteReader(string sql, params object[] args)
         {
-            var conn = Connection!;
-            if (ReaderConnections.Values.Contains(Connection))
-                conn = GetConnection(Dsn);
-
-            var cmd = CreateCommand(conn, sql, args);
+            var cmd = CreateCommand(sql, args);
             var rdr = cmd.ExecuteReader();
-            ReaderConnections.Add(rdr, conn);
             return rdr;
         }
 
         public void Disconnect()
         {
-            foreach (var conn in ReaderConnections.Values)
-                if (conn != Connection)
-                    conn.Close();
-
-            ReaderConnections.Clear();
-
             if (Transaction != null)
             {
                 Transaction.Rollback();

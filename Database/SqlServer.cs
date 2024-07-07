@@ -427,26 +427,23 @@ namespace Brayns.Shaper.Database
                 dsn += "Integrated Security=true;";
             }
 
+            dsn += "MultipleActiveResultSets=True;";
+
             return dsn;
         }
 
-        internal override DbConnection GetConnection(string dsn)
+        protected override DbConnection GetConnection()
         {
-            var conn = new SqlConnection(dsn);
+            var conn = new SqlConnection(Dsn);
             conn.Open();
             return conn;
         }
 
-        protected override DbCommand CreateCommand(DbConnection connection, string sql, params object[] args)
+        protected override DbCommand CreateCommand(string sql, params object[] args)
         {
-            var cmd = connection.CreateCommand();
-
-            if (Connection == connection)
-            {
-                if (Transaction == null) Transaction = connection.BeginTransaction(System.Data.IsolationLevel.ReadCommitted);
-                cmd.Transaction = Transaction;
-            }
-
+            var cmd = Connection!.CreateCommand();
+            if (Transaction == null) Transaction = Connection!.BeginTransaction(System.Data.IsolationLevel.ReadCommitted);
+            cmd.Transaction = Transaction;
             cmd.CommandText = sql;
             for (int i = 0; i < args.Length; i++)
                 cmd.Parameters.Add(new SqlParameter("@p" + i.ToString(), args[i]));

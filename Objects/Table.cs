@@ -9,6 +9,7 @@ namespace Brayns.Shaper.Objects
         private List<FieldFilter> _lastFilters = new List<FieldFilter>();
         private bool _pagination = false;
         private bool _selection = false;
+        private bool _temporary = false;
 
         private Database.Database? _database;
         internal Database.Database? TableDatabase
@@ -23,6 +24,11 @@ namespace Brayns.Shaper.Objects
         }
 
         internal List<ITableRelation> TableRelations { get; init; } = new();
+
+        public bool TableIsTemporary
+        {
+            get { return _temporary; }
+        }
 
         public Fields.Timestamp TableVersion { get; } = new();
         public FilterLevel TableFilterLevel { get; set; }
@@ -75,7 +81,7 @@ namespace Brayns.Shaper.Objects
             return _dataset![_currentRow];
         }
 
-        internal Database.Database GetMemoryDatabase()
+        internal Database.Database GetMemoryDatabase(BaseTable? sharedTable = null)
         {
             var db = new Database.SQLite();
             db.MemoryConnect();
@@ -88,9 +94,21 @@ namespace Brayns.Shaper.Objects
             _database = db;
         }
 
-        public void SetTemporary()
+        public void SetTemporary(BaseTable? sharedTable = null)
         {
-            _database = GetMemoryDatabase();
+            if (sharedTable != null)
+            {
+                if (!sharedTable._temporary)
+                    throw new Error(Label("Table {0} must be temporary", sharedTable.UnitCaption));
+
+                _database = sharedTable._database;
+            }
+            else
+            {
+                _database = GetMemoryDatabase();
+            }
+
+            _temporary = true;
         }
 
         public bool Read()
