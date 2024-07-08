@@ -420,7 +420,7 @@ namespace Brayns.Shaper.Database
             {
                 dsn += "User ID=" + Application.Config.DatabaseLogin + ";";
                 if (Application.Config.DatabasePassword.Length > 0)
-                    dsn += "Password=" + Application.Config.DatabasePassword;
+                    dsn += "Password=" + Application.Config.DatabasePassword + ";";
             }
             else
             {
