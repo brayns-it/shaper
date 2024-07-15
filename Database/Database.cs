@@ -252,7 +252,11 @@ namespace Brayns.Shaper.Database
             {
                 var lWhere = new List<string>();
                 foreach (Fields.FieldFilter ff in filters[l])
-                    lWhere.Add(FilterToSql(ff, pars));
+                {
+                    var sqlFilter = FilterToSql(ff, pars);
+                    if (sqlFilter.Length > 0)
+                        lWhere.Add(sqlFilter);
+                }
 
                 var mode = (l == FilterLevel.Or) ? " OR " : " AND ";
                 where.Add("(" + String.Join(mode, lWhere) + ")");

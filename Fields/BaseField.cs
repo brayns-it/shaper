@@ -202,6 +202,10 @@ namespace Brayns.Shaper.Fields
                             val = val.Replace("*", "%");
                         }
 
+                        // resolve empty
+                        if (((Field.Type == FieldTypes.CODE) || (Field.Type == FieldTypes.TEXT)) && (val == "''") && (ope == "="))
+                            val = "";
+
                         object? result;
                         Field.Evaluate(val, out result);
                         allValues.Add(result!);
@@ -240,8 +244,8 @@ namespace Brayns.Shaper.Fields
         private object? _value;
         public object? Value
         {
-            get 
-            { 
+            get
+            {
                 if (ValuePerSession)
                 {
                     string k = "FieldValue:" + Parent!.GetType().FullName + "_" + CodeName;
@@ -251,7 +255,7 @@ namespace Brayns.Shaper.Fields
                         _value = InitValue;
                 }
 
-                return _value; 
+                return _value;
             }
             set
             {

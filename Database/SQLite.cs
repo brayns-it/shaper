@@ -145,6 +145,14 @@ namespace Brayns.Shaper.Database
             }
         }
 
+        internal void DropTemporaryTable(BaseTable table)
+        {
+            if (!table.TableIsTemporary)
+                throw new Error(Label("Table {0} is not temporary", table.UnitCaption));
+
+            Execute("DROP TABLE [" + table.TableSqlName + "]");
+        }
+
         private void DropPrimaryKey()
         {
             var res = Query(@"SELECT sql FROM sqlite_schema WHERE ([type] = 'index') AND ([name] = $p0) AND ([tbl_name] = $p1)",

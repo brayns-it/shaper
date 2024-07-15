@@ -1,4 +1,5 @@
-﻿using Brayns.Shaper.Fields;
+﻿using System.Text;
+using Brayns.Shaper.Fields;
 
 namespace Brayns.Shaper.Objects
 {
@@ -9,7 +10,7 @@ namespace Brayns.Shaper.Objects
         private List<FieldFilter> _lastFilters = new List<FieldFilter>();
         private bool _pagination = false;
         private bool _selection = false;
-        private bool _temporary = false;
+        internal bool _tableIsTemporary = false;
 
         private Database.Database? _database;
         internal Database.Database? TableDatabase
@@ -27,7 +28,7 @@ namespace Brayns.Shaper.Objects
 
         public bool TableIsTemporary
         {
-            get { return _temporary; }
+            get { return _tableIsTemporary; }
         }
 
         public Fields.Timestamp TableVersion { get; } = new();
@@ -43,6 +44,23 @@ namespace Brayns.Shaper.Objects
         public event GenericHandler? Deleting;
         public event GenericHandler? Modifying;
         public event GenericHandler? Renaming;
+
+        ~BaseTable()
+        {
+            if (TableIsTemporary)
+                ((Database.SQLite)_database!).DropTemporaryTable(this);
+        }
+
+        public override string ToString()
+        {
+            StringBuilder sb = new();
+            foreach (Fields.BaseField f in UnitFields)
+            {
+                if (sb.Length > 0) sb.Append(", ");
+                sb.Append(f.Name + ": " + ((f.Value != null) ? f.Value.ToString() : "NULL"));
+            }
+            return sb.ToString();
+        }
 
         internal Error ErrorPrimaryKeyModify(BaseField f)
         {
@@ -83,8 +101,17 @@ namespace Brayns.Shaper.Objects
 
         internal Database.Database GetMemoryDatabase(BaseTable? sharedTable = null)
         {
-            var db = new Database.SQLite();
-            db.MemoryConnect();
+            Database.SQLite db;
+            if (!Session.State.ContainsKey("MemoryDatabase"))
+            {
+                db = new();
+                db.MemoryConnect();
+                Session.State["MemoryDatabase"] = db;
+            }
+            else
+                db = (Database.SQLite)Session.State["MemoryDatabase"];
+
+            this.TableSqlName = System.Guid.NewGuid().ToString("n");
             db.Compile(this);
             return db;
         }
@@ -98,7 +125,7 @@ namespace Brayns.Shaper.Objects
         {
             if (sharedTable != null)
             {
-                if (!sharedTable._temporary)
+                if (!sharedTable._tableIsTemporary)
                     throw new Error(Label("Table {0} must be temporary", sharedTable.UnitCaption));
 
                 _database = sharedTable._database;
@@ -108,7 +135,7 @@ namespace Brayns.Shaper.Objects
                 _database = GetMemoryDatabase();
             }
 
-            _temporary = true;
+            _tableIsTemporary = true;
         }
 
         public bool Read()

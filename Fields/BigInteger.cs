@@ -61,6 +61,11 @@ namespace Brayns.Shaper.Fields
             Value = EvaluateText(text);
         }
 
+        public void SetFilter(string expression, params long[] pars)
+        {
+            SetFilter<long>(expression, pars);
+        }
+
         internal override object? CheckValue(object? value)
         {
             return Convert.ToInt64(value!);

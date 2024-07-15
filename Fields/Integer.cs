@@ -49,6 +49,11 @@ namespace Brayns.Shaper.Fields
         {
         }
 
+        public void SetFilter(string expression, params int[] pars)
+        {
+            SetFilter<int>(expression, pars);
+        }
+
         internal override object? CheckValue(object? value)
         {
             return Convert.ToInt32(value!);
