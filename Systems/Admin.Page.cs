@@ -35,6 +35,9 @@ namespace Brayns.Shaper.Systems
 
                     var actDbVerify = new Controls.Action(actDb, Label("Verify"));
                     actDbVerify.Triggering += ActDbVerify_Triggering;
+
+                    var actDbBackup = new Controls.Action(actDb, Label("Backup"));
+                    actDbBackup.Triggering += ActDbBackup_Triggering;
                 }
 
                 var actLanguage = new Controls.Action(actions, Label("Language"), Icon.FromName("fas fa-globe"));
@@ -45,6 +48,12 @@ namespace Brayns.Shaper.Systems
             }
 
             Loading += Admin_Loading;
+        }
+
+        private void ActDbBackup_Triggering()
+        {
+            var backup = new Database.Backup();
+            backup.DoBackupYN();
         }
 
         private void ActCreatePo_Triggering()

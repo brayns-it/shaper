@@ -63,9 +63,12 @@ namespace Brayns.Shaper.Fields
             return SerializeJson(Value);
         }
 
-        public static JValue SerializeJson(System.DateTime val)
+        public new static JValue SerializeJson(System.DateTime value)
         {
-            return new JValue(val.ToString("yyyy-MM-dd"));
+            if (value == System.DateTime.MinValue)
+                return new JValue("");
+            else
+                return new JValue(value.ToString("yyyy-MM-dd"));
         }
 
         public override void Deserialize(JValue? value)
@@ -73,7 +76,7 @@ namespace Brayns.Shaper.Fields
             Value = DeserializeJson(value);
         }
 
-        public static System.DateTime DeserializeJson(JValue? value)
+        public new static System.DateTime DeserializeJson(JValue? value)
         {
             string val = value!.ToString();
             if (val.Length == 0)

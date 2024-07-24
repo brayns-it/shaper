@@ -17,13 +17,13 @@ namespace Brayns.Shaper.Loader
     {
         private static AssemblyLoadContext? Context { get; set; }
         private static List<Assembly> AppAssemblies { get; set; } = new();
-        private static List<Type> TableTypes { get; set; } = new();
         private static List<string> TableNames { get; set; } = new();
         private static List<Type> CodeunitTypes { get; set; } = new();
         private static List<Type> ModuleTypes { get; set; } = new();
         internal static Dictionary<string, Type> UnitTypes { get; private set; } = new();
         internal static Dictionary<Type, Dictionary<string, List<ITableRelation>>> RelationLinks { get; set; } = new();
         internal static Dictionary<string, Dictionary<string, Dictionary<string, string>>> Translations { get; set; } = new();
+        internal static List<Type> TableTypes { get; set; } = new();
 
         private static void LoadTranslations(Assembly asm)
         {

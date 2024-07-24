@@ -76,10 +76,10 @@ namespace Brayns.Shaper.Fields
         {
             text = text.Trim();
             if (text.Length == 0)
-                return System.DateTime.MinValue; 
+                return System.DateTime.MinValue;
 
             string[] parts = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            
+
             System.DateTime date = Date.EvaluateText(parts[0]);
             System.DateTime time = System.DateTime.MinValue;
             if (parts.Length > 1)
@@ -97,10 +97,12 @@ namespace Brayns.Shaper.Fields
             return SerializeJson(Value);
         }
 
-        public static JValue SerializeJson(object? value)
+        public static JValue SerializeJson(System.DateTime value)
         {
-            var val = (System.DateTime)value!;
-            return new JValue(val.ToString("o"));
+            if (value == System.DateTime.MinValue)
+                return new JValue("");
+            else
+                return new JValue(value.ToString("o"));
         }
 
         public override void Deserialize(JValue? value)

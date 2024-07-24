@@ -68,12 +68,15 @@ namespace Brayns.Shaper.Fields
             Value = DeserializeJson(value);
         }
 
-        public static JValue SerializeJson(System.DateTime val)
+        public new static JValue SerializeJson(System.DateTime value)
         {
-            return new JValue(val.ToString("HH:mm:ss.fff"));
+            if (value == System.DateTime.MinValue)
+                return new JValue("");
+            else
+                return new JValue(value.ToString("HH:mm:ss.fff"));
         }
 
-        public static System.DateTime DeserializeJson(JValue? value)
+        public new static System.DateTime DeserializeJson(JValue? value)
         {
             string val = value!.ToString();
             if (val.Length == 0)
