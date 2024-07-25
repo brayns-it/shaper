@@ -47,8 +47,15 @@ namespace Brayns.Shaper.Objects
 
         ~BaseTable()
         {
-            if (TableIsTemporary)
-                ((Database.SQLite)_database!).DropTemporaryTable(this);
+            try
+            {
+                if (TableIsTemporary)
+                    ((Database.SQLite)_database!).DropTemporaryTable(this);
+            }
+            catch
+            {
+                // already disposed
+            }
         }
 
         public override string ToString()
