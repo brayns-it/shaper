@@ -56,6 +56,11 @@ namespace Brayns.Shaper.Fields
             SetFilter<decimal>(expression, pars);
         }
 
+        public decimal Sum()
+        {
+            return Table!.TableDatabase!.Sum<decimal>(Table!, this);
+        }
+
         public static string FormatValue(decimal val, int decimals = 2, bool blankZero = false)
         {
             if (blankZero && (val == 0))

@@ -39,5 +39,22 @@
             }
             return value;
         }
+
+        public static DateTime StartingMonth(this DateTime value)
+        {
+            return new DateTime(value.Year, value.Month, 1);
+        }
+
+        public static DateTime EndingMonth(this DateTime value)
+        {
+            int y = value.Year;
+            int m = value.Month + 1;
+            if (m > 12)
+            {
+                m = 1;
+                y++;
+            }
+            return new DateTime(y, m, 1).AddDays(-1);
+        }
     }
 }

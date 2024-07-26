@@ -327,6 +327,19 @@ namespace Brayns.Shaper.Database
             return sql;
         }
 
+        internal T Sum<T>(BaseTable table, Fields.BaseField field)
+        {
+            List<object> pars = new();
+            var sql = "SELECT SUM(" + QuoteIdentifier(field.SqlName) + ") " + QuoteIdentifier("sum") + " FROM " + QuoteIdentifier(table.TableSqlName);
+
+            List<string> where = GetWhere(table, pars);
+            if (where.Count > 0)
+                sql += " WHERE " + String.Join(" AND ", where);
+
+            var res = Query(sql, pars.ToArray());
+            return res[0].Value<T>("sum");
+        }
+
         internal int Count(BaseTable table)
         {
             List<object> pars = new();
