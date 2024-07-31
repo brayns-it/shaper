@@ -18,8 +18,7 @@
         internal bool MultipleRows { get; set; } = false;
         internal bool OpenAsNew { get; set; } = false;
         internal Controls.BaseSubpage? Parent { get; set; }
-        internal int PageSize { get; set; } = 100;
-        internal int Offset { get; set; } = 0;
+        internal int LimitRows { get; set; } = 100;
 
         public BasePage? SourcePage { get; internal set; }
         public List<Controls.Control> AllControls
@@ -79,7 +78,7 @@
                 var c = (BasePage)Activator.CreateInstance(Card)!;
                 c.OpenAsNew = true;
                 c.SourcePage = this;
-                c.Closing += SendDataSet;
+                c.Closing += () => SendDataSet();
 
                 if (Rec != null)
                     c.Rec!.CopyFilters(Rec);
@@ -228,7 +227,7 @@
                     }
                     item["options"] = options;
                 }
-                
+
                 result.Add(item);
             }
             return result;
@@ -291,17 +290,48 @@
                         Rec!.TableSort.Add(f);
 
             Rec!.TableAscending = ascending;
-            GetData(0);
-        }
-
-        [PublicAccess]
-        internal void GetData(int offset)
-        {
-            Offset = offset;
             SendDataSet();
         }
 
-        internal void SendDataSet()
+        [PublicAccess]
+        internal void GetData(string direction)
+        {
+            if (Rec == null)
+                return;
+
+            switch (direction)
+            {
+                case "first":
+                    SendDataSet();
+                    break;
+
+                case "last":
+                    Rec.FindSet(LimitRows, false, true);
+                    SendDataSet(false);
+                    break;
+
+                case "next":
+                    if (DataSet.Count > 0)
+                    {
+                        Rec.SetDataset(DataSet[DataSet.Count - 1]);
+                        if (Rec.FindSet(LimitRows, true, false))
+                            SendDataSet(false);
+                    }
+                    break;
+
+                case "previous":
+                    if (DataSet.Count > 0)
+                    {
+                        Rec.SetDataset(DataSet[0]);
+                        if (Rec.FindSet(LimitRows, true, true))
+                            SendDataSet(false);
+                    }
+                    break;
+            }
+
+        }
+
+        internal void SendDataSet(bool select = true)
         {
             DataSet.Clear();
             Selection.Clear();
@@ -310,17 +340,18 @@
             JArray jfSet = new();
 
             var result = new JObject();
-            result["pageSize"] = PageSize;
-            result["offset"] = Offset;
+            result["limitRows"] = LimitRows;
 
             if (Rec != null)
             {
-                TableSelecting?.Invoke();
+                if (select)
+                {
+                    TableSelecting?.Invoke();
+                    if (!OpenAsNew)
+                        Rec.FindSet(LimitRows, false, false);
+                }
 
-                if ((!OpenAsNew) && MultipleRows)
-                    result["count"] = Rec.Count();
-
-                if ((!OpenAsNew) && Rec.FindSet(PageSize, Offset))
+                if (!OpenAsNew)
                 {
                     DbRow? firstRow = null;
 
@@ -335,6 +366,9 @@
                         jfSet.Add(GetDataRow(true));
 
                         if (!MultipleRows)
+                            break;
+
+                        if (DataSet.Count >= LimitRows)
                             break;
                     }
 

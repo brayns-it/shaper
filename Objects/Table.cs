@@ -8,8 +8,8 @@ namespace Brayns.Shaper.Objects
         private DbTable _dataset = new();
         private int _currentRow = -1;
         private List<FieldFilter> _lastFilters = new List<FieldFilter>();
-        private bool _pagination = false;
         private bool _selection = false;
+        private bool _pagination = false;
         internal bool _tableIsTemporary = false;
 
         private Database.Database? _database;
@@ -152,11 +152,8 @@ namespace Brayns.Shaper.Objects
             {
                 _currentRow = 0;
 
-                if (_pagination)
-                {
-                    _dataset.Clear();
+                if (_selection || _pagination)
                     return false;
-                }
 
                 _dataset = TableDatabase!.NextSet(this);
                 if (_dataset.Count == 0)
@@ -222,19 +219,24 @@ namespace Brayns.Shaper.Objects
 
         internal void SetSelection(DbTable dataset)
         {
-            _pagination = true;
             _selection = true;
             _dataset = dataset;
         }
 
-        public bool FindSet(int? pageSize = null, int? offset = null)
+        internal bool FindSet(int limitRows, bool nextSet, bool reverseSort)
+        {
+            _dataset = TableDatabase!.FindSet(this, limitRows, nextSet, reverseSort, null);
+            _pagination = true;
+            _currentRow = -1;
+            return (_dataset.Count > 0);
+        }
+
+        public bool FindSet()
         {
             if (!_selection)
-            {
-                _pagination = (pageSize.HasValue);
-                _dataset = TableDatabase!.FindSet(this, pageSize, offset);
-            }
+                _dataset = TableDatabase!.FindSet(this);
 
+            _pagination = false;
             _currentRow = -1;
             return (_dataset.Count > 0);
         }

@@ -47,6 +47,7 @@ namespace Brayns.Shaper
         internal Dictionary<string, object> State { get; set; }
         internal Dictionary<string, Unit> Units { get; set; }
         internal bool IsNew { get; set; }
+        internal bool DatabaseDebug { get; set; }
         internal string ApplicationName { get; set; }
         internal bool IsSuperuser { get; set; }
         internal DateTime LastPoll { get; set; }
@@ -147,6 +148,12 @@ namespace Brayns.Shaper
         {
             get { return Instance.IsSuperuser; }
             set { Instance.IsSuperuser = value; }
+        }
+
+        public static bool DatabaseDebug
+        {
+            get { return Instance.DatabaseDebug; }
+            set { Instance.DatabaseDebug = value; }
         }
 
         internal static WebTask? WebTask

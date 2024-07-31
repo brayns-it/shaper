@@ -57,14 +57,14 @@ namespace Brayns.Shaper.Database
         protected abstract string QuoteIdentifier(string name);
         protected abstract string GetParameterName(int number);
         protected abstract DbCommand CreateCommand(string sql, params object[] args);
-        protected abstract string GetOffset(int offset, int first);
+        protected abstract string GetLimit(int limitRows);
         protected abstract DbConnection GetConnection();
 
         internal int DatasetSize { get; set; } = 50;
         internal DatabaseCompileMode CompileMode { get; set; } = DatabaseCompileMode.Normal;
         internal List<string> CompileResult { get; init; } = new();
         internal List<string> CompiledTables { get; init; } = new();
-                
+
         internal abstract string GetConnectionString();
 
         public abstract int GetConnectionId();
@@ -119,10 +119,44 @@ namespace Brayns.Shaper.Database
             return 0;
         }
 
+        private void LogStatement(DateTime start, string sql, params object[] args)
+        {
+            StringBuilder log = new();
+            log.Append(Convert.ToInt32(DateTime.Now.Subtract(start).TotalMilliseconds).ToString() + " ");
+
+            sql = sql.Replace("\n", " ");
+            sql = sql.Replace("\r", " ");
+            sql = sql.Replace("\t", " ");
+
+            log.Append(sql);
+
+            int n = 0;
+            foreach (var o in args)
+            {
+                log.Append(" p" + n.ToString() + ": ");
+                if (o == null)
+                    log.Append("NULL");
+                else
+                    log.Append(o.ToString());
+                n++;
+            }
+
+            Application.Log("database", "sqlquery", "D", log.ToString());
+        }
+
         internal int Execute(string sql, params object[] args)
         {
             var cmd = CreateCommand(sql, args);
-            return cmd.ExecuteNonQuery();
+
+            if (CurrentSession.DatabaseDebug)
+            {
+                DateTime dt = DateTime.Now;
+                var result = cmd.ExecuteNonQuery();
+                LogStatement(dt, sql, args);
+                return result;
+            }
+            else
+                return cmd.ExecuteNonQuery();
         }
 
         internal void Commit()
@@ -183,14 +217,22 @@ namespace Brayns.Shaper.Database
                 return;
 
             Dsn = dsn;
-            Connection = GetConnection(); 
+            Connection = GetConnection();
         }
 
         internal DbDataReader ExecuteReader(string sql, params object[] args)
         {
             var cmd = CreateCommand(sql, args);
-            var rdr = cmd.ExecuteReader();
-            return rdr;
+
+            if (CurrentSession.DatabaseDebug)
+            {
+                DateTime dt = DateTime.Now;
+                var result = cmd.ExecuteReader();
+                LogStatement(dt, sql, args);
+                return result;
+            }
+            else
+                return cmd.ExecuteReader();
         }
 
         public void Disconnect()
@@ -210,27 +252,22 @@ namespace Brayns.Shaper.Database
 
         internal DbTable FindFirst(BaseTable table)
         {
-            return FindSet(table, 1, 0, false, null, null);
+            return FindSet(table, 1, false, false, null);
         }
 
         internal DbTable FindLast(BaseTable table)
         {
-            return FindSet(table, 1, 0, false, !(table.TableAscending ^ false), null);
-        }
-
-        internal DbTable FindSet(BaseTable table, int? pageSize = null, int? offset = null)
-        {
-            return FindSet(table, pageSize, offset, false, null, null);
+            return FindSet(table, 1, false, true, null);
         }
 
         internal DbTable NextSet(BaseTable table)
         {
-            return FindSet(table, null, null, true, null, null);
+            return FindSet(table, null, true, false, null);
         }
 
         internal DbTable Get(BaseTable table, object[] pkValues)
         {
-            return FindSet(table, null, null, false, null, pkValues);
+            return FindSet(table, null, false, false, pkValues);
         }
 
         protected List<string> GetWhere(BaseTable table, List<object> pars)
@@ -497,7 +534,7 @@ namespace Brayns.Shaper.Database
                 sql += QuoteIdentifier(f.SqlName);
             }
 
-            sql += " " + GetOffset(0, 1);
+            sql += " " + GetLimit(1);
 
             if (Query(sql, pars.ToArray()).Count == 0)
                 return true;
@@ -523,10 +560,16 @@ namespace Brayns.Shaper.Database
         {
         }
 
-        internal DbTable FindSet(BaseTable table, int? pageSize, int? offset, bool nextSet, bool? ascending, object[]? pkValues)
+        internal DbTable FindSet(BaseTable table)
+        {
+            return FindSet(table, null, false, false, null);
+        }
+
+        internal DbTable FindSet(BaseTable table, int? limitRows, bool nextSet, bool reverseSort, object[]? pkValues)
         {
             List<object> pars = new();
-            ascending = ascending ?? table.TableAscending;
+            bool ascending = table.TableAscending;
+            if (reverseSort) ascending = !ascending;
 
             var sql = "SELECT " + ListFields(table.UnitFields) + " FROM " + QuoteIdentifier(table.TableSqlName);
             OnFindSetAfterSelect(table, ref sql);
@@ -560,7 +603,7 @@ namespace Brayns.Shaper.Database
                             Fields.BaseField f = ck[j];
                             string op = "=";
                             if (j == (l - 1))
-                                op = (ascending ?? false) ? ">" : "<";
+                                op = ascending ? ">" : "<";
 
                             ws.Add("(" + QuoteIdentifier(f.SqlName) + " " + op + " " + GetParameterName(pars.Count) + ")");
                             pars.Add(ToSqlValue(f, f.Value));
@@ -590,14 +633,16 @@ namespace Brayns.Shaper.Database
                     comma = true;
 
                     sql += QuoteIdentifier(f.SqlName);
-                    if (!(ascending ?? false))
+                    if (!ascending)
                         sql += " DESC";
                 }
 
-                sql += GetOffset(offset ?? 0, pageSize ?? DatasetSize);
+                sql += GetLimit(limitRows ?? DatasetSize);
             }
 
-            return Query(sql, pars.ToArray());
+            var result = Query(sql, pars.ToArray());
+            if (reverseSort) result.Reverse();
+            return result;
         }
 
         protected virtual bool OnInsertTimestamp(BaseTable table, Fields.Timestamp timestamp)

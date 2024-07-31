@@ -27,6 +27,8 @@ namespace Brayns.Shaper.Controls
 
     public class Field : Control
     {
+        private const int MAX_LOOKUP = 100;
+
         public string Caption { get; set; } = "";
         public Fields.BaseField SourceField { get; protected set; }
         public InputType InputType { get; set; }
@@ -122,7 +124,7 @@ namespace Brayns.Shaper.Controls
 
                 bf.Table!.SetTextFilter(bf.Table!.TableLookup, text);
 
-                if (bf.Table!.FindSet(100))
+                if (bf.Table!.FindSet(MAX_LOOKUP, false, false))
                     while (bf.Table!.Read())
                     {
                         JObject item = new();

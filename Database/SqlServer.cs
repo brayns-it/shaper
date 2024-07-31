@@ -602,9 +602,9 @@ namespace Brayns.Shaper.Database
             table.TableVersion.Value = Query("SELECT CAST(@@DBTS AS bigint) [dbts]")[0].Value<long>("dbts");
         }
         
-        protected override string GetOffset(int offset, int first)
+        protected override string GetLimit(int limitRows)
         {
-            return " OFFSET " + offset.ToString() + " ROWS FETCH FIRST " + first.ToString() + " ROWS ONLY";
+            return " OFFSET 0 ROWS FETCH FIRST " + limitRows.ToString() + " ROWS ONLY";
         }
 
         private byte[] LongToTimestamp(long val)

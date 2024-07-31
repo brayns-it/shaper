@@ -281,12 +281,18 @@ namespace Brayns.Shaper
             Log(context, "E", message);
         }
 
+        public static void Log(string context, string severity, string message)
+        {
+            Log("application", context, severity, message);
+        }
+
         /// <summary>
         /// Log a message
         /// </summary>
+        /// <param name="logname">Name of logfile</param>
         /// <param name="context">Message context (8 chars)</param>
         /// <param name="severity">E error W warning I information D debug</param>
-        public static void Log(string context, string severity, string message)
+        public static void Log(string logname, string context, string severity, string message)
         {
             if (context.Length > 8)
                 context = context.Substring(0, 8);
@@ -324,7 +330,7 @@ namespace Brayns.Shaper
             {
                 try
                 {
-                    var fs = new FileStream(RootPath + "var/log/application_" + DateTime.Now.ToString("yyyyMMdd") + ".log", FileMode.OpenOrCreate, FileAccess.Write, FileShare.Read);
+                    var fs = new FileStream(RootPath + "var/log/" + logname + "_" + DateTime.Now.ToString("yyyyMMdd") + ".log", FileMode.OpenOrCreate, FileAccess.Write, FileShare.Read);
                     fs.Position = fs.Length;
                     var sw = new StreamWriter(fs);
                     sw.WriteLine(line);

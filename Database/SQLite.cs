@@ -501,9 +501,9 @@ namespace Brayns.Shaper.Database
             identity.Value = Query("SELECT last_insert_rowid() AS [id]")[0]["id"];
         }
 
-        protected override string GetOffset(int offset, int first)
+        protected override string GetLimit(int limitRows)
         {
-            return " LIMIT " + first.ToString() + " OFFSET " + offset.ToString();
+            return " LIMIT " + limitRows.ToString();
         }
     }
 }
