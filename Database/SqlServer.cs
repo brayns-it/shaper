@@ -17,6 +17,13 @@ namespace Brayns.Shaper.Database
 {
     public class SqlServer : Database
     {
+        private string DatabaseCollation { get; set; } = "";
+
+        internal override void DatabaseInit()
+        {
+            DatabaseCollation = Query("SELECT collation_name FROM sys.databases WHERE name = DB_NAME()")[0].Value<string>("collation_name");
+        }
+
         protected override List<string> GetTables()
         {
             var res = new List<string>();
@@ -69,10 +76,12 @@ namespace Brayns.Shaper.Database
             if ((field.Type == FieldTypes.CODE) || (field.Type == FieldTypes.TEXT))
             {
                 var f = (Fields.Text)field;
+                string collate = (f.Binary) ? " COLLATE Latin1_General_BIN " : " ";
+
                 if (f.Length == Fields.Text.MAX_LENGTH)
-                    res += "nvarchar(max) NOT NULL";
+                    res += "nvarchar(max)" + collate + "NOT NULL";
                 else
-                    res += "nvarchar(" + f.Length.ToString() + ") NOT NULL";
+                    res += "nvarchar(" + f.Length.ToString() + ")" + collate + "NOT NULL";
             }
             else if (field.Type == FieldTypes.INTEGER)
             {
@@ -229,7 +238,8 @@ namespace Brayns.Shaper.Database
                 "U", CompilingTable!.TableSqlName).Count > 0)
             {
                 var res = Query(@"SELECT c.is_identity, c.max_length, t.name AS typename, c.precision, c.scale, 
-                    c.name, c.is_nullable FROM sys.objects o, sys.columns c, sys.types t 
+                    c.name, c.is_nullable, c.collation_name 
+                    FROM sys.objects o, sys.columns c, sys.types t
                     WHERE (o.name = @p0) AND (o.type = @p1) AND (c.object_id = o.object_id) AND 
                     (c.system_type_id = t.system_type_id) AND (c.user_type_id = t.user_type_id)",
                     CompilingTable!.TableSqlName,
@@ -260,6 +270,10 @@ namespace Brayns.Shaper.Database
 
                             else if ((string)row["typename"]! == "decimal")
                                 curDef += "(" + Convert.ToInt32(row["precision"]).ToString() + "," + Convert.ToInt32(row["scale"]).ToString() + ")";
+
+                            var collate = row.Value<string>("collation_name");
+                            if ((collate.Length > 0) && (collate != DatabaseCollation))
+                                curDef += " COLLATE " + collate;
 
                             if (Convert.ToInt32(row["is_identity"]) == 1)
                                 curDef += " IDENTITY(1,1)";
@@ -317,7 +331,6 @@ namespace Brayns.Shaper.Database
 
                 if (toDelete.Count > 0)
                 {
-
                     foreach (string fn in toDelete)
                     {
                         if (curPk.Contains(fn))

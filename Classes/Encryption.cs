@@ -28,6 +28,11 @@ namespace Brayns.Shaper.Classes
             return ret;
         }
 
+        public static string EncryptString(string value)
+        {
+            return EncryptString(value, Application.Config.GetEncryptionKey());
+        }
+
         public static string EncryptString(string value, string key)
         {
             var sha = SHA256.Create();
@@ -39,6 +44,11 @@ namespace Brayns.Shaper.Classes
 
             var aesVal = aes.EncryptEcb(Encoding.UTF8.GetBytes(value), PaddingMode.PKCS7);
             return Convert.ToBase64String(aesVal);
+        }
+
+        public static string DecryptString(string value)
+        {
+            return DecryptString(value, Application.Config.GetEncryptionKey());
         }
 
         public static string DecryptString(string value, string key)

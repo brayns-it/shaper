@@ -18,6 +18,14 @@ namespace Brayns.Shaper.Classes
         public string DatabaseName { get; set; } = "";
         public string EnvironmentName { get; set; } = "Production";
         public string MaintenanceNetwork { get; set; } = "";
+        public string EncryptionKey { get; set; } = "";
+
+        public string GetEncryptionKey()
+        {
+            if (EncryptionKey.Length == 0)
+                throw new Error(Label("Missing general encryption key"));
+            return EncryptionKey;
+        }
 
         public static Config FromJson(string json)
         {

@@ -64,10 +64,12 @@ namespace Brayns.Shaper.Database
             else if ((field.Type == FieldTypes.CODE) || (field.Type == FieldTypes.TEXT))
             {
                 var f = (Fields.Text)field;
+                string collate = (f.Binary) ? "BINARY" : "NOCASE";
+
                 if (f.Length == Fields.Text.MAX_LENGTH)
-                    res += "text COLLATE NOCASE NOT NULL";
+                    res += "text COLLATE " + collate + " NOT NULL";
                 else
-                    res += "nvarchar(" + f.Length.ToString() + ") COLLATE NOCASE NOT NULL";
+                    res += "nvarchar(" + f.Length.ToString() + ") COLLATE " + collate + " NOT NULL";
             }
             else if (field.Type == FieldTypes.INTEGER)
             {

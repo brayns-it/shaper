@@ -5,6 +5,7 @@
         public const int MAX_LENGTH = -1;
 
         public int Length { get; internal set; }
+        public bool Binary { get; set; }
 
         public new string Value
         {

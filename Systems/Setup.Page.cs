@@ -10,6 +10,7 @@
         private Fields.Text DatabaseServer { get; } = new(Label("Database server"));
         private Fields.Text EnvironmentName { get; } = new(Label("Environment name"));
         private Fields.Text MaintenanceNetwork { get; } = new(Label("Maintenance network"));
+        private Fields.Text EncryptionKey { get; } = new(Label("Encryption key"));
 
         public Setup()
         {
@@ -23,6 +24,7 @@
                     dbPar.Validating += DbPar_Validating;
 
                     new Controls.Field(general, MaintenanceNetwork);
+                    new Controls.Field(general, EncryptionKey) { InputType = Controls.InputType.Password };
                 }
 
                 var database = new Controls.Group(content, "database", Label("Database"));
@@ -61,6 +63,7 @@
             DatabaseServer.Value = Application.Config.DatabaseServer;
             EnvironmentName.Value = Application.Config.EnvironmentName;
             MaintenanceNetwork.Value = Application.Config.MaintenanceNetwork;
+            EncryptionKey.Value = Application.Config.EncryptionKey;
 
             if (CurrentSession.ApplicationName.Length == 0)
                 CurrentSession.ApplicationName = Label("New Shaper");
@@ -103,6 +106,7 @@
             Application.Config.DatabaseName = DatabaseName.Value;
             Application.Config.DatabaseServer = DatabaseServer.Value;
             Application.Config.MaintenanceNetwork = MaintenanceNetwork.Value;
+            Application.Config.EncryptionKey = EncryptionKey.Value;
 
             if (DatabaseType.Value != Database.DatabaseTypes.NONE)
             {
