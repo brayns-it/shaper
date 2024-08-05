@@ -35,6 +35,9 @@ namespace Brayns.Shaper.Classes
 
         public static string EncryptString(string value, string key)
         {
+            if (value.Length == 0)
+                return "";
+
             var sha = SHA256.Create();
             var shaKey = sha.ComputeHash(Encoding.UTF8.GetBytes(key));
 
@@ -53,6 +56,9 @@ namespace Brayns.Shaper.Classes
 
         public static string DecryptString(string value, string key)
         {
+            if (value.Length == 0)
+                return "";
+
             var sha = SHA256.Create();
             var shaKey = sha.ComputeHash(Encoding.UTF8.GetBytes(key));
 

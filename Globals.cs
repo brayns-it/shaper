@@ -30,3 +30,4 @@ global using FilterLevel = Brayns.Shaper.Fields.FilterLevel;
 global using Brayns.Shaper.Extensions;
 global using DbRow = Brayns.Shaper.Database.DbRow;
 global using DbTable = Brayns.Shaper.Database.DbTable;
+global using FormattedException = Brayns.Shaper.Classes.FormattedException;
