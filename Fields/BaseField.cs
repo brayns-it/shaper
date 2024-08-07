@@ -234,7 +234,7 @@ namespace Brayns.Shaper.Fields
         public string Name { get; init; }
         public string Caption { get; init; }
         public string CodeName { get; internal set; }
-        public string SqlName { get; private set; }
+        public string SqlName { get; set; }
         public bool HasFormat { get; init; }
         public event ValidatingHandler? Validating;
         public List<FieldFilter> Filters { get; init; }
