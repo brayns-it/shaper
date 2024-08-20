@@ -6,6 +6,7 @@ using System;
 using System.Reflection;
 using System.Runtime.Loader;
 using System.Diagnostics;
+using System.Xml;
 
 namespace Brayns.Shaper
 {
@@ -13,7 +14,7 @@ namespace Brayns.Shaper
     {
         private static readonly object _lockLog = new();
         private static readonly object _lockValues = new();
-        
+
         internal static Thread? MonitorThread { get; set; }
         internal static Dictionary<string, object> Values = new();
         internal static Dictionary<ApiMethod, MethodInfo> Routes { get; } = new();
@@ -34,21 +35,7 @@ namespace Brayns.Shaper
             get { return ShutdownSource.Token; }
         }
 
-        private static string? _debugPath;
-        public static string? DebugPath
-        {
-            get { return _debugPath; }
-            set
-            {
-                _debugPath = value;
-                if (_debugPath != null)
-                {
-                    _debugPath = _debugPath.Replace("\\", "/");
-                    if (!_debugPath.EndsWith("/"))
-                        _debugPath += "/";
-                }
-            }
-        }
+        public static List<string> SourcesPath { get; } = new();
 
         internal static bool IsFromMaintenanceNetwork()
         {
@@ -67,6 +54,47 @@ namespace Brayns.Shaper
             return Config.EnvironmentName;
         }
 
+        private static void SetDebugPath()
+        {
+#if DEBUG
+            SourcesPath.Clear();
+
+            try
+            {
+                if (Directory.Exists(RootPath! + "code"))
+                    SourcesPath.Add(RootPath! + "code");
+
+                var di = new DirectoryInfo(RootPath!);
+                foreach (var fi in di.GetFiles("*.csproj"))
+                {
+                    XmlDocument doc = new XmlDocument();
+                    doc.Load(fi.FullName);
+
+                    var nodes = doc.SelectNodes("Project/ItemGroup/ProjectReference");
+                    if (nodes != null)
+                        foreach (XmlNode nod in nodes)
+                        {
+                            if ((nod.Attributes == null) || (nod.Attributes["Include"] == null)) continue;
+                            var sfi = new FileInfo(RootPath! + nod.Attributes["Include"]!.InnerText);
+                            SourcesPath.Add(sfi.DirectoryName!);
+                        }
+
+                    nodes = doc.SelectNodes("Project/Import");
+                    if (nodes != null)
+                        foreach (XmlNode nod in nodes)
+                        {
+                            if ((nod.Attributes == null) || (nod.Attributes["Project"] == null)) continue;
+                            var sfi = new FileInfo(RootPath! + nod.Attributes["Project"]!.InnerText);
+                            SourcesPath.Add(sfi.DirectoryName!);
+                        }
+                }
+            }
+            catch
+            {
+            }
+#endif
+        }
+
         private static void InitializeFromWebRoot(string rootPath)
         {
             if (!Directory.Exists(rootPath))
@@ -76,6 +104,8 @@ namespace Brayns.Shaper
             RootPath = RootPath.Replace("\\", "/");
             if (!RootPath.EndsWith("/"))
                 RootPath += "/";
+
+            SetDebugPath();
 
             var di = new DirectoryInfo(RootPath + "var");
             if (!di.Exists)

@@ -51,6 +51,10 @@ msgctxt "Brayns.Shaper.WebDispatcher"
 msgid "Unhandled type in raw web loop {0}"
 msgstr ""
 
+msgctxt "Brayns.Shaper.Classes.Config"
+msgid "Missing general encryption key"
+msgstr ""
+
 msgctxt "Brayns.Shaper.Classes.Functions"
 msgid "{0} days"
 msgstr ""
@@ -87,6 +91,10 @@ msgctxt "Brayns.Shaper.Controls.Notifications"
 msgid "No new notifications"
 msgstr ""
 
+msgctxt "Brayns.Shaper.Database.Backup"
+msgid "Backup database to {0}?"
+msgstr ""
+
 msgctxt "Brayns.Shaper.Database.DatabaseTypes"
 msgid "SQL Server"
 msgstr ""
@@ -96,11 +104,19 @@ msgid "SQLite"
 msgstr ""
 
 msgctxt "Brayns.Shaper.Database.Database"
+msgid "Foreign table '{0}' found"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Database.Database"
 msgid "Prevent disruptive SQL {0}"
 msgstr ""
 
 msgctxt "Brayns.Shaper.Database.SQLite"
 msgid "Unknown field type '{0}'"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Database.SQLite"
+msgid "Table {0} is not temporary"
 msgstr ""
 
 msgctxt "Brayns.Shaper.Database.SqlServer"
@@ -280,6 +296,10 @@ msgid "Another user has modified table '{0}' try again"
 msgstr ""
 
 msgctxt "Brayns.Shaper.Objects.BaseTable"
+msgid "Table {0} must be temporary"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Objects.BaseTable"
 msgid "'{0}' not found"
 msgstr ""
 
@@ -361,6 +381,10 @@ msgstr ""
 
 msgctxt "Brayns.Shaper.Systems.Admin"
 msgid "Verify"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Systems.Admin"
+msgid "Backup"
 msgstr ""
 
 msgctxt "Brayns.Shaper.Systems.Admin"
@@ -469,6 +493,10 @@ msgstr ""
 
 msgctxt "Brayns.Shaper.Systems.Setup"
 msgid "Maintenance network"
+msgstr ""
+
+msgctxt "Brayns.Shaper.Systems.Setup"
+msgid "Encryption key"
 msgstr ""
 
 msgctxt "Brayns.Shaper.Systems.Setup"

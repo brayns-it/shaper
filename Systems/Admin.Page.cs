@@ -40,11 +40,13 @@ namespace Brayns.Shaper.Systems
                     actDbBackup.Triggering += ActDbBackup_Triggering;
                 }
 
+#if DEBUG
                 var actLanguage = new Controls.Action(actions, Label("Language"), Icon.FromName("fas fa-globe"));
                 {
                     var actCreatePo = new Controls.Action(actLanguage, Label("Create PO templates"));
                     actCreatePo.Triggering += ActCreatePo_Triggering;
                 }
+#endif
             }
 
             Loading += Admin_Loading;
@@ -60,31 +62,10 @@ namespace Brayns.Shaper.Systems
         {
             InitLog();
 
-            DirectoryInfo di = new DirectoryInfo(Application.RootPath! + "code");
-            if (di.Exists)
-            {
-                AppendLog(Label("Creating POT {0}...", di.FullName));
-                Shaper.Classes.Language.CreatePoFile(di.FullName);
-            }
-
-            di = new DirectoryInfo(Application.RootPath! + "apps");
-            if (di.Exists)
-            {
-                foreach (DirectoryInfo di2 in di.GetDirectories())
-                {
-                    AppendLog(Label("Creating POT {0}...", di2.FullName));
-                    Shaper.Classes.Language.CreatePoFile(di2.FullName);
-                }
-            }
-
-            if (Application.DebugPath != null)
-            {
-                di = new DirectoryInfo(Application.DebugPath);
-                if (di.Exists)
-                {
-                    AppendLog(Label("Creating POT {0}...", di.FullName));
-                    Shaper.Classes.Language.CreatePoFile(di.FullName);
-                }
+            foreach (string di in Application.SourcesPath)
+            { 
+                AppendLog(Label("Creating POT {0}...", di));
+                Shaper.Classes.Language.CreatePoFile(di);
             }
 
             AppendLog(Label("POT creation done."));
