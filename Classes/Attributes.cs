@@ -124,5 +124,6 @@ namespace Brayns.Shaper.Classes
     [AttributeUsage(AttributeTargets.Method)]
     public class ExtendedAttribute : Attribute
     {
+        public int Priority { get; set; } = 0;
     }
 }

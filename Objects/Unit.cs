@@ -78,11 +78,19 @@ namespace Brayns.Shaper.Objects
             UnitInitialize();
             Initialize();
 
+            SortedDictionary<int, MethodInfo> extens = new();
+            int i = 0;
             foreach (MethodInfo mi in GetType().GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
             {
-                if (mi.GetCustomAttributes(typeof(Classes.ExtendedAttribute), true).Length > 0)
-                    mi.Invoke(this, null);
+                var att = mi.GetCustomAttribute<Classes.ExtendedAttribute>(true);
+                if (att != null)
+                {
+                    i++;
+                    extens.Add((att.Priority * 10000) + i, mi);
+                }
             }
+            foreach(MethodInfo mi in extens.Values)
+                mi.Invoke(this, null);
 
             AfterExtend();
             UnitAfterInitialize();

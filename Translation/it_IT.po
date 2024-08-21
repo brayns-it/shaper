@@ -281,7 +281,7 @@ msgstr "Un altro utente ha modificato la tabella '{0}' riprovare"
 
 msgctxt "Brayns.Shaper.Objects.BaseTable"
 msgid "'{0}' not found"
-msgstr "'{0}' non trovateo"
+msgstr "'{0}' non trovato"
 
 msgctxt "Brayns.Shaper.Objects.BaseTable"
 msgid "'{0}' not found: {1}"
