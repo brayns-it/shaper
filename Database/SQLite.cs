@@ -168,13 +168,38 @@ namespace Brayns.Shaper.Database
             CompileExec(sql, false);
         }
 
+        private List<string> SplitFields(string def)
+        {
+            var result = new List<string>();
+
+            string[] fieldDefs = def.Split(',');
+
+            int i = 0;
+            while (i < fieldDefs.Length)
+            {
+                string part = fieldDefs[i];
+                if (part.Contains("(") && (!part.Contains(")")))
+                {
+                    result.Add(part + "," + fieldDefs[i + 1]);
+                    i += 2;
+                }
+                else
+                {
+                    result.Add(part);
+                    i++;
+                }
+            }
+
+            return result;
+        }
+
         private bool AlterTable(string def)
         {
             int n1 = def.IndexOf("(");
             int n2 = def.LastIndexOf(")");
             def = def.Substring(n1 + 1, n2 - n1 - 1);
 
-            string[] fieldDefs = def.Split(',');
+            var fieldDefs = SplitFields(def);
 
             var toDelete = new List<string>();
             var toAdd = new List<Fields.BaseField>();
@@ -359,7 +384,7 @@ namespace Brayns.Shaper.Database
         {
             var cmd = Connection!.CreateCommand();
             cmd.CommandText = sql;
-            
+
             // sqlite currently not support transactions to avoid database lock
 
             for (int i = 0; i < args.Length; i++)
