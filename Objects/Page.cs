@@ -30,6 +30,7 @@
         public BaseTable? Rec { get; set; }
         public Type? Card { get; set; }
         public event GenericHandler? Inserting;
+        public event GenericHandler? Deleting;
         public event GenericHandler? Renaming;
         public event GenericHandler? Loading;
         public event GenericHandler? Closing;
@@ -111,6 +112,7 @@
                     {
                         Rec!.SetDataset(DataSet[i]);
                         Rec!.Delete(true);
+                        Deleting?.Invoke();
                     }
 
                     SendDataSet();
@@ -118,6 +120,7 @@
                 else
                 {
                     Rec!.Delete(true);
+                    Deleting?.Invoke();
                     Close(true);
                 }
             }).RunModal();

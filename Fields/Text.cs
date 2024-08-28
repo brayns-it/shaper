@@ -6,6 +6,7 @@
 
         public int Length { get; internal set; }
         public bool Binary { get; set; }
+        public bool ANSI { get; set; }
 
         public new string Value
         {
@@ -35,6 +36,8 @@
             XValue = "";
             InitValue = "";
             TestValue = "";
+            Binary = false;
+            ANSI = false;
 
             Create();
         }

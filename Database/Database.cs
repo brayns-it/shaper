@@ -58,6 +58,7 @@ namespace Brayns.Shaper.Database
         protected abstract string GetParameterName(int number);
         protected abstract DbCommand CreateCommand(string sql, params object[] args);
         protected abstract string GetLimit(int limitRows);
+        protected abstract string GetTop(int limitRows);
         protected abstract DbConnection GetConnection();
 
         internal int DatasetSize { get; set; } = 50;
@@ -518,7 +519,7 @@ namespace Brayns.Shaper.Database
         internal bool IsEmpty(BaseTable table)
         {
             List<object> pars = new();
-            var sql = "SELECT NULL " + QuoteIdentifier("ne") + " FROM " + QuoteIdentifier(table.TableSqlName);
+            var sql = "SELECT " + GetTop(1) + " NULL " + QuoteIdentifier("ne") + " FROM " + QuoteIdentifier(table.TableSqlName);
 
             var where = GetWhere(table, pars);
             if (where.Count > 0)
@@ -571,7 +572,10 @@ namespace Brayns.Shaper.Database
             bool ascending = table.TableAscending;
             if (reverseSort) ascending = !ascending;
 
-            var sql = "SELECT " + ListFields(table.UnitFields) + " FROM " + QuoteIdentifier(table.TableSqlName);
+            var sql = "SELECT ";
+            if (pkValues == null)
+                sql += GetTop(limitRows ?? DatasetSize);
+            sql += " " + ListFields(table.UnitFields) + " FROM " + QuoteIdentifier(table.TableSqlName);
             OnFindSetAfterSelect(table, ref sql);
 
             var where = new List<string>();
@@ -637,7 +641,7 @@ namespace Brayns.Shaper.Database
                         sql += " DESC";
                 }
 
-                sql += GetLimit(limitRows ?? DatasetSize);
+                sql += " " + GetLimit(limitRows ?? DatasetSize);
             }
 
             var result = Query(sql, pars.ToArray());

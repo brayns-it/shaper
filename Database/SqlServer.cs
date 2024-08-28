@@ -78,10 +78,12 @@ namespace Brayns.Shaper.Database
                 var f = (Fields.Text)field;
                 string collate = (f.Binary) ? " COLLATE Latin1_General_BIN " : " ";
 
+                if (!f.ANSI) res += "n";
+
                 if (f.Length == Fields.Text.MAX_LENGTH)
-                    res += "nvarchar(max)" + collate + "NOT NULL";
+                    res += "varchar(max)" + collate + "NOT NULL";
                 else
-                    res += "nvarchar(" + f.Length.ToString() + ")" + collate + "NOT NULL";
+                    res += "varchar(" + f.Length.ToString() + ")" + collate + "NOT NULL";
             }
             else if (field.Type == FieldTypes.INTEGER)
             {
@@ -262,7 +264,7 @@ namespace Brayns.Shaper.Database
 
                             var curDef = (string)row["typename"]!;
 
-                            if ((string)row["typename"]! == "nvarchar")
+                            if (((string)row["typename"]! == "nvarchar") || ((string)row["typename"]! == "varchar"))
                                 if (Convert.ToInt32(row["max_length"]) == -1)
                                     curDef += "(max)";
                                 else
@@ -614,10 +616,18 @@ namespace Brayns.Shaper.Database
         {
             table.TableVersion.Value = Query("SELECT CAST(@@DBTS AS bigint) [dbts]")[0].Value<long>("dbts");
         }
-        
+
+        protected override string GetTop(int limitRows)
+        {
+            return "TOP " + limitRows.ToString();
+        }
+
         protected override string GetLimit(int limitRows)
         {
-            return " OFFSET 0 ROWS FETCH FIRST " + limitRows.ToString() + " ROWS ONLY";
+            return "";
+
+            // FUTURE depends on SQL version
+            // return "OFFSET 0 ROWS FETCH FIRST " + limitRows.ToString() + " ROWS ONLY";
         }
 
         private byte[] LongToTimestamp(long val)
