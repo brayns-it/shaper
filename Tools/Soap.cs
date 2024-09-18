@@ -201,9 +201,7 @@ namespace Brayns.Shaper.Soap
                 if (value.Length == 0) return null;
 
                 DateTime dt;
-                if (DateTime.TryParseExact(node.InnerText, "o", CultureInfo.InvariantCulture, DateTimeStyles.None, out dt))
-                    return dt;
-                if (DateTime.TryParseExact(node.InnerText, "yyyy-MM-dd'T'HH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.None, out dt))
+                if (DateTime.TryParse(node.InnerText, CultureInfo.InvariantCulture, DateTimeStyles.None, out dt))
                     return dt;
 
                 return null;

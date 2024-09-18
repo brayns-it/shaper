@@ -11,8 +11,9 @@ namespace Brayns.Shaper.Objects
         private bool _selection = false;
         private bool _pagination = false;
         internal bool _tableIsTemporary = false;
+        internal bool _tableIsVirtual = false;
 
-        private Database.Database? _database;
+        internal Database.Database? _database;
         internal Database.Database? TableDatabase
         {
             get
@@ -49,7 +50,7 @@ namespace Brayns.Shaper.Objects
         {
             try
             {
-                if (TableIsTemporary)
+                if (_tableIsTemporary && (!_tableIsVirtual))
                     ((Database.SQLite)_database!).DropTemporaryTable(this);
             }
             catch
@@ -106,7 +107,7 @@ namespace Brayns.Shaper.Objects
             return _dataset![_currentRow];
         }
 
-        internal Database.Database GetMemoryDatabase(BaseTable? sharedTable = null)
+        internal Database.Database GetMemoryDatabase(BaseTable? sharedTable = null, string? tableSqlName = null)
         {
             Database.SQLite db;
             if (!Session.State.ContainsKey("MemoryDatabase"))
@@ -118,7 +119,7 @@ namespace Brayns.Shaper.Objects
             else
                 db = (Database.SQLite)Session.State["MemoryDatabase"];
 
-            this.TableSqlName = System.Guid.NewGuid().ToString("n");
+            this.TableSqlName = tableSqlName ?? System.Guid.NewGuid().ToString("n");
             db.Compile(this);
             return db;
         }
@@ -560,11 +561,9 @@ namespace Brayns.Shaper.Objects
                 VirtualTable vt = (VirtualTable)atts[0];
                 if (vt.DataPerSession)
                 {
-                    string k = "TempData:" + GetType().FullName!;
-                    if (!Session.State.ContainsKey(k))
-                        Session.State[k] = GetMemoryDatabase();
-
-                    Connect((Database.Database)Session.State[k]);
+                    _database = GetMemoryDatabase(tableSqlName: GetType().FullName!);
+                    _tableIsTemporary = true;
+                    _tableIsVirtual = true;
                 }
                 else
                 {
