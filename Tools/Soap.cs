@@ -107,7 +107,7 @@ namespace Brayns.Shaper.Soap
                         foreach (var prop in soapObj.Object!.GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public))
                         {
                             var soapType = new SoapType(prop, Settings);
-                            if (soapType.Ignore) 
+                            if (soapType.Ignore)
                                 continue;
 
                             if (soapType.PropertyName!.Equals(child.LocalName, StringComparison.OrdinalIgnoreCase))
@@ -355,13 +355,19 @@ namespace Brayns.Shaper.Soap
                 SoapObjects.RemoveAt(0);
 
                 XmlNode? node = null;
-                List<object>? array = null;
-
                 var soapType = new SoapType(soapObj.Object!.GetType(), Settings);
-                if (soapType.IsArray)
-                    array = GetArray(soapObj.Object!);
 
-                if (soapType.URI.Length > 0)
+                if (soapType.IsArray)
+                {
+                    foreach (var itemObj in GetArray(soapObj.Object!))
+                        AppendChild(soapObj.ParentNode!, soapType.ItemType!, itemObj);
+
+                    continue;
+                }
+
+                if (soapObj.ID != null)
+                    node = Document.CreateElement("multiRef");
+                else if (soapType.URI.Length > 0)
                     node = Document.CreateElement(LookupPrefix(soapObj.ParentNode, soapType.URI, true), soapType.Name, soapType.URI);
                 else
                     node = Document.CreateElement(soapType.Name);
@@ -370,36 +376,17 @@ namespace Brayns.Shaper.Soap
 
                 if (soapObj.ID != null)
                 {
+                    AssertNamespace(node, soapType);
+
                     AddAttribute(node, "id", soapObj.ID);
-
-                    if (soapType.IsArray)
-                    {
-                        if ((soapType.ItemType!.URI.Length > 0) && (LookupPrefix(node, soapType.ItemType!.URI) == null))
-                        {
-                            var pfix = LookupPrefix(node, soapType.ItemType!.URI, true);
-                            AddAttribute(node, "xmlns:" + pfix, soapType.ItemType!.URI);
-                        }
-
-                        var xsiType = GetXsiType(node, soapType.ItemType!);
-                        xsiType += "[" + array!.Count.ToString() + "]";
-                        AddAttribute(node, "arrayType", SoapType.SOAPENC_URI, xsiType);
-                    }
-                    else
-                        AddAttribute(node, "type", SoapType.XSI_URI, GetXsiType(node, soapType));
+                    AddAttribute(node, "type", SoapType.XSI_URI, GetXsiType(node, soapType));
+                    AddAttribute(node, "root", SoapType.SOAPENC_URI, "0");
                 }
 
-                if (soapType.IsArray)
+                foreach (var prop in soapObj.Object!.GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public))
                 {
-                    foreach (var itemObj in array!)
-                        AppendChild(node, soapType.ItemType!, itemObj);
-                }
-                else
-                {
-                    foreach (var prop in soapObj.Object!.GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public))
-                    {
-                        var propType = new SoapType(prop, Settings);
-                        AppendChild(node, propType, prop.GetValue(soapObj.Object!));
-                    }
+                    var propType = new SoapType(prop, Settings);
+                    AppendChild(node, propType, prop.GetValue(soapObj.Object!));
                 }
             }
 
@@ -415,23 +402,45 @@ namespace Brayns.Shaper.Soap
             return buf;
         }
 
+        private void AssertNamespace(XmlNode node, SoapType soapType)
+        {
+            if ((soapType.URI.Length > 0) && (LookupPrefix(node, soapType.URI) == null))
+            {
+                var pfix = LookupPrefix(node, soapType.URI, true);
+                AddAttribute(node, "xmlns:" + pfix, soapType.URI);
+            }
+        }
+
         private void AppendChild(XmlNode node, SoapType soapType, object? propertyValue)
         {
             if (soapType.Ignore)
                 return;
 
             if (propertyValue == null)
-            {
-                AddAttribute(node, "nil", SoapType.XSD_URI, "true");
                 return;
-            }
 
-            var propertyNode = Document.CreateElement(soapType.PropertyName!);
+            var propertyNode = Document.CreateElement((soapType.PropertyName != null) ? soapType.PropertyName : node.Name);
 
             if (soapType.IsValue)
             {
-                SerializeValue(propertyNode, soapType, propertyValue);
                 node.AppendChild(propertyNode);
+                SerializeValue(propertyNode, soapType, propertyValue);
+                return;
+            }
+
+            if (soapType.IsArray)
+            {
+                SoapObjects.Add(new() { Object = propertyValue, ParentNode = propertyNode });
+                node.AppendChild(propertyNode);
+
+                AssertNamespace(propertyNode, soapType.ItemType!);
+
+                var xsiType = GetXsiType(propertyNode, soapType.ItemType!);
+                xsiType += "[" + GetArray(propertyValue).Count.ToString() + "]";
+                AddAttribute(propertyNode, "arrayType", SoapType.SOAPENC_URI, xsiType);
+
+                AddAttribute(propertyNode, "type", SoapType.XSI_URI, "soapenc:Array");
+
                 return;
             }
 
@@ -458,7 +467,7 @@ namespace Brayns.Shaper.Soap
 
         private void SerializeValue(XmlNode node, SoapType soapType, object? propertyValue)
         {
-            AddAttribute(node, "type", SoapType.XSI_URI, "xsd:" + soapType.Name);
+            AddAttribute(node, "type", SoapType.XSI_URI, GetXsiType(node, soapType));
 
             if (soapType.Type == typeof(string))
                 node.InnerText = propertyValue!.ToString()!;
@@ -480,6 +489,7 @@ namespace Brayns.Shaper.Soap
 
             if (soapType.Type == typeof(DateTime))
                 node.InnerText = ((DateTime)propertyValue!).ToString("o");
+
         }
     }
 
@@ -592,7 +602,7 @@ namespace Brayns.Shaper.Soap
             if (Type == typeof(string))
             {
                 Name = "string";
-                URI = XSD_URI;
+                URI = SOAPENC_URI;
                 IsValue = true;
                 return true;
             }
@@ -642,7 +652,6 @@ namespace Brayns.Shaper.Soap
 
                 var args = Type.GetGenericArguments();
                 ItemType = new SoapType(args[0], Settings);
-                ItemType.PropertyName = "Item";
                 return true;
             }
 
