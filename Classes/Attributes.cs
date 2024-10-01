@@ -56,6 +56,14 @@ namespace Brayns.Shaper.Classes
     }
 
     /// <summary>
+    /// Table is optional 
+    /// </summary>
+    [AttributeUsage(AttributeTargets.Class)]
+    public class OptionalTableAttribute : Attribute
+    {
+    }
+
+    /// <summary>
     /// Table is virtual (on memory)
     /// </summary>
     [AttributeUsage(AttributeTargets.Class)]

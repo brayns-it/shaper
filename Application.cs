@@ -15,6 +15,7 @@ namespace Brayns.Shaper
         private static readonly object _lockLog = new();
         private static readonly object _lockValues = new();
 
+        internal static List<Type> RequiredTables { get; } = new();
         internal static Thread? MonitorThread { get; set; }
         internal static Dictionary<string, object> Values = new();
         internal static Dictionary<ApiMethod, MethodInfo> Routes { get; } = new();
@@ -202,6 +203,7 @@ namespace Brayns.Shaper
             {
                 Session.DatabaseConnect();
 
+                Loader.Loader.InitializeApps();
                 Loader.Loader.CompileTables(Database.DatabaseCompileMode.Normal);
                 Loader.Loader.CollectTableRelations();
                 Loader.Loader.CollectApiEndpoints();
@@ -217,6 +219,12 @@ namespace Brayns.Shaper
         internal static Exception ErrorInMaintenance()
         {
             return new Error(Error.E_SYSTEM_IN_MAINTENANCE, Label("Application is in maintenance, try again later"));
+        }
+
+        public static void RequireTable<T>()
+        {
+            if (!RequiredTables.Contains(typeof(T)))
+                RequiredTables.Add(typeof(T));
         }
 
         public static void InitializeShaper()

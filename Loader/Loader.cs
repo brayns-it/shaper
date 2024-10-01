@@ -159,7 +159,7 @@ namespace Brayns.Shaper.Loader
             }
         }
 
-        internal static void InstallApps()
+        internal static void InitializeApps()
         {
             Application.Apps.Clear();
 
@@ -167,13 +167,18 @@ namespace Brayns.Shaper.Loader
             {
                 var a = (AppModule)Activator.CreateInstance(t)!;
                 Application.Apps.Add(a.Id, a);
+                a.Initialize();
+            }
+        }
 
-                if (Session.Database != null)
+        internal static void InstallApps()
+        {
+            if (Session.Database != null)
+                foreach (var a in Application.Apps.Values)
                 {
                     a.Install();
                     Commit();
                 }
-            }
         }
 
         internal static void CollectTableRelations()
@@ -214,6 +219,10 @@ namespace Brayns.Shaper.Loader
             {
                 if (t.GetCustomAttribute<VirtualTable>(true) != null)
                     continue;
+
+                if (t.GetCustomAttribute<OptionalTable>(true) != null)
+                    if (!Application.RequiredTables.Contains(t))
+                        continue;
 
                 var tab = (BaseTable)Activator.CreateInstance(t)!;
                 Session.Database!.Compile(tab);
