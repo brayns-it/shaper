@@ -33,6 +33,7 @@
         public event GenericHandler? Deleting;
         public event GenericHandler? Renaming;
         public event GenericHandler? Loading;
+        public event GenericHandler? Loaded;
         public event GenericHandler? Closing;
         public event PageQueryCloseHandler? QueryClosing;
         public event GenericHandler? DataReading;
@@ -450,6 +451,8 @@
             foreach (var c in AllItems.Values)
                 if (typeof(Controls.BaseSubpage).IsAssignableFrom(c.GetType()))
                     ((Controls.BaseSubpage)c).Run();
+
+            Loaded?.Invoke();
         }
 
         public void Run()

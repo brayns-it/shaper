@@ -99,10 +99,15 @@ namespace Brayns.Shaper.Fields
 
         public static decimal DeserializeJson(JValue? value)
         {
-            NumberFormatInfo nfi = new NumberFormatInfo();
-            nfi.NumberGroupSeparator = "";
-            nfi.NumberDecimalSeparator = ".";
-            return decimal.Parse(value!.ToString(), nfi);
+            if (value!.Type == JTokenType.Float)
+                return Convert.ToDecimal(value);
+            else
+            {
+                NumberFormatInfo nfi = new NumberFormatInfo();
+                nfi.NumberGroupSeparator = "";
+                nfi.NumberDecimalSeparator = ".";
+                return decimal.Parse(value!.ToString(), nfi);
+            }
         }
 
         public override void Evaluate(string text)
