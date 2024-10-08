@@ -16,6 +16,7 @@ global using RawSession = Brayns.Shaper.RawSession;
 global using ApiResult = Brayns.Shaper.ApiResult;
 global using RequestMethod = Brayns.Shaper.Classes.RequestMethod;
 global using Extended = Brayns.Shaper.Classes.ExtendedAttribute;
+global using ClientAccess = Brayns.Shaper.Classes.ClientAccessAttribute;
 global using OptionalTable = Brayns.Shaper.Classes.OptionalTableAttribute;
 global using VirtualTable = Brayns.Shaper.Classes.VirtualTableAttribute;
 global using ValuePerSession = Brayns.Shaper.Classes.ValuePerSessionAttribute;

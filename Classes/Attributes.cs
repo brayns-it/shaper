@@ -112,6 +112,15 @@ namespace Brayns.Shaper.Classes
     }
 
     /// <summary>
+    /// Page is accessible from outside
+    /// </summary>
+    public class ClientAccessAttribute : Attribute
+    {
+        public string Path { get; init; } = "";
+        public bool IsLogin { get; init; } = false;
+    }
+
+    /// <summary>
     /// Label target
     /// </summary>
     [AttributeUsage(AttributeTargets.All)]

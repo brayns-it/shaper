@@ -153,6 +153,15 @@ namespace Brayns.Shaper.Loader
             if (Session.IsSuperuser)
                 return;
 
+            if (t.GetCustomAttributes(typeof(PublicAccess), true).Length > 0)
+                return;
+
+            if (Session.UserId.Length > 0)
+            {
+                if (Permissions.IsAllowed(t, PermissionType.Execute, false))
+                    return;
+            }
+
             throw new Error(Error.E_UNAUTHORIZED, Label("Unauthorized access to unit '{0}'", t.Name));
         }
 

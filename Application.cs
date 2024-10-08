@@ -37,6 +37,7 @@ namespace Brayns.Shaper
         }
 
         public static List<string> SourcesPath { get; } = new();
+        public static Dictionary<ClientAccess, Type> ClientAccesses { get; } = new();
 
         internal static bool IsFromMaintenanceNetwork()
         {
@@ -206,7 +207,7 @@ namespace Brayns.Shaper
                 Loader.Loader.InitializeApps();
                 Loader.Loader.CompileTables(Database.DatabaseCompileMode.Normal);
                 Loader.Loader.CollectTableRelations();
-                Loader.Loader.CollectApiEndpoints();
+                Loader.Loader.CollectEndpoints();
                 Loader.Loader.InstallApps();
 
                 Initializing?.Invoke();

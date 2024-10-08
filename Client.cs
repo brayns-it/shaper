@@ -70,6 +70,20 @@ namespace Brayns.Shaper
             SendMessage(jo);
         }
 
+        public static void AssertFocus()
+        {
+            var jo = new JObject();
+            jo["action"] = "assertFocus";
+            SendMessage(jo);
+        }
+
+        public static void RequestFullscreen()
+        {
+            var jo = new JObject();
+            jo["action"] = "requestFullscreen";
+            SendMessage(jo);
+        }
+
         public static void Navigate(string url)
         {
             var jo = new JObject();

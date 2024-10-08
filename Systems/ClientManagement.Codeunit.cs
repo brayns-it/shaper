@@ -10,29 +10,61 @@ namespace Brayns.Shaper.Systems
     [Published]
     public class ClientManagement : Codeunit
     {
+        public string ClientPathName { get; private set; } = "";
+        public string ClientSearch { get; private set; } = "";
+
         public static event GenericHandler<ClientManagement>? ClientInitializing;
         public static event GenericHandler<ClientManagement>? ClientPolling;
         public static event GenericHandler<ClientManagement>? RunningLogin;
         public static event GenericHandler<ClientManagement>? RunningStart;
 
         [PublicAccess]
-        public string Start(string page)
+        public string Start(string pathname, string search)
         {
+            ClientPathName = pathname;
+            ClientSearch = search;
+
             if (Application.IsReady && Application.IsLoaded)
             {
                 ClientInitializing?.Invoke(this);
 
-                if (page.Length > 0)
+                Type? pageType = null;
+                ClientAccess? accAttr = null;
+                if (!pathname.EndsWith("/")) pathname += "/";
+                foreach (var acc in Application.ClientAccesses.Keys)
                 {
-                    StartPage(page);
+                    string p2 = acc.Path;
+                    if (!p2.EndsWith("/")) p2 += "/";
+                    if (p2.Equals(pathname, StringComparison.OrdinalIgnoreCase))
+                    {
+                        accAttr = acc;
+                        pageType = Application.ClientAccesses[acc];
+                        break;
+                    }
+                }
+
+                if (CurrentSession.UserId.Length == 0)
+                {
+                    if ((accAttr != null) && accAttr.IsLogin)
+                    {
+                        var bp = Activator.CreateInstance(pageType!) as BasePage;
+                        bp!.Run();
+                    }
+                    else
+                        RunningLogin?.Invoke(this);
                 }
                 else
                 {
-                    if (CurrentSession.UserId.Length == 0)
-                        RunningLogin?.Invoke(this);
+                    if ((accAttr != null) && (!accAttr.IsLogin))
+                    {
+                        var proxy = Loader.Proxy.CreateFromName(pageType!.FullName!);
+                        var p = proxy.GetObject<BasePage>();
+                        if (!p.Standalone)
+                            RunningStart?.Invoke(this);
+                        p.Run();
+                    }
                     else
                         RunningStart?.Invoke(this);
-
                 }
             }
             else
@@ -66,24 +98,6 @@ namespace Brayns.Shaper.Systems
 
             foreach (Unit u in Session.Units.Values)
                 u.TriggerPoll();
-        }
-
-        private void StartPage(string requestedPage)
-        {
-            Loader.Proxy.AssertType<BasePage>(requestedPage);
-
-            if ((!Loader.Proxy.HasAttribute<PublicAccess>(requestedPage)) && (CurrentSession.UserId.Length == 0))
-            {
-                RunningLogin?.Invoke(this);
-            }
-            else
-            {
-                var proxy = Loader.Proxy.CreateFromName(requestedPage);
-                var p = proxy.GetObject<BasePage>();
-                if (!p.Standalone)
-                    RunningStart?.Invoke(this);
-                p.Run();
-            }
         }
     }
 }

@@ -24,6 +24,7 @@ namespace Brayns.Shaper.Loader
         internal static Dictionary<Type, Dictionary<string, List<ITableRelation>>> RelationLinks { get; set; } = new();
         internal static Dictionary<string, Dictionary<string, Dictionary<string, string>>> Translations { get; set; } = new();
         internal static List<Type> TableTypes { get; set; } = new();
+        internal static List<Type> PageTypes { get; set; } = new();
 
         private static void LoadTranslations(Assembly asm)
         {
@@ -43,6 +44,7 @@ namespace Brayns.Shaper.Loader
 
         private static void FinalizeLoadApps()
         {
+            PageTypes.Clear();
             TableTypes.Clear();
             CodeunitTypes.Clear();
             ModuleTypes.Clear();
@@ -71,6 +73,10 @@ namespace Brayns.Shaper.Loader
                     // codeunits
                     if (typeof(Codeunit).IsAssignableFrom(t))
                         CodeunitTypes.Add(t);
+
+                    // page
+                    if (typeof(BasePage).IsAssignableFrom(t))
+                        PageTypes.Add(t);
 
                     // app modules
                     if (typeof(AppModule).IsAssignableFrom(t))
@@ -141,10 +147,11 @@ namespace Brayns.Shaper.Loader
             return RelationLinks[t][n];
         }
 
-        internal static void CollectApiEndpoints()
+        internal static void CollectEndpoints()
         {
             Application.Routes.Clear();
             Application.RawRoutes.Clear();
+            Application.ClientAccesses.Clear();
 
             foreach (Type t in CodeunitTypes)
             {
@@ -156,6 +163,12 @@ namespace Brayns.Shaper.Loader
                     foreach (var r in m.GetCustomAttributes<RawMethod>(true))
                         Application.RawRoutes.Add(r, m);
                 }
+            }
+
+            foreach (Type t in PageTypes)
+            {
+                foreach (var r in t.GetCustomAttributes<ClientAccess>(true))
+                    Application.ClientAccesses.Add(r, t);
             }
         }
 
