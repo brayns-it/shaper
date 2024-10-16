@@ -35,6 +35,7 @@
         public event GenericHandler? Loading;
         public event GenericHandler? Loaded;
         public event GenericHandler? Closing;
+        public event GenericHandler? Closed;
         public event PageQueryCloseHandler? QueryClosing;
         public event GenericHandler? DataReading;
         public event GenericHandler? TableSelecting;
@@ -548,6 +549,8 @@
                 if ((SourcePage != null) && (SourcePage.Rec != null) && (Rec != null) && (SourcePage.Rec!.GetType() == Rec.GetType()))
                     SourcePage.SendDataSet();
             }
+
+            Closed?.Invoke();
         }
 
         [PublicAccess]
