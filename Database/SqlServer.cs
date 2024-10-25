@@ -593,8 +593,11 @@ namespace Brayns.Shaper.Database
 
         protected override void OnFindSetAfterSelect(BaseTable table, ref string sql)
         {
-            if (table.TableLock)
+            if (table.TableLock || table._lockOnce)
+            {
+                table._lockOnce = false;
                 sql += " WITH (UPDLOCK)";
+            }
         }
 
         protected override void OnInsertBeforeIdentityInsert(BaseTable table)

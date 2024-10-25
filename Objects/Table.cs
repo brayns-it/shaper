@@ -12,6 +12,7 @@ namespace Brayns.Shaper.Objects
         private bool _pagination = false;
         internal bool _tableIsTemporary = false;
         internal bool _tableIsVirtual = false;
+        internal bool _lockOnce = false;
 
         internal Database.Database? _database;
         internal Database.Database? TableDatabase
@@ -412,8 +413,9 @@ namespace Brayns.Shaper.Objects
                 TablePrimaryKey[i].SetRange(pkValues[i]);
         }
 
-        public bool Refresh()
+        public bool Reload(bool lockOnce = false)
         {
+            _lockOnce = lockOnce;
             return Get(PrimaryKeyValues());
         }
 

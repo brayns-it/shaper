@@ -513,7 +513,7 @@
             if (Rec == null)
                 return;
 
-            if (Rec.Refresh())
+            if (Rec.Reload())
             {
                 if (Selection.Count > 0)
                     DataSet[Selection[0]] = Rec!.GetDataset();
