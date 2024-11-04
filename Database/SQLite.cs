@@ -178,7 +178,11 @@ namespace Brayns.Shaper.Database
             while (i < fieldDefs.Length)
             {
                 string part = fieldDefs[i];
-                if (part.Contains("(") && (!part.Contains(")")))
+
+                int n1 = part.LastIndexOf("(");
+                int n2 = part.LastIndexOf(")");
+
+                if ((n1 > -1) && (n2 < n1))
                 {
                     result.Add(part + "," + fieldDefs[i + 1]);
                     i += 2;
