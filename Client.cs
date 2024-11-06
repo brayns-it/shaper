@@ -77,6 +77,14 @@ namespace Brayns.Shaper
             SendMessage(jo);
         }
 
+        public static void PlaySound(string url)
+        {
+            var jo = new JObject();
+            jo["action"] = "playSound";
+            jo["url"] = url;
+            SendMessage(jo);
+        }
+
         public static void RequestFullscreen()
         {
             var jo = new JObject();

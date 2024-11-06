@@ -40,7 +40,7 @@ namespace Brayns.Shaper
         public string RequestBaseURI { get; set; } = "";
 
         public byte[]? Response { get; set; }
-        public string ResponseType { get; set; } = "text/plain";
+        public string ResponseType { get; set; } = "text/plain; charset=UTF-8";
         public int ResponseCode { get; set; } = 200;
         public Dictionary<string, string> ResponseHeaders { get; set; } = new();
     }
