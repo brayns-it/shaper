@@ -104,9 +104,9 @@
                     Error?.Invoke(this, ex);
                     Commit();
                 }
-                catch
+                catch (Exception ex2)
                 {
-                    // do nothing
+                    Application.LogException("runntask", ex2);
                 }
             }
 

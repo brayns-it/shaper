@@ -4,6 +4,18 @@ namespace Brayns.Shaper.Classes
 {
     public static partial class Functions
     {
+        public static void Sleep(int ms)
+        {
+            while (ms > 0)
+            {
+                int n = 1000;
+                if (n > ms) n = ms;
+                Thread.Sleep(n);
+                Session.ThrowIfCancelRequested();
+                ms -= n;
+            }
+        }
+
         internal static bool AreEquals(object? o1, object? o2)
         {
             if ((o1 == null) && (o2 == null))

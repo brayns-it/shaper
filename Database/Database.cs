@@ -171,10 +171,19 @@ namespace Brayns.Shaper.Database
 
         internal void Rollback()
         {
-            if (Transaction != null)
+            try
             {
-                Transaction!.Rollback();
-                Transaction = null;
+                if (Transaction != null)
+                {
+                    Transaction!.Rollback();
+                    Transaction = null;
+                }
+            }
+            catch
+            {
+                // killed
+                Disconnect();
+                Connect(Dsn);
             }
         }
 
@@ -238,15 +247,31 @@ namespace Brayns.Shaper.Database
 
         public void Disconnect()
         {
-            if (Transaction != null)
+            try
             {
-                Transaction.Rollback();
+                if (Transaction != null)
+                {
+                    Transaction.Rollback();
+                    Transaction = null;
+                }
+            }
+            catch
+            {
+                // killed
                 Transaction = null;
             }
 
-            if (Connection != null)
+            try
             {
-                Connection.Close();
+                if (Connection != null)
+                {
+                    Connection.Close();
+                    Connection = null;
+                }
+            }
+            catch
+            {
+                // killed
                 Connection = null;
             }
         }
