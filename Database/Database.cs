@@ -390,6 +390,32 @@ namespace Brayns.Shaper.Database
             return sql;
         }
 
+        internal T Min<T>(BaseTable table, Fields.BaseField field)
+        {
+            List<object> pars = new();
+            var sql = "SELECT MIN(" + QuoteIdentifier(field.SqlName) + ") " + QuoteIdentifier("min") + " FROM " + QuoteIdentifier(table.TableSqlName);
+
+            List<string> where = GetWhere(table, pars);
+            if (where.Count > 0)
+                sql += " WHERE " + String.Join(" AND ", where);
+
+            var res = Query(sql, pars.ToArray());
+            return res[0].Value<T>("min");
+        }
+
+        internal T Max<T>(BaseTable table, Fields.BaseField field)
+        {
+            List<object> pars = new();
+            var sql = "SELECT MAX(" + QuoteIdentifier(field.SqlName) + ") " + QuoteIdentifier("max") + " FROM " + QuoteIdentifier(table.TableSqlName);
+
+            List<string> where = GetWhere(table, pars);
+            if (where.Count > 0)
+                sql += " WHERE " + String.Join(" AND ", where);
+
+            var res = Query(sql, pars.ToArray());
+            return res[0].Value<T>("max");
+        }
+
         internal T Sum<T>(BaseTable table, Fields.BaseField field)
         {
             List<object> pars = new();

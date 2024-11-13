@@ -117,5 +117,14 @@ namespace Brayns.Shaper.Fields
             return value!.ToObject<int>();
         }
 
+        public int Max()
+        {
+            return Table!.TableDatabase!.Max<int>(Table!, this);
+        }
+
+        public int Min()
+        {
+            return Table!.TableDatabase!.Min<int>(Table!, this);
+        }
     }
 }

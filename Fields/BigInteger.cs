@@ -98,5 +98,15 @@ namespace Brayns.Shaper.Fields
         {
             throw new NotImplementedException();
         }
+
+        public long Max()
+        {
+            return Table!.TableDatabase!.Max<long>(Table!, this);
+        }
+
+        public long Min()
+        {
+            return Table!.TableDatabase!.Min<long>(Table!, this);
+        }
     }
 }
