@@ -532,7 +532,7 @@
             }
         }
 
-        public void Close(bool updateSourcePage = false)
+        public virtual void Close(bool updateSourcePage = false)
         {
             Closing?.Invoke();
             SessionUnregister();

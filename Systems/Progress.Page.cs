@@ -69,18 +69,20 @@
             }
         }
 
-        public new void Close()
+        public override void Close(bool updateSourcePage = false)
         {
             if (!Client.IsAllowed())
                 return;
 
-            base.Close();
+            base.Close(updateSourcePage);
         }
 
         public void Show()
         {
             if (!Client.IsAllowed())
                 return;
+
+            this.Close();
 
             RunModal();
         }

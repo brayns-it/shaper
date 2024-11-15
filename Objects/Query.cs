@@ -8,15 +8,11 @@
         public string QueryText { get; set; } = "";
         public List<object> QueryParameters { get; init; } = new();
         
-        private Database.Database? _database;
         internal Database.Database? QueryDatabase
         {
             get
             {
-                if (_database != null)
-                    return _database;
-                else
-                    return Session.Database;
+                return Session.Database;
             }
         }
 
