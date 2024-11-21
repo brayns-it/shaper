@@ -340,8 +340,9 @@ namespace Brayns.Shaper.Objects
             AcceptChanges();
         }
 
-        public bool FindFirst()
+        public bool FindFirst(bool lockOnce = false)
         {
+            _lockOnce = lockOnce;
             _dataset = TableDatabase!.FindFirst(this);
             _currentRow = -1;
             if (_dataset!.Count > 0)
