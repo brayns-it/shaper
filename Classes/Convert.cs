@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -25,6 +26,14 @@ namespace Brayns.Shaper.Classes
                     sqlname += '_';
             }
             return sqlname;
+        }
+
+        public static string Format(decimal val)
+        {
+            NumberFormatInfo nfi = new();
+            nfi.NumberDecimalSeparator = ".";
+            nfi.NumberGroupSeparator = "";
+            return val.ToString("G29", nfi);
         }
 
         public static string Format(TimeSpan ts, int? stepCount = null)

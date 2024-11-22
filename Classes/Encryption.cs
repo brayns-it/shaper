@@ -28,6 +28,19 @@ namespace Brayns.Shaper.Classes
             return ret;
         }
 
+        /// <summary>
+        /// Returns HEX string of MD5 hash of value
+        /// </summary>
+        public static string HashMD5(string value)
+        {
+            var sha = MD5.Create();
+            var shaKey = sha.ComputeHash(Encoding.UTF8.GetBytes(value));
+            var ret = "";
+            foreach (byte b in shaKey)
+                ret += b.ToString("X2");
+            return ret;
+        }
+
         public static string EncryptString(string value)
         {
             return EncryptString(value, Application.Config.GetEncryptionKey());
