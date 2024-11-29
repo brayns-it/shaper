@@ -101,6 +101,13 @@
                 try
                 {
                     Rollback();
+                }
+                catch
+                {
+                }
+
+                try
+                {
                     Error?.Invoke(this, ex);
                     Commit();
                 }
