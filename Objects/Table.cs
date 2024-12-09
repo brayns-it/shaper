@@ -103,7 +103,7 @@ namespace Brayns.Shaper.Objects
             AcceptChanges();
         }
 
-        internal DbRow GetDataset()
+        public DbRow GetDataset()
         {
             return _dataset![_currentRow];
         }
@@ -219,7 +219,7 @@ namespace Brayns.Shaper.Objects
             }
         }
 
-        internal void SetSelection(DbTable dataset)
+        public void SetSelection(DbTable dataset)
         {
             _selection = true;
             _dataset = dataset;
