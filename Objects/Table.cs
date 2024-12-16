@@ -141,7 +141,8 @@ namespace Brayns.Shaper.Objects
             }
             else
             {
-                _database = GetMemoryDatabase();
+                if (!_tableIsTemporary)
+                    _database = GetMemoryDatabase();
             }
 
             _tableIsTemporary = true;
