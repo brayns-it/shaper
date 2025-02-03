@@ -73,7 +73,8 @@
 
         private void ShowFields()
         {
-            var v = DatabaseType.Value == Database.DatabaseTypes.SQLSERVER;
+            var v = (DatabaseType.Value == Database.DatabaseTypes.SQLSERVER) ||
+                    (DatabaseType.Value == Database.DatabaseTypes.MYSQL);
             Control("db-server")!.Visible = v;
             Control("db-name")!.Visible = v;
             Control("db-login")!.Visible = v;
@@ -89,6 +90,9 @@
                     break;
                 case Database.DatabaseTypes.SQLITE:
                     DatabaseConnection.Value = Database.SQLite.CreateConnectionString();
+                    break;
+                case Database.DatabaseTypes.MYSQL:
+                    DatabaseConnection.Value = Database.MySQL.CreateConnectionString(DatabaseServer.Value, DatabaseName.Value, "");
                     break;
             }
 

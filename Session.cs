@@ -228,7 +228,8 @@ namespace Brayns.Shaper
                 {
                     lock (_lockSessions)
                     {
-                        ThreadMap.Add(no, new ThreadData());
+                        if (!ThreadMap.ContainsKey(no))
+                            ThreadMap.Add(no, new ThreadData());
                     }
                 }
                 return ThreadMap[no];
@@ -333,7 +334,8 @@ namespace Brayns.Shaper
                 {
                     lock (_lockSessions)
                     {
-                        ThreadMap.Remove(no);
+                        if (ThreadMap.ContainsKey(no))
+                            ThreadMap.Remove(no);
                     }
                 }
             }
@@ -347,6 +349,8 @@ namespace Brayns.Shaper
                     return new SqlServer();
                 case DatabaseTypes.SQLITE:
                     return new SQLite();
+                case DatabaseTypes.MYSQL:
+                    return new MySQL();
             }
 
             return null;

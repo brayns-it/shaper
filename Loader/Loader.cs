@@ -101,9 +101,13 @@ namespace Brayns.Shaper.Loader
             FileInfo fi = new FileInfo(Application.RootPath + "var/config.json");
             if (fi.Exists) fi.Delete();
 
-            StreamWriter sw = new StreamWriter(fi.FullName);
-            sw.Write(Application.Config.ToJson());
-            sw.Close();
+            using (FileStream fs = new FileStream(fi.FullName, FileMode.CreateNew, FileAccess.Write, FileShare.Read))
+            {
+                StreamWriter sw = new StreamWriter(fs);
+                sw.Write(Application.Config.ToJson());
+                sw.Close();
+                fs.Close();
+            }
         }
 
         internal static void LoadConfig()
@@ -115,9 +119,13 @@ namespace Brayns.Shaper.Loader
             {
                 try
                 {
-                    StreamReader sr = new StreamReader(fi.FullName);
-                    Application.Config = Config.FromJson(sr.ReadToEnd());
-                    sr.Close();
+                    using (FileStream fs = new FileStream(fi.FullName, FileMode.Open, FileAccess.Read, FileShare.Read))
+                    {
+                        StreamReader sr = new StreamReader(fs);
+                        Application.Config = Config.FromJson(sr.ReadToEnd());
+                        sr.Close();
+                        fs.Close();
+                    }
 
                     SaveConfig();
                 }

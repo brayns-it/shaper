@@ -17,6 +17,9 @@ namespace Brayns.Shaper.Database
 
         [Label("SQLite")]
         public const int SQLITE = 2;
+
+        [Label("MySQL")]
+        public const int MYSQL = 3;
     }
 
     public enum DatabaseCompileMode
