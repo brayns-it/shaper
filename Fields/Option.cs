@@ -122,5 +122,16 @@ namespace Brayns.Shaper.Fields
             Opt<T> result = value!.ToObject<int>();
             return result;
         }
+
+        public void SetFilter(params Opt<T>[] args)
+        {
+            string filter = "";
+            for (int i = 0; i < args.Length; i++)
+            {
+                if (filter.Length > 0) filter += "|";
+                filter += "{" + i.ToString() + "}";
+            }
+            SetFilter(filter, args);
+        }
     }
 }
