@@ -591,7 +591,7 @@ namespace Brayns.Shaper.Database
             return "@p" + number.ToString();
         }
 
-        protected override void OnFindSetAfterSelect(BaseTable table, ref string sql)
+        protected override void OnFindSetAfterFrom(BaseTable table, ref string sql)
         {
             if (table.TableLock || table._lockOnce)
             {

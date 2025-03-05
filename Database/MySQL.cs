@@ -21,14 +21,15 @@ namespace Brayns.Shaper.Database
 
         internal override void DatabaseInit()
         {
-            DatabaseCollation = Query("SELECT collation_name FROM sys.databases WHERE name = DB_NAME()")[0].Value<string>("collation_name");
+            DatabaseCollation = Query("SELECT DEFAULT_COLLATION_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE " +
+                "SCHEMA_NAME = @p0", Connection!.Database)[0].Value<string>("DEFAULT_COLLATION_NAME");
         }
 
         protected override List<string> GetTables()
         {
             var res = new List<string>();
-            foreach (var row in Query("SELECT o.name FROM sysobjects o WHERE o.xtype = @p0", "U"))
-                res.Add(row.Value<string>("name"));
+            foreach (var row in Query("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = @p0", Connection!.Database))
+                res.Add(row.Value<string>("TABLE_NAME"));
             return res;
         }
 
@@ -41,30 +42,28 @@ namespace Brayns.Shaper.Database
 
         private List<string> GetIndex(BaseTable table, string key)
         {
-            var res = Query(@"SELECT c.name FROM sys.objects o, sys.indexes i, sys.index_columns x, sys.columns c 
-                WHERE (o.name = @p0) AND (o.type = @p1) AND (o.object_id = i.object_id) AND (i.name = @p2) AND
-                (x.object_id = o.object_id) AND (x.index_id = i.index_id) AND (c.object_id = o.object_id) AND
-                (c.column_id = x.column_id) ORDER BY x.key_ordinal",
-                table.TableSqlName, "U", key);
+            var res = Query(@"SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.STATISTICS
+                WHERE TABLE_SCHEMA = @p0 AND TABLE_NAME = @p1 AND INDEX_NAME = @p2
+                ORDER BY SEQ_IN_INDEX",
+                Connection!.Database, table.TableSqlName, key);
 
             var idx = new List<string>();
             foreach (var row in res)
-                idx.Add((string)row["name"]!);
+                idx.Add((string)row["COLUMN_NAME"]!);
 
             return idx;
         }
 
         private List<string> GetPrimaryKey(BaseTable table)
         {
-            var res = Query(@"SELECT c.name FROM sys.objects o, sys.indexes i, sys.index_columns x, sys.columns c 
-                WHERE (o.name = @p0) AND (o.type = @p1) AND (o.object_id = i.object_id) AND (i.is_primary_key = 1) AND
-                (x.object_id = o.object_id) AND (x.index_id = i.index_id) AND (c.object_id = o.object_id) AND
-                (c.column_id = x.column_id) ORDER BY x.key_ordinal",
-                table.TableSqlName, "U");
+            var res = Query(@"SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE 
+                WHERE TABLE_SCHEMA = @p0 AND TABLE_NAME = @p1 AND CONSTRAINT_NAME = 'PRIMARY'
+                ORDER BY ORDINAL_POSITION",
+                Connection!.Database, table.TableSqlName);
 
             var pk = new List<string>();
             foreach (var row in res)
-                pk.Add((string)row["name"]!);
+                pk.Add((string)row["COLUMN_NAME"]!);
 
             return pk;
         }
@@ -76,27 +75,30 @@ namespace Brayns.Shaper.Database
             if ((field.Type == FieldTypes.CODE) || (field.Type == FieldTypes.TEXT))
             {
                 var f = (Fields.Text)field;
-                string collate = (f.Binary) ? " COLLATE Latin1_General_BIN " : " ";
-
-                if (!f.ANSI) res += "n";
+                string collate = (f.Binary) ? " COLLATE utf8mb4_bin " : " ";
 
                 if (f.Length == Fields.Text.MAX_LENGTH)
-                    res += "varchar(max)" + collate + "NOT NULL";
+                    res += "text" + collate + "NOT NULL";
                 else
+                {
+                    if (f.Table!.TablePrimaryKey.Contains(f) && (f.Length > 1024))
+                        f.Length = 1024;
+
                     res += "varchar(" + f.Length.ToString() + ")" + collate + "NOT NULL";
+                }
             }
             else if (field.Type == FieldTypes.INTEGER)
             {
                 var f = (Fields.Integer)field;
                 res += "int";
-                if (f.AutoIncrement) res += " IDENTITY(1,1)";
+                if (f.AutoIncrement) res += " AUTO_INCREMENT PRIMARY KEY";
                 res += " NOT NULL";
             }
             else if (field.Type == FieldTypes.BIGINTEGER)
             {
                 var f = (Fields.BigInteger)field;
                 res += "bigint";
-                if (f.AutoIncrement) res += " IDENTITY(1,1)";
+                if (f.AutoIncrement) res += " AUTO_INCREMENT PRIMARY KEY";
                 res += " NOT NULL";
             }
             else if (field.Type == FieldTypes.DECIMAL)
@@ -117,15 +119,15 @@ namespace Brayns.Shaper.Database
             }
             else if (field.Type == FieldTypes.GUID)
             {
-                res += "uniqueidentifier NOT NULL";
+                res += "varchar(40) NOT NULL";
             }
             else if (field.Type == FieldTypes.BLOB)
             {
-                res += "varbinary(max) NULL";
+                res += "blob NULL";
             }
             else if (field.Type == FieldTypes.TIMESTAMP)
             {
-                res += "timestamp NOT NULL";
+                res += "bigint NOT NULL";
             }
             else
             {
@@ -137,7 +139,7 @@ namespace Brayns.Shaper.Database
 
         public override int GetConnectionId()
         {
-            return Convert.ToInt32(Query("SELECT @@SPID [spid]")[0]["spid"]!);
+            return ((MySqlConnection)Connection!).ServerThread;
         }
 
         private void ProcessIndexes()
@@ -155,8 +157,8 @@ namespace Brayns.Shaper.Database
 
                 if (newIdx.Length > 0)
                 {
-                    var sql = "CREATE INDEX [" + k + "] ON " +
-                        "[" + CompilingTable!.TableSqlName + "] (" +
+                    var sql = "CREATE INDEX `" + k + "` ON " +
+                        "`" + CompilingTable!.TableSqlName + "` (" +
                         ListFields(CompilingTable!.TableIndexes[k]) +
                         ")";
 
@@ -178,9 +180,8 @@ namespace Brayns.Shaper.Database
 
             if (newPk.Length > 0)
             {
-                var sql = "ALTER TABLE [" + CompilingTable!.TableSqlName + "] " +
-                    "ADD CONSTRAINT [" + CompilingTable!.TableSqlName + "$PK] " +
-                    "PRIMARY KEY (" +
+                var sql = "ALTER TABLE `" + CompilingTable!.TableSqlName + "` " +
+                    "ADD PRIMARY KEY (" +
                     ListFields(CompilingTable!.TablePrimaryKey) +
                     ")";
 
@@ -199,22 +200,21 @@ namespace Brayns.Shaper.Database
 
             foreach (var row in res)
             {
-                var sql = "DROP INDEX [" + row["name"] + "] ON [" + CompilingTable!.TableSqlName + "]";
+                var sql = "DROP INDEX `" + row["name"] + "` ON `" + CompilingTable!.TableSqlName + "`";
                 CompileExec(sql, false);
             }
         }
 
         private void DropIndex(string key)
         {
-            var res = Query(@"SELECT i.[name] FROM sys.objects o, sys.indexes i
-                WHERE (o.name = @p0) AND (o.type = @p1) AND (o.object_id = i.object_id) AND
-                (i.name = @p2)",
-                CompilingTable!.TableSqlName, "U", key);
+            var res = Query(@"SELECT INDEX_NAME FROM INFORMATION_SCHEMA.STATISTICS WHERE 
+                TABLE_SCHEMA = @p0 AND TABLE_NAME = @p1 AND INDEX_NAME = @p2",
+                Connection!.Database, CompilingTable!.TableSqlName, key);
 
             if (res.Count == 0)
                 return;
 
-            var sql = "DROP INDEX [" + res[0]["name"] + "] ON [" + CompilingTable!.TableSqlName + "]";
+            var sql = "DROP INDEX `" + res[0]["INDEX_NAME"] + "` ON `" + CompilingTable!.TableSqlName + "`";
             CompileExec(sql, false);
         }
 
@@ -236,16 +236,14 @@ namespace Brayns.Shaper.Database
 
         private void ProcessTable()
         {
-            if (Query("SELECT TOP 1 NULL FROM sysobjects WHERE (xtype = @p0) AND (name = @p1)",
-                "U", CompilingTable!.TableSqlName).Count > 0)
+            if (Query("SELECT NULL FROM INFORMATION_SCHEMA.TABLES WHERE (TABLE_SCHEMA = @p0) AND (TABLE_NAME = @p1)",
+                Connection!.Database, CompilingTable!.TableSqlName).Count > 0)
             {
-                var res = Query(@"SELECT c.is_identity, c.max_length, t.name AS typename, c.precision, c.scale, 
-                    c.name, c.is_nullable, c.collation_name 
-                    FROM sys.objects o, sys.columns c, sys.types t
-                    WHERE (o.name = @p0) AND (o.type = @p1) AND (c.object_id = o.object_id) AND 
-                    (c.system_type_id = t.system_type_id) AND (c.user_type_id = t.user_type_id)",
-                    CompilingTable!.TableSqlName,
-                    "U");
+                var res = Query(@"SELECT EXTRA, CHARACTER_MAXIMUM_LENGTH, DATA_TYPE, NUMERIC_PRECISION, NUMERIC_SCALE, 
+                    COLUMN_NAME, IS_NULLABLE, COLLATION_NAME 
+                    FROM INFORMATION_SCHEMA.COLUMNS
+                    WHERE (TABLE_SCHEMA = @p0) AND (TABLE_NAME = @p1)",
+                    Connection!.Database, CompilingTable!.TableSqlName);
 
                 var toDelete = new List<string>();
                 var toAdd = new List<Fields.BaseField>();
@@ -258,29 +256,26 @@ namespace Brayns.Shaper.Database
 
                     foreach (var row in res)
                     {
-                        if ((string)row["name"]! == field.SqlName)
+                        if ((string)row["COLUMN_NAME"]! == field.SqlName)
                         {
                             var newDef = GetFieldType(field);
 
-                            var curDef = (string)row["typename"]!;
+                            var curDef = (string)row["DATA_TYPE"]!;
 
-                            if (((string)row["typename"]! == "nvarchar") || ((string)row["typename"]! == "varchar"))
-                                if (Convert.ToInt32(row["max_length"]) == -1)
-                                    curDef += "(max)";
-                                else
-                                    curDef += "(" + (Convert.ToInt32(row["max_length"]) / 2).ToString() + ")";
+                            if ((string)row["DATA_TYPE"]! == "varchar")
+                                curDef += "(" + row["CHARACTER_MAXIMUM_LENGTH"].ToString() + ")";
 
-                            else if ((string)row["typename"]! == "decimal")
-                                curDef += "(" + Convert.ToInt32(row["precision"]).ToString() + "," + Convert.ToInt32(row["scale"]).ToString() + ")";
+                            else if ((string)row["DATA_TYPE"]! == "decimal")
+                                curDef += "(" + Convert.ToInt32(row["NUMERIC_PRECISION"]).ToString() + "," + Convert.ToInt32(row["NUMERIC_SCALE"]).ToString() + ")";
 
-                            var collate = row.Value<string>("collation_name");
+                            var collate = row.Value<string>("COLLATION_NAME");
                             if ((collate.Length > 0) && (collate != DatabaseCollation))
                                 curDef += " COLLATE " + collate;
 
-                            if (Convert.ToInt32(row["is_identity"]) == 1)
-                                curDef += " IDENTITY(1,1)";
+                            if (row["EXTRA"].ToString()!.Contains("AUTO_INCREMENT", StringComparison.OrdinalIgnoreCase))
+                                curDef += " AUTO_INCREMENT PRIMARY KEY";
 
-                            if (Convert.ToInt32(row["is_nullable"]) == 0)
+                            if (row["IS_NULLABLE"].ToString()!.Equals("NO", StringComparison.OrdinalIgnoreCase))
                                 curDef += " NOT NULL";
                             else
                                 curDef += " NULL";
@@ -290,7 +285,7 @@ namespace Brayns.Shaper.Database
                                 if ((field.Type == FieldTypes.TEXT) || (field.Type == FieldTypes.CODE))
                                 {
                                     var f = (Fields.Text)field;
-                                    if ((f.Length == Fields.Text.MAX_LENGTH) || (f.Length > (Convert.ToInt32(row["max_length"]) / 2)))
+                                    if ((f.Length == Fields.Text.MAX_LENGTH) || (f.Length > (Convert.ToInt32(row["CHARACTER_MAXIMUM_LENGTH"]))))
                                         toChange.Add(field);
                                     else
                                     {
@@ -320,7 +315,7 @@ namespace Brayns.Shaper.Database
 
                     foreach (var field in CompilingTable!.UnitFields)
                     {
-                        if ((string)row["name"]! == field.SqlName)
+                        if ((string)row["COLUMN_NAME"]! == field.SqlName)
                         {
                             ok = true;
                             break;
@@ -328,29 +323,26 @@ namespace Brayns.Shaper.Database
                     }
 
                     if (!ok)
-                        toDelete.Add((string)row["name"]!);
+                        toDelete.Add((string)row["COLUMN_NAME"]!);
                 }
 
-                if (toDelete.Count > 0)
+                foreach (string fn in toDelete)
                 {
-                    foreach (string fn in toDelete)
-                    {
-                        if (curPk.Contains(fn))
-                            DropPrimaryKey();
+                    if (curPk.Contains(fn))
+                        DropPrimaryKey();
 
-                        DropIndexByColumn(fn);
+                    DropIndexByColumn(fn);
 
-                        var sql = "ALTER TABLE [" + CompilingTable.TableSqlName + "] " +
-                            "DROP COLUMN [" + fn + "]";
+                    var sql = "ALTER TABLE `" + CompilingTable.TableSqlName + "` " +
+                        "DROP COLUMN `" + fn + "`";
 
-                        CompileExec(sql, true);
-                    }
+                    CompileExec(sql, true);
                 }
 
                 foreach (BaseField field in toAdd)
                 {
-                    var sql = "ALTER TABLE [" + CompilingTable!.TableSqlName + "] ADD " +
-                        "[" + field.SqlName + "] " + GetFieldType(field);
+                    var sql = "ALTER TABLE `" + CompilingTable!.TableSqlName + "` ADD " +
+                        "`" + field.SqlName + "` " + GetFieldType(field);
 
                     bool hasDefault = true;
                     if (field.Type == FieldTypes.BLOB)
@@ -361,7 +353,7 @@ namespace Brayns.Shaper.Database
 
                     if (hasDefault)
                     {
-                        sql += " CONSTRAINT [" + field.SqlName + "$DEF] DEFAULT ";
+                        sql += " DEFAULT ";
 
                         if ((field.Type == FieldTypes.CODE) || (field.Type == FieldTypes.TEXT))
                             sql += "''";
@@ -383,8 +375,8 @@ namespace Brayns.Shaper.Database
 
                     if (hasDefault)
                     {
-                        sql = "ALTER TABLE [" + CompilingTable!.TableSqlName + "] " +
-                            "DROP CONSTRAINT [" + field.SqlName + "$DEF]";
+                        sql = "ALTER TABLE `" + CompilingTable!.TableSqlName + "` " +
+                            "ALTER `" + field.SqlName + "` DROP DEFAULT";
 
                         CompileExec(sql, false);
                     }
@@ -395,8 +387,8 @@ namespace Brayns.Shaper.Database
                     if (curPk.Contains(field.SqlName))
                         DropPrimaryKey();
 
-                    var sql = "ALTER TABLE [" + CompilingTable!.TableSqlName + "] " +
-                        "ALTER COLUMN [" + field.SqlName + "] " +
+                    var sql = "ALTER TABLE `" + CompilingTable!.TableSqlName + "` " +
+                        "CHANGE COLUMN `" + field.SqlName + "` `" + field.SqlName + "`" +
                         GetFieldType(field);
 
                     CompileExec(sql, false);
@@ -404,14 +396,14 @@ namespace Brayns.Shaper.Database
             }
             else
             {
-                var sql = "CREATE TABLE [" + CompilingTable!.TableSqlName + "] (";
+                var sql = "CREATE TABLE `" + CompilingTable!.TableSqlName + "` (";
 
                 bool comma = false;
                 foreach (BaseField field in CompilingTable!.UnitFields)
                 {
                     if (comma) sql += ", ";
                     comma = true;
-                    sql += "[" + field.SqlName + "] " + GetFieldType(field);
+                    sql += "`" + field.SqlName + "` " + GetFieldType(field);
                 }
                 sql += ")";
 
@@ -419,11 +411,9 @@ namespace Brayns.Shaper.Database
             }
         }
 
-        public static string CreateConnectionString(string server, string database, string envName)
+        public static string CreateConnectionString(string server, string database)
         {
-            return "Data Source=" + server + ";Initial Catalog=" + database +
-                ";Application Name=" + envName +
-                ";Trust Server Certificate=true";
+            return "Server=" + server + ";Database=" + database;
         }
 
         internal override string GetConnectionString()
@@ -431,18 +421,9 @@ namespace Brayns.Shaper.Database
             string dsn = Application.Config.DatabaseConnection;
             if (!dsn.EndsWith("; ")) dsn += ";";
 
-            if (Application.Config.DatabaseLogin.Length > 0)
-            {
-                dsn += "User ID=" + Application.Config.DatabaseLogin + ";";
-                if (Application.Config.DatabasePassword.Length > 0)
-                    dsn += "Password=" + Application.Config.DatabasePassword + ";";
-            }
-            else
-            {
-                dsn += "Integrated Security=true;";
-            }
-
-            dsn += "MultipleActiveResultSets=True;";
+            dsn += "UID=" + Application.Config.DatabaseLogin + ";";
+            if (Application.Config.DatabasePassword.Length > 0)
+                dsn += "PWD=" + Application.Config.DatabasePassword + ";";
 
             return dsn;
         }
@@ -469,7 +450,7 @@ namespace Brayns.Shaper.Database
         protected override object? FromSqlValue(BaseField f, object value)
         {
             if (f.Type == FieldTypes.TIMESTAMP)
-                return TimestampToLong((byte[])value!);
+                return value;
 
             if ((f.Type == FieldTypes.CODE) || (f.Type == FieldTypes.TEXT))
                 return value;
@@ -481,7 +462,7 @@ namespace Brayns.Shaper.Database
                 return value;
 
             if (f.Type == FieldTypes.GUID)
-                return value;
+                return System.Guid.Parse(value.ToString()!);
 
             if (f.Type == FieldTypes.OPTION)
                 return value;
@@ -525,7 +506,7 @@ namespace Brayns.Shaper.Database
         protected override object ToSqlValue(BaseField f, object? value)
         {
             if (f.Type == FieldTypes.TIMESTAMP)
-                return LongToTimestamp((long)value!);
+                return value!;
 
             if ((f.Type == FieldTypes.CODE) || (f.Type == FieldTypes.TEXT))
                 return value!;
@@ -537,7 +518,7 @@ namespace Brayns.Shaper.Database
                 return value!;
 
             if (f.Type == FieldTypes.GUID)
-                return value!;
+                return value!.ToString()!;
 
             if (f.Type == FieldTypes.OPTION)
                 if (value!.GetType() == typeof(int))
@@ -583,7 +564,7 @@ namespace Brayns.Shaper.Database
 
         protected override string QuoteIdentifier(string name)
         {
-            return "[" + name + "]";
+            return "`" + name + "`";
         }
 
         protected override string GetParameterName(int number)
@@ -596,7 +577,7 @@ namespace Brayns.Shaper.Database
             if (table.TableLock || table._lockOnce)
             {
                 table._lockOnce = false;
-                sql += " WITH (UPDLOCK)";
+                sql += " FOR UPDATE";
             }
         }
 
@@ -612,55 +593,32 @@ namespace Brayns.Shaper.Database
 
         protected override void OnInsertGetLastIdentity(BaseTable table, BaseField identity)
         {
-            identity.Value = Query("SELECT @@IDENTITY AS [id]")[0]["id"];
-        }
-
-        protected override void SetVersionAfterExecute(BaseTable table)
-        {
-            table.TableVersion.Value = Query("SELECT CAST(@@DBTS AS bigint) [dbts]")[0].Value<long>("dbts");
+            identity.Value = Query("SELECT LAST_INSERT_ID() AS `id`")[0]["id"];
         }
 
         protected override string GetTop(int limitRows)
         {
-            return "TOP " + limitRows.ToString();
+            return "";
         }
 
         protected override string GetLimit(int limitRows)
         {
-            return "";
+            return "LIMIT " + limitRows.ToString();
 
             // FUTURE depends on SQL version
             // return "OFFSET 0 ROWS FETCH FIRST " + limitRows.ToString() + " ROWS ONLY";
         }
 
-        private byte[] LongToTimestamp(long val)
+        protected override bool OnInsertTimestamp(BaseTable table, Timestamp timestamp)
         {
-            byte[] res = new byte[8];
-            res[7] = Convert.ToByte(val & 0xFF);
-            res[6] = Convert.ToByte((val >> 8) & 0xFF);
-            res[5] = Convert.ToByte((val >> 16) & 0xFF);
-            res[4] = Convert.ToByte((val >> 24) & 0xFF);
-            res[3] = Convert.ToByte((val >> 32) & 0xFF);
-            res[2] = Convert.ToByte((val >> 40) & 0xFF);
-            res[1] = Convert.ToByte((val >> 48) & 0xFF);
-            res[0] = Convert.ToByte((val >> 56) & 0xFF);
-            return res;
+            timestamp.Value = 1;
+            return true;
         }
 
-        private long TimestampToLong(byte[] buf)
+        protected override bool OnModifyTimestamp(BaseTable table, Timestamp timestamp)
         {
-            long res = buf[7] +
-                       (buf[6] << 8) +
-                       (buf[5] << 16) +
-                       (buf[4] << 24) +
-                       (buf[3] << 32) +
-                       (buf[2] << 40) +
-                       (buf[1] << 48) +
-                       (buf[0] << 56);
-
-            return res;
+            timestamp.Value += 1;
+            return true;
         }
-
-
     }
 }

@@ -92,7 +92,7 @@
                     DatabaseConnection.Value = Database.SQLite.CreateConnectionString();
                     break;
                 case Database.DatabaseTypes.MYSQL:
-                    DatabaseConnection.Value = Database.MySQL.CreateConnectionString(DatabaseServer.Value, DatabaseName.Value, "");
+                    DatabaseConnection.Value = Database.MySQL.CreateConnectionString(DatabaseServer.Value, DatabaseName.Value);
                     break;
             }
 

@@ -611,6 +611,10 @@ namespace Brayns.Shaper.Database
             return res;
         }
 
+        protected virtual void OnFindSetAfterFrom(BaseTable table, ref string sql)
+        {
+        }
+
         protected virtual void OnFindSetAfterSelect(BaseTable table, ref string sql)
         {
         }
@@ -630,7 +634,7 @@ namespace Brayns.Shaper.Database
             if (pkValues == null)
                 sql += GetTop(limitRows ?? DatasetSize);
             sql += " " + ListFields(table.UnitFields) + " FROM " + QuoteIdentifier(table.TableSqlName);
-            OnFindSetAfterSelect(table, ref sql);
+            OnFindSetAfterFrom(table, ref sql);
 
             var where = new List<string>();
             if (pkValues != null)
@@ -697,6 +701,8 @@ namespace Brayns.Shaper.Database
 
                 sql += " " + GetLimit(limitRows ?? DatasetSize);
             }
+
+            OnFindSetAfterSelect(table, ref sql);
 
             var result = Query(sql, pars.ToArray());
             if (reverseSort) result.Reverse();

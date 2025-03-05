@@ -45,7 +45,7 @@ namespace Brayns.Shaper.Systems
 
                 if (CurrentSession.UserId.Length == 0)
                 {
-                    if ((accAttr != null) && accAttr.IsLogin)
+                    if ((pageType != null) && (((accAttr != null) && accAttr.IsLogin) || (pageType!.GetCustomAttributes(typeof(PublicAccess), true).Length > 0)))
                     {
                         var bp = Activator.CreateInstance(pageType!) as BasePage;
                         bp!.Run();
