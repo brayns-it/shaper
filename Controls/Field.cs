@@ -147,6 +147,9 @@ namespace Brayns.Shaper.Controls
 
         internal void Validate(object? value, bool parseValue = true)
         {
+            if (ReadOnly)
+                throw new Error(Label("Field is readonly"));
+
             if (parseValue)
                 SourceField.Evaluate(value!.ToString()!, out value);
 

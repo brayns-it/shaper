@@ -98,6 +98,9 @@
 
         private void ActDelete_Triggering()
         {
+            if (!AllowDelete)
+                throw new Error(Label("Delete not allowed"));
+
             if (MultipleRows && (Selection.Count == 0)) return;
 
             string lbl;
@@ -693,6 +696,9 @@
                 {
                     if ((isKey && lastKey) || (!isKey))
                     {
+                        if (!AllowInsert)
+                            throw new Error(Label("Insert not allowed"));
+
                         HandleAutoIncrementKey();
                         Rec.Insert(true);
                         Inserting?.Invoke();
@@ -702,6 +708,9 @@
                 }
                 else
                 {
+                    if (!AllowModify)
+                        throw new Error(Label("Modify not allowed"));
+
                     if (isKey)
                     {
                         Rec.Rename();

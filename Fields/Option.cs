@@ -123,6 +123,12 @@ namespace Brayns.Shaper.Fields
             return result;
         }
 
+        public void Test(Opt<T> valueToTest)
+        {
+            if (!Functions.AreEquals(Value, valueToTest))
+                throw new Error(Label("Field {0} must be equal to {1}", Caption, valueToTest.Caption));
+        }
+
         public void SetFilter(params Opt<T>[] args)
         {
             string filter = "";

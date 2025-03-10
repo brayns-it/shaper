@@ -191,12 +191,9 @@ namespace Brayns.Shaper.Database
 
         private void DropIndexByColumn(string colName)
         {
-            var res = Query(@"SELECT i.name FROM sys.objects o, sys.indexes i, sys.index_columns x, sys.columns c 
-                WHERE (o.name = @p0) AND (o.type = @p1) AND (o.object_id = i.object_id) AND (i.is_primary_key = 0) AND
-                (c.name = @p2) AND
-                (x.object_id = o.object_id) AND (x.index_id = i.index_id) AND (c.object_id = o.object_id) AND
-                (c.column_id = x.column_id) ORDER BY x.key_ordinal",
-                CompilingTable!.TableSqlName, "U", colName);
+            var res = Query(@"SELECT INDEX_NAME FROM INFORMATION_SCHEMA.STATISTICS WHERE 
+                TABLE_SCHEMA = @p0 AND TABLE_NAME = @p1 AND COLUMN_NAME = @p2",
+                Connection!.Database, CompilingTable!.TableSqlName, colName);
 
             foreach (var row in res)
             {
@@ -220,17 +217,14 @@ namespace Brayns.Shaper.Database
 
         private void DropPrimaryKey()
         {
-            var res = Query(@"SELECT i.[name] FROM sys.objects o, sys.indexes i
-                WHERE (o.name = @p0) AND (o.type = @p1) AND (o.object_id = i.object_id) AND
-                (i.is_primary_key = 1)",
-                CompilingTable!.TableSqlName, "U");
+            var res = Query(@"SELECT CONSTRAINT_NAME FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE 
+                WHERE TABLE_SCHEMA = @p0 AND TABLE_NAME = @p1 AND CONSTRAINT_NAME = 'PRIMARY'",
+                Connection!.Database, CompilingTable!.TableSqlName);
 
             if (res.Count == 0)
                 return;
 
-            var sql = "ALTER TABLE [" + CompilingTable!.TableSqlName + "] " +
-                "DROP CONSTRAINT [" + res[0]["name"] + "]";
-
+            var sql = "ALTER TABLE `" + CompilingTable!.TableSqlName + "` DROP PRIMARY KEY";
             CompileExec(sql, false);
         }
 

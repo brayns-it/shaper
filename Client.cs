@@ -92,23 +92,30 @@ namespace Brayns.Shaper
             SendMessage(jo);
         }
 
-        public static void Navigate(string url)
+        public static void Navigate(string url, bool newTarget = true)
         {
             var jo = new JObject();
             jo["action"] = "navigate";
+            jo["newTarget"] = newTarget;
             jo["url"] = url;
             SendMessage(jo);
         }
 
+        public static void Download(FileInfo file, string mimeType = "application/other", string fileName = "")
+        {
+            using (FileStream fs = new(file.FullName, FileMode.Open, FileAccess.Read, FileShare.Read))
+            {
+                byte[] buf = new byte[fs.Length];
+                fs.Read(buf);
+                fs.Close();
+
+                Download(buf, mimeType, fileName);
+            }
+        }
+
         public static void Download(byte[] content, string mimeType="application/other", string fileName = "")
         {
-            var jo = new JObject();
-            jo["action"] = "download";
-            jo["mimeType"] = mimeType;
-            jo["b64content"] = Convert.ToBase64String(content);
-            if (fileName.Length > 0)
-                jo["fileName"] = fileName;
-            SendMessage(jo);
+            Download(Convert.ToBase64String(content), mimeType, fileName);
         }
 
         public static void Download(string b64Content, string mimeType = "application/other", string fileName = "")
