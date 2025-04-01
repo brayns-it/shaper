@@ -51,9 +51,9 @@ namespace Brayns.Shaper.Loader
             _met = met;
             _par = par;
 
-            var rm = _met.GetCustomAttribute<ApiMethod>(true);
-            if (rm != null)
-                _bodyParam = rm.BodyParam;
+            foreach (var rm in _met.GetCustomAttributes<ApiMethod>(true))
+                if (rm.BodyParam.Length > 0)
+                    _bodyParam = rm.BodyParam;
         }
 
         public static Proxy CreateFromName(string fullName, params object?[]? args)
