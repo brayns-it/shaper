@@ -210,6 +210,21 @@
             }
         }
 
+        internal JObject GetSchemaNames()
+        {
+            var result = new JObject();
+            int i = 0;
+            foreach (var field in DataFields)
+            {
+                if (result.ContainsKey(field.CodeName))
+                    throw new Error(Label("Field {0} already added to dataset", field.CodeName));
+
+                result[field.CodeName] = i;
+                i++;
+            }
+            return result;
+        }
+
         internal JArray GetSchema()
         {
             var result = new JArray();
@@ -435,6 +450,7 @@
             result["controls"] = controls;
 
             result["schema"] = GetSchema();
+            result["schemaNames"] = GetSchemaNames();
 
             Client.SendMessage(result);
         }
