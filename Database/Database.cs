@@ -26,7 +26,8 @@ namespace Brayns.Shaper.Database
     {
         Normal,
         Force,
-        CheckOnly
+        CheckOnly,
+        Debug
     }
 
     public class DbRow : Dictionary<string, object>
@@ -117,6 +118,10 @@ namespace Brayns.Shaper.Database
                 case DatabaseCompileMode.CheckOnly:
                     if (disruptive)
                         CompileResult.Add(sql);
+                    break;
+
+                case DatabaseCompileMode.Debug:
+                    Application.Log("dbcomp", "I", sql);
                     break;
             }
 

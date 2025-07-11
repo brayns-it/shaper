@@ -7,6 +7,7 @@ using System.Reflection;
 using System.Runtime.Loader;
 using System.Diagnostics;
 using System.Xml;
+using Microsoft.AspNetCore.Hosting;
 
 namespace Brayns.Shaper
 {
@@ -205,7 +206,10 @@ namespace Brayns.Shaper
                 Session.DatabaseConnect();
 
                 Loader.Loader.InitializeApps();
-                Loader.Loader.CompileTables(Database.DatabaseCompileMode.Normal);
+                if (Config.DatabaseCompileDebug)
+                    Loader.Loader.CompileTables(Database.DatabaseCompileMode.Debug);
+                else
+                    Loader.Loader.CompileTables(Database.DatabaseCompileMode.Normal);
                 Loader.Loader.CollectTableRelations();
                 Loader.Loader.CollectEndpoints();
                 Loader.Loader.InstallApps();
@@ -244,6 +248,8 @@ namespace Brayns.Shaper
 
         public static void InitializeShaper(this WebApplicationBuilder builder)
         {
+            // shutdown?
+
             try
             {
                 InitializeFromWebRoot(builder.Environment.ContentRootPath);
@@ -364,6 +370,10 @@ namespace Brayns.Shaper
                 line += " -";
 
             line += ' ' + message;
+
+#if DEBUG
+            Console.WriteLine(line);
+#endif
 
             lock (_lockLog)
             {

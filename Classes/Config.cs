@@ -19,6 +19,7 @@ namespace Brayns.Shaper.Classes
         public string EnvironmentName { get; set; } = "Production";
         public string MaintenanceNetwork { get; set; } = "";
         public string EncryptionKey { get; set; } = "";
+        public bool DatabaseCompileDebug { get; set; } = false;
 
         public string GetEncryptionKey()
         {
