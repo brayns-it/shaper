@@ -8,6 +8,7 @@ using System.Runtime.Loader;
 using System.Diagnostics;
 using System.Xml;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Brayns.Shaper
 {
@@ -248,8 +249,6 @@ namespace Brayns.Shaper
 
         public static void InitializeShaper(this WebApplicationBuilder builder)
         {
-            // shutdown?
-
             try
             {
                 InitializeFromWebRoot(builder.Environment.ContentRootPath);
