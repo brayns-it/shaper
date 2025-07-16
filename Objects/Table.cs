@@ -125,7 +125,7 @@ namespace Brayns.Shaper.Objects
             return db;
         }
 
-        internal void Connect(Database.Database db)
+        public void Connect(Database.Database db)
         {
             _database = db;
         }

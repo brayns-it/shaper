@@ -19,7 +19,7 @@ namespace Brayns.Shaper.Database
     {
         private string DatabaseCollation { get; set; } = "";
 
-        internal override void DatabaseInit()
+        public override void DatabaseInit()
         {
             DatabaseCollation = Query("SELECT collation_name FROM sys.databases WHERE name = DB_NAME()")[0].Value<string>("collation_name");
         }

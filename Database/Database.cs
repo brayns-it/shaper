@@ -50,21 +50,22 @@ namespace Brayns.Shaper.Database
 
     public abstract class Database
     {
-        protected string Dsn { get; set; } = "";
-        protected DbConnection? Connection { get; set; }
         protected DbTransaction? Transaction { get; set; }
         protected BaseTable? CompilingTable { get; set; }
         protected abstract object? FromSqlValue(Fields.BaseField f, object value);
         protected abstract object ToSqlValue(Fields.BaseField f, object? value);
         protected abstract List<string> GetTables();
-        protected abstract void CompileTable(BaseTable table);
         protected abstract string QuoteIdentifier(string name);
         protected abstract string GetParameterName(int number);
+        protected abstract void CompileTable(BaseTable table);
         protected abstract DbCommand CreateCommand(string sql, params object[] args);
         protected abstract string GetLimit(int limitRows);
         protected abstract string GetTop(int limitRows);
         protected abstract DbConnection GetConnection();
 
+        public DbConnection? Connection { get; protected set; }
+        public string Dsn { get; protected set; } = "";
+        
         internal int DatasetSize { get; set; } = 50;
         internal DatabaseCompileMode CompileMode { get; set; } = DatabaseCompileMode.Normal;
         internal List<string> CompileResult { get; init; } = new();
@@ -74,7 +75,7 @@ namespace Brayns.Shaper.Database
 
         public abstract int GetConnectionId();
 
-        internal virtual void DatabaseInit()
+        public virtual void DatabaseInit()
         {
         }
 
@@ -89,7 +90,7 @@ namespace Brayns.Shaper.Database
                     Application.Log("database", "I", Label("Foreign table '{0}' found", tab));
         }
 
-        internal void Compile(BaseTable table)
+        public void Compile(BaseTable table)
         {
             if (table.TablePrimaryKey.Count == 0)
                 throw table.ErrorNoPrimaryKey();
@@ -168,7 +169,7 @@ namespace Brayns.Shaper.Database
                 return cmd.ExecuteNonQuery();
         }
 
-        internal void Commit()
+        public void Commit()
         {
             if (Transaction != null)
             {
@@ -177,7 +178,7 @@ namespace Brayns.Shaper.Database
             }
         }
 
-        internal void Rollback()
+        public void Rollback()
         {
             try
             {
@@ -229,7 +230,7 @@ namespace Brayns.Shaper.Database
             return res;
         }
 
-        internal void Connect(string dsn)
+        public void Connect(string dsn)
         {
             if (Connection != null)
                 return;

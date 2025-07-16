@@ -19,7 +19,7 @@ namespace Brayns.Shaper.Database
     {
         private string DatabaseCollation { get; set; } = "";
 
-        internal override void DatabaseInit()
+        public override void DatabaseInit()
         {
             DatabaseCollation = Query("SELECT DEFAULT_COLLATION_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE " +
                 "SCHEMA_NAME = @p0", Connection!.Database)[0].Value<string>("DEFAULT_COLLATION_NAME");
