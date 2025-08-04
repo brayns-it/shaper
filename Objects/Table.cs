@@ -15,7 +15,7 @@ namespace Brayns.Shaper.Objects
         internal bool _lockOnce = false;
 
         internal Database.Database? _database;
-        internal Database.Database? TableDatabase
+        public Database.Database? TableDatabase
         {
             get
             {
