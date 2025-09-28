@@ -79,7 +79,7 @@ namespace Brayns.Shaper.Loader
             foreach (var r in Application.RawRoutes.Keys)
             {
                 Dictionary<string, string> parts = new();
-                if (r.Method.HasFlag((Enum)session.RequestMethod) && (routeName == r.RouteName) && RouteIsMatch(route, r.Route, parts))
+                if (r.Method.HasFlag((Enum)session.RequestMethod) && (routeName.StartsWith(r.RouteName)) && RouteIsMatch(route, r.Route, parts))
                     if (!routes.ContainsKey(Application.RawRoutes[r]))
                         routes.Add(Application.RawRoutes[r], parts);
             }
