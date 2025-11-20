@@ -103,6 +103,12 @@ namespace Brayns.Shaper.Database
             CompileTable(table);
         }
 
+        public void ClearCompiler()
+        {
+            CompilingTable = null;
+            CompiledTables.Clear();
+        }
+
         protected int CompileExec(string sql, bool disruptive, params object[] args)
         {
             switch (CompileMode)

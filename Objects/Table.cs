@@ -122,6 +122,8 @@ namespace Brayns.Shaper.Objects
 
             this.TableSqlName = tableSqlName ?? System.Guid.NewGuid().ToString("n");
             db.Compile(this);
+            db.ClearCompiler();
+
             return db;
         }
 
