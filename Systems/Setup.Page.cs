@@ -10,6 +10,7 @@
         private Fields.Text DatabaseServer { get; } = new(Label("Database server"));
         private Fields.Text EnvironmentName { get; } = new(Label("Environment name"));
         private Fields.Text MaintenanceNetwork { get; } = new(Label("Maintenance network"));
+        private Fields.Text ProxyNetwork { get; } = new(Label("Proxy network"));
         private Fields.Text EncryptionKey { get; } = new(Label("Encryption key"));
 
         public Setup()
@@ -24,6 +25,7 @@
                     dbPar.Validating += DbPar_Validating;
 
                     new Controls.Field(general, MaintenanceNetwork);
+                    new Controls.Field(general, ProxyNetwork);
                     new Controls.Field(general, EncryptionKey) { InputType = Controls.InputType.Password };
                 }
 
@@ -63,6 +65,7 @@
             DatabaseServer.Value = Application.Config.DatabaseServer;
             EnvironmentName.Value = Application.Config.EnvironmentName;
             MaintenanceNetwork.Value = Application.Config.MaintenanceNetwork;
+            ProxyNetwork.Value = Application.Config.ProxyNetwork;
             EncryptionKey.Value = Application.Config.EncryptionKey;
 
             if (CurrentSession.ApplicationName.Length == 0)
@@ -110,6 +113,7 @@
             Application.Config.DatabaseName = DatabaseName.Value;
             Application.Config.DatabaseServer = DatabaseServer.Value;
             Application.Config.MaintenanceNetwork = MaintenanceNetwork.Value;
+            Application.Config.ProxyNetwork = ProxyNetwork.Value;
             Application.Config.EncryptionKey = EncryptionKey.Value;
 
             if (DatabaseType.Value != Database.DatabaseTypes.NONE)

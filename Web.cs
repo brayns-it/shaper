@@ -256,11 +256,38 @@ namespace Brayns.Shaper
             }
         }
 
+        private static string GetRealIP(HttpContext ctx)
+        {
+            var connIP = ctx.Connection.RemoteIpAddress!.ToString();
+            
+            if ((Application.IsFromProxyNetwork(connIP)) && (ctx.Request.Headers.ContainsKey("X-Forwarded-For")))
+            {
+                var fwds = ctx.Request.Headers["X-Forwarded-For"];
+                if (fwds.Count > 0)
+                {
+                    var fwdIP = (fwds[0] ?? "").Trim();
+                    if (fwdIP.Length > 0)
+                    {
+                        try
+                        {
+                            var ipe = System.Net.IPEndPoint.Parse(fwdIP);
+                            return ipe.Address.ToString();
+                        }
+                        catch
+                        {
+                        }
+                    }
+                }
+            }
+
+            return connIP;
+        }
+
         private static void LogException(Exception ex, HttpContext ctx, WebTask? task = null)
         {
             try
             {
-                string message = ctx.Request.Method + " " + ctx.Request.Path + " " + ctx.Connection.RemoteIpAddress!.ToString() + " " + ctx.Connection.Id;
+                string message = ctx.Request.Method + " " + ctx.Request.Path + " " + GetRealIP(ctx) + " " + ctx.Connection.Id;
                 Application.LogException("webdspch", message, ex);
 
                 if ((task != null) && (ctx.Request.ContentLength > 0))
@@ -297,7 +324,7 @@ namespace Brayns.Shaper
         private static async Task<WebTask> ParseRequest(HttpContext ctx, bool isRawRequest)
         {
             WebTask task = new();
-            task.Address = ctx.Connection.RemoteIpAddress!.ToString();
+            task.Address = GetRealIP(ctx);
 
             if (ctx.Request.Headers.ContainsKey("Accept-Language"))
                 task.CultureInfo = TryGetCulture(ctx.Request.Headers["Accept-Language"]!);

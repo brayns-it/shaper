@@ -41,6 +41,18 @@ namespace Brayns.Shaper
         public static List<string> SourcesPath { get; } = new();
         public static Dictionary<ClientAccess, Type> ClientAccesses { get; } = new();
 
+        internal static bool IsFromProxyNetwork(string addr)
+        {
+            if (Config.ProxyNetwork.Length == 0) return true;
+            if (addr.Length == 0) return false;
+
+            foreach (var s in Config.ProxyNetwork.Split(','))
+                if (addr.StartsWith(s))
+                    return true;
+
+            return false;
+        }
+
         internal static bool IsFromMaintenanceNetwork()
         {
             if (Config.MaintenanceNetwork.Length == 0) return true;
