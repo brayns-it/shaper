@@ -1,24 +1,22 @@
-﻿using Newtonsoft.Json.Linq;
-
-namespace Brayns.Shaper.Fields
+﻿namespace Brayns.Shaper.Fields
 {
     public class Timestamp : BaseField
     {
-        public new long Value
+        public new ulong Value
         {
-            get { return (long)base.Value!; }
+            get { return (ulong)base.Value!; }
             internal set { base.Value = CheckValue(value); }
         }
 
-        public new long XValue
+        public new ulong XValue
         {
-            get { return (long)base.XValue!; }
+            get { return (ulong)base.XValue!; }
             internal set { base.XValue = CheckValue(value); }
         }
 
-        public new long InitValue
+        public new ulong InitValue
         {
-            get { return (long)base.InitValue!; }
+            get { return (ulong)base.InitValue!; }
             internal set { base.InitValue = CheckValue(value); }
         }
 
@@ -30,7 +28,7 @@ namespace Brayns.Shaper.Fields
             Value = 0;
             XValue = 0;
             InitValue = 0;
-            TestValue = 0L;
+            TestValue = Convert.ToUInt64(0);
 
             Create();
         }
@@ -47,7 +45,7 @@ namespace Brayns.Shaper.Fields
 
         internal override object? CheckValue(object? value)
         {
-            return Convert.ToInt64(value!);
+            return Convert.ToUInt64(value!);
         }
 
         public override string Format()
@@ -60,7 +58,7 @@ namespace Brayns.Shaper.Fields
             return SerializeJson(Value);
         }
 
-        public static JValue SerializeJson(long value)
+        public static JValue SerializeJson(ulong value)
         {
             return new JValue(value);
         }

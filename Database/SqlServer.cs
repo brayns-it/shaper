@@ -525,7 +525,7 @@ namespace Brayns.Shaper.Database
         protected override object ToSqlValue(BaseField f, object? value)
         {
             if (f.Type == FieldTypes.TIMESTAMP)
-                return LongToTimestamp((long)value!);
+                return LongToTimestamp((ulong)value!);
 
             if ((f.Type == FieldTypes.CODE) || (f.Type == FieldTypes.TEXT))
                 return value!;
@@ -617,7 +617,7 @@ namespace Brayns.Shaper.Database
 
         protected override void SetVersionAfterExecute(BaseTable table)
         {
-            table.TableVersion.Value = Query("SELECT CAST(@@DBTS AS bigint) [dbts]")[0].Value<long>("dbts");
+            table.TableVersion.Value = Query("SELECT CAST(@@DBTS AS bigint) [dbts]")[0].Value<ulong>("dbts");
         }
 
         protected override string GetTop(int limitRows)
@@ -633,32 +633,17 @@ namespace Brayns.Shaper.Database
             // return "OFFSET 0 ROWS FETCH FIRST " + limitRows.ToString() + " ROWS ONLY";
         }
 
-        private byte[] LongToTimestamp(long val)
+        private byte[] LongToTimestamp(ulong val)
         {
-            byte[] res = new byte[8];
-            res[7] = Convert.ToByte(val & 0xFF);
-            res[6] = Convert.ToByte((val >> 8) & 0xFF);
-            res[5] = Convert.ToByte((val >> 16) & 0xFF);
-            res[4] = Convert.ToByte((val >> 24) & 0xFF);
-            res[3] = Convert.ToByte((val >> 32) & 0xFF);
-            res[2] = Convert.ToByte((val >> 40) & 0xFF);
-            res[1] = Convert.ToByte((val >> 48) & 0xFF);
-            res[0] = Convert.ToByte((val >> 56) & 0xFF);
-            return res;
+            var buf = BitConverter.GetBytes(val);
+            Array.Reverse(buf);
+            return buf;
         }
 
-        private long TimestampToLong(byte[] buf)
+        private ulong TimestampToLong(byte[] buf)
         {
-            long res = buf[7] +
-                       (buf[6] << 8) +
-                       (buf[5] << 16) +
-                       (buf[4] << 24) +
-                       (buf[3] << 32) +
-                       (buf[2] << 40) +
-                       (buf[1] << 48) +
-                       (buf[0] << 56);
-
-            return res;
+            Array.Reverse(buf);
+            return BitConverter.ToUInt64(buf);
         }
 
     }
