@@ -122,6 +122,9 @@ namespace Brayns.Shaper.Fields
 
         public static decimal EvaluateText(string text)
         {
+            if (text.Trim().Length == 0)
+                return 0;
+
             text = text.Replace(",", ".");
 
             NumberFormatInfo nfi = new NumberFormatInfo();

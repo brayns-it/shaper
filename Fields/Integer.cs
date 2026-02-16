@@ -71,6 +71,9 @@ namespace Brayns.Shaper.Fields
 
         public static int EvaluateText(string text)
         {
+            if (text.Trim().Length == 0)
+                return 0;
+
             return int.Parse(text.Trim());
         }
 
