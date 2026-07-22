@@ -327,12 +327,11 @@ namespace Brayns.Shaper
 
         public static void LogException(string context, string message, Exception ex)
         {
-            var fe = new Classes.FormattedException(ex);
+            var fe = ex.ToString();
+            fe = fe.Replace("\r", "").Replace("\n", " ");
 
             if (message.Length > 0) message += " ";
-            message += fe.Message;
-            foreach (var t in fe.Trace)
-                message += " " + t;
+            message += fe;
 
             Log(context, "E", message);
         }

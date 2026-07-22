@@ -442,13 +442,15 @@ namespace Brayns.Shaper.Database
                 dsn += "Integrated Security=true;";
             }
 
-            dsn += "MultipleActiveResultSets=True;";
+            dsn += "MultipleActiveResultSets=False;";
 
             return dsn;
         }
 
         protected override DbConnection GetConnection()
         {
+            AppContext.SetSwitch("Switch.Microsoft.Data.SqlClient.UseManagedNetworkingOnWindows", false);
+
             var conn = new SqlConnection(Dsn);
             conn.Open();
             return conn;
@@ -456,12 +458,22 @@ namespace Brayns.Shaper.Database
 
         protected override DbCommand CreateCommand(string sql, params object[] args)
         {
+            if ((Connection == null) || (Connection.State != System.Data.ConnectionState.Open))
+            {
+                Transaction = null;
+                Connection = GetConnection();
+            }
+
             var cmd = Connection!.CreateCommand();
-            if (Transaction == null) Transaction = Connection!.BeginTransaction(System.Data.IsolationLevel.ReadCommitted);
+            cmd.CommandTimeout = 30;
+
+            if (Transaction == null)
+                Transaction = Connection!.BeginTransaction(System.Data.IsolationLevel.ReadCommitted);
+            
             cmd.Transaction = Transaction;
             cmd.CommandText = sql;
             for (int i = 0; i < args.Length; i++)
-                cmd.Parameters.Add(new SqlParameter("@p" + i.ToString(), args[i]));
+                cmd.Parameters.Add(new SqlParameter("@p" + i.ToString(), args[i] ?? DBNull.Value));
 
             return cmd;
         }

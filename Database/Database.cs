@@ -65,7 +65,7 @@ namespace Brayns.Shaper.Database
 
         public DbConnection? Connection { get; protected set; }
         public string Dsn { get; protected set; } = "";
-        
+
         internal int DatasetSize { get; set; } = 50;
         internal DatabaseCompileMode CompileMode { get; set; } = DatabaseCompileMode.Normal;
         internal List<string> CompileResult { get; init; } = new();
@@ -162,17 +162,21 @@ namespace Brayns.Shaper.Database
 
         internal int Execute(string sql, params object[] args)
         {
-            var cmd = CreateCommand(sql, args);
-
-            if (CurrentSession.DatabaseDebug)
+            using (var cmd = CreateCommand(sql, args))
             {
-                DateTime dt = DateTime.Now;
-                var result = cmd.ExecuteNonQuery();
-                LogStatement(dt, sql, args);
-                return result;
+                if (CurrentSession.DatabaseDebug)
+                {
+                    DateTime dt = DateTime.Now;
+                    var result = cmd.ExecuteNonQuery();
+                    LogStatement(dt, sql, args);
+                    return result;
+                }
+                else
+                {
+                    var result = cmd.ExecuteNonQuery();
+                    return result;
+                }
             }
-            else
-                return cmd.ExecuteNonQuery();
         }
 
         public void Commit()
@@ -229,9 +233,11 @@ namespace Brayns.Shaper.Database
             var res = new DbTable();
             DbRow? row;
 
-            var rdr = ExecuteReader(sql, args);
-            while ((row = ReadRow(rdr)) != null)
-                res.Add(row);
+            using (var rdr = ExecuteReader(sql, args))
+            {
+                while ((row = ReadRow(rdr)) != null)
+                    res.Add(row);
+            }
 
             return res;
         }

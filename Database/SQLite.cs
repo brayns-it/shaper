@@ -392,7 +392,7 @@ namespace Brayns.Shaper.Database
             // sqlite currently not support transactions to avoid database lock
 
             for (int i = 0; i < args.Length; i++)
-                cmd.Parameters.Add(new SqliteParameter("$p" + i.ToString(), args[i]));
+                cmd.Parameters.Add(new SqliteParameter("$p" + i.ToString(), args[i] ?? DBNull.Value));
 
             return cmd;
         }
