@@ -347,6 +347,8 @@ namespace Brayns.Shaper
             {
                 case DatabaseTypes.SQLSERVER:
                     return new SqlServer();
+                case DatabaseTypes.SQLSERVER_ODBC:
+                    return new SqlServerOdbc();                    
                 case DatabaseTypes.SQLITE:
                     return new SQLite();
                 case DatabaseTypes.MYSQL:

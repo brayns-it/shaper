@@ -20,6 +20,9 @@ namespace Brayns.Shaper.Database
 
         [Label("MySQL")]
         public const int MYSQL = 3;
+
+        [Label("SQL Server (ODBC)")]
+        public const int SQLSERVER_ODBC = 4;
     }
 
     public enum DatabaseCompileMode

@@ -11,10 +11,11 @@ using System.Reflection.Emit;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
+using System.Data.Odbc;
 
 namespace Brayns.Shaper.Database
 {
-    public class SqlServer : Database
+    public class SqlServerOdbc : Database
     {
         private string DatabaseCollation { get; set; } = "";
 
@@ -26,7 +27,7 @@ namespace Brayns.Shaper.Database
         protected override List<string> GetTables()
         {
             var res = new List<string>();
-            foreach (var row in Query("SELECT o.name FROM sysobjects o WHERE o.xtype = @p0", "U"))
+            foreach (var row in Query("SELECT o.name FROM sysobjects o WHERE o.xtype = ?", "U"))
                 res.Add(row.Value<string>("name"));
             return res;
         }
@@ -41,7 +42,7 @@ namespace Brayns.Shaper.Database
         private List<string> GetIndex(BaseTable table, string key)
         {
             var res = Query(@"SELECT c.name FROM sys.objects o, sys.indexes i, sys.index_columns x, sys.columns c 
-                WHERE (o.name = @p0) AND (o.type = @p1) AND (o.object_id = i.object_id) AND (i.name = @p2) AND
+                WHERE (o.name = ?) AND (o.type = ?) AND (o.object_id = i.object_id) AND (i.name = ?) AND
                 (x.object_id = o.object_id) AND (x.index_id = i.index_id) AND (c.object_id = o.object_id) AND
                 (c.column_id = x.column_id) ORDER BY x.key_ordinal",
                 table.TableSqlName, "U", key);
@@ -56,7 +57,7 @@ namespace Brayns.Shaper.Database
         private List<string> GetPrimaryKey(BaseTable table)
         {
             var res = Query(@"SELECT c.name FROM sys.objects o, sys.indexes i, sys.index_columns x, sys.columns c 
-                WHERE (o.name = @p0) AND (o.type = @p1) AND (o.object_id = i.object_id) AND (i.is_primary_key = 1) AND
+                WHERE (o.name = ?) AND (o.type = ?) AND (o.object_id = i.object_id) AND (i.is_primary_key = 1) AND
                 (x.object_id = o.object_id) AND (x.index_id = i.index_id) AND (c.object_id = o.object_id) AND
                 (c.column_id = x.column_id) ORDER BY x.key_ordinal",
                 table.TableSqlName, "U");
@@ -190,8 +191,8 @@ namespace Brayns.Shaper.Database
         private void DropIndexByColumn(string colName)
         {
             var res = Query(@"SELECT i.name FROM sys.objects o, sys.indexes i, sys.index_columns x, sys.columns c 
-                WHERE (o.name = @p0) AND (o.type = @p1) AND (o.object_id = i.object_id) AND (i.is_primary_key = 0) AND
-                (c.name = @p2) AND
+                WHERE (o.name = ?) AND (o.type = ?) AND (o.object_id = i.object_id) AND (i.is_primary_key = 0) AND
+                (c.name = ?) AND
                 (x.object_id = o.object_id) AND (x.index_id = i.index_id) AND (c.object_id = o.object_id) AND
                 (c.column_id = x.column_id) ORDER BY x.key_ordinal",
                 CompilingTable!.TableSqlName, "U", colName);
@@ -206,8 +207,8 @@ namespace Brayns.Shaper.Database
         private void DropIndex(string key)
         {
             var res = Query(@"SELECT i.[name] FROM sys.objects o, sys.indexes i
-                WHERE (o.name = @p0) AND (o.type = @p1) AND (o.object_id = i.object_id) AND
-                (i.name = @p2)",
+                WHERE (o.name = ?) AND (o.type = ?) AND (o.object_id = i.object_id) AND
+                (i.name = ?)",
                 CompilingTable!.TableSqlName, "U", key);
 
             if (res.Count == 0)
@@ -220,7 +221,7 @@ namespace Brayns.Shaper.Database
         private void DropPrimaryKey()
         {
             var res = Query(@"SELECT i.[name] FROM sys.objects o, sys.indexes i
-                WHERE (o.name = @p0) AND (o.type = @p1) AND (o.object_id = i.object_id) AND
+                WHERE (o.name = ?) AND (o.type = ?) AND (o.object_id = i.object_id) AND
                 (i.is_primary_key = 1)",
                 CompilingTable!.TableSqlName, "U");
 
@@ -235,13 +236,13 @@ namespace Brayns.Shaper.Database
 
         private void ProcessTable()
         {
-            if (Query("SELECT TOP 1 NULL FROM sysobjects WHERE (xtype = @p0) AND (name = @p1)",
+            if (Query("SELECT TOP 1 NULL FROM sysobjects WHERE (xtype = ?) AND (name = ?)",
                 "U", CompilingTable!.TableSqlName).Count > 0)
             {
                 var res = Query(@"SELECT c.is_identity, c.max_length, t.name AS typename, c.precision, c.scale, 
                     c.name, c.is_nullable, c.collation_name 
                     FROM sys.objects o, sys.columns c, sys.types t
-                    WHERE (o.name = @p0) AND (o.type = @p1) AND (c.object_id = o.object_id) AND 
+                    WHERE (o.name = ?) AND (o.type = ?) AND (c.object_id = o.object_id) AND 
                     (c.system_type_id = t.system_type_id) AND (c.user_type_id = t.user_type_id)",
                     CompilingTable!.TableSqlName,
                     "U");
@@ -420,9 +421,9 @@ namespace Brayns.Shaper.Database
 
         public static string CreateConnectionString(string server, string database, string envName)
         {
-            return "Data Source=" + server + ";Initial Catalog=" + database +
-                ";Application Name=" + envName +
-                ";Trust Server Certificate=true";
+            return "Driver={ODBC Driver 18 for SQL Server};Server=" + server + ";Database=" + database +
+                ";APP=" + envName +
+                ";TrustServerCertificate=yes";
         }
 
         internal override string GetConnectionString()
@@ -432,23 +433,23 @@ namespace Brayns.Shaper.Database
 
             if (Application.Config.DatabaseLogin.Length > 0)
             {
-                dsn += "User ID=" + Application.Config.DatabaseLogin + ";";
+                dsn += "UID=" + Application.Config.DatabaseLogin + ";";
                 if (Application.Config.DatabasePassword.Length > 0)
-                    dsn += "Password=" + Application.Config.DatabasePassword + ";";
+                    dsn += "PWD=" + Application.Config.DatabasePassword + ";";
             }
             else
             {
-                dsn += "Integrated Security=true;";
+                dsn += "Trusted_Connectiony=yes;";
             }
 
-            dsn += "MultipleActiveResultSets=False;";
+            dsn += "MARS_Connection=no;";
 
             return dsn;
         }
 
         protected override DbConnection GetConnection()
         {
-            var conn = new Microsoft.Data.SqlClient.SqlConnection(Dsn);
+            var conn = new OdbcConnection(Dsn);
             conn.Open();
             return conn;
         }
@@ -470,7 +471,16 @@ namespace Brayns.Shaper.Database
             cmd.Transaction = Transaction;
             cmd.CommandText = sql;
             for (int i = 0; i < args.Length; i++)
-                cmd.Parameters.Add(new Microsoft.Data.SqlClient.SqlParameter("@p" + i.ToString(), args[i] ?? DBNull.Value));
+            {
+                var par = new OdbcParameter();
+                par.Value = args[i] ?? DBNull.Value;
+                if (par.Value.GetType() == typeof(System.DateTime))
+                {
+                    par.Precision = 23;
+                    par.Scale = 3;
+                }
+                cmd.Parameters.Add(par);
+            }
 
             return cmd;
         }
@@ -597,7 +607,7 @@ namespace Brayns.Shaper.Database
 
         protected override string GetParameterName(int number)
         {
-            return "@p" + number.ToString();
+            return "?";
         }
 
         protected override void OnFindSetAfterFrom(BaseTable table, ref string sql)
