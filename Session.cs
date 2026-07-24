@@ -49,6 +49,7 @@ namespace Brayns.Shaper
         internal bool IsNew { get; set; }
         internal bool DatabaseDebug { get; set; }
         internal string ApplicationName { get; set; }
+        internal string Description { get; set; }
         internal bool IsSuperuser { get; set; }
         internal DateTime LastPoll { get; set; }
         internal bool CancelRequested { get; private set; }
@@ -68,6 +69,7 @@ namespace Brayns.Shaper
             IsSuperuser = false;
             CancelRequested = false;
             LastPoll = DateTime.Now;
+            Description = "";
         }
 
         public override string ToString()
@@ -95,6 +97,7 @@ namespace Brayns.Shaper
         public Guid? Id { get; set; }
         public String? AuthenticationId { get; set; }
         public string? Address { get; set; }
+        public string? Description { get; set; }
         internal WebTask? WebTask { get; set; }
         internal SessionData? Parent { get; set; }
     }
@@ -177,6 +180,23 @@ namespace Brayns.Shaper
         {
             get { return Instance.UserId; }
             set { Instance.UserId = value; }
+        }
+
+        public static string Description
+        {
+            get { return Instance.Description; }
+            set { Instance.Description = value; }
+        }
+
+        public static Guid ParentId
+        {
+            get
+            {
+                if (Instance.Parent != null)
+                    return Instance.Parent.Id;
+                else
+                    return Guid.Empty;
+            }
         }
 
         public static string Server
@@ -348,7 +368,7 @@ namespace Brayns.Shaper
                 case DatabaseTypes.SQLSERVER:
                     return new SqlServer();
                 case DatabaseTypes.SQLSERVER_ODBC:
-                    return new SqlServerOdbc();                    
+                    return new SqlServerOdbc();
                 case DatabaseTypes.SQLITE:
                     return new SQLite();
                 case DatabaseTypes.MYSQL:
@@ -440,6 +460,7 @@ namespace Brayns.Shaper
 
                 if (arg.Type != null) Type = arg.Type;
                 if (arg.Address != null) Address = arg.Address;
+                if (arg.Description != null) Description = arg.Description;
                 if (arg.CultureInfo != null) CultureInfo = arg.CultureInfo;
                 if (arg.WebTask != null) Instance.WebTask = arg.WebTask;
                 if (arg.AuthenticationId != null) AuthenticationId = arg.AuthenticationId;

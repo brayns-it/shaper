@@ -14,6 +14,7 @@
 
         public object? Tag { get; set; }
 
+        public string Description { get; set; } = "";
         public string TypeName { get; set; } = "";
         public string MethodName { get; set; } = "";
         public object[] Parameters { get; set; } = new object[0];
@@ -59,7 +60,8 @@
                 {
                     Id = Guid.NewGuid(),
                     Type = SessionTypes.BATCH,
-                    Parent = ParentInstance
+                    Parent = ParentInstance,
+                    Description = Description
                 });
                 CurrentSession.IsSuperuser = true;
 
